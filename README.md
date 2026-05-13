@@ -100,6 +100,12 @@ Local development starts with the mock provider.
 AI_PROVIDER=mock
 ```
 
+Development-only assistant tooling can be documented separately from production AI execution.
+
+```env
+DEVELOPMENT_AI_ASSISTANT=codex
+```
+
 Supported provider keys are prepared for later gateway implementation:
 
 ```env
@@ -116,7 +122,25 @@ GEMINI_MODEL=
 
 Claude access must go through the server-side AI Provider Gateway. Client Components must never import Anthropic SDKs or read `ANTHROPIC_API_KEY`.
 
-Codex subscription access and OpenAI API access are separate operating surfaces. ChatGPT subscription access can be used from Codex clients such as Codex CLI, IDE integrations, or Codex cloud tasks. A production app server should call OpenAI models through the OpenAI API with server-only credentials and usage controls.
+### Codex for Development Only
+
+Codex subscription access is allowed for local development assistance, experiments, implementation planning, debugging, and test-case generation.
+
+Do not wire Codex subscription access into production user-facing AI execution. Production routes should call the server-side AI Provider Gateway with explicit provider credentials, usage limits, audit logging, and safety checks.
+
+Allowed development uses:
+
+- Running Codex CLI or Codex app tasks against the local repository
+- Generating implementation plans and review notes
+- Drafting tests, fixtures, and migration checks
+- Debugging local build, lint, and type errors
+
+Not allowed:
+
+- Calling Codex subscription access from browser code
+- Calling Codex subscription access from production API routes
+- Treating a personal ChatGPT/Codex session as a shared backend credential
+- Bypassing AI Provider Gateway cost limits, safety checks, or logs for user-facing features
 
 ## Project Structure
 
