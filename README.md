@@ -103,7 +103,7 @@ AI_PROVIDER=mock
 Development-only assistant tooling can be documented separately from production AI execution.
 
 ```env
-DEVELOPMENT_AI_ASSISTANT=codex
+DEVELOPMENT_AI_ASSISTANT=codex-sdk
 ```
 
 Supported provider keys are prepared for later gateway implementation:
@@ -122,14 +122,39 @@ GEMINI_MODEL=
 
 Claude access must go through the server-side AI Provider Gateway. Client Components must never import Anthropic SDKs or read `ANTHROPIC_API_KEY`.
 
-### Codex for Development Only
+### Codex SDK for Development Only
 
-Codex subscription access is allowed for local development assistance, experiments, implementation planning, debugging, and test-case generation.
+Use the SDK/API route for development-only Codex experiments when the app needs a programmable integration point.
 
-Do not wire Codex subscription access into production user-facing AI execution. Production routes should call the server-side AI Provider Gateway with explicit provider credentials, usage limits, audit logging, and safety checks.
+Do not wire Codex access into production user-facing AI execution. Production routes should call the server-side AI Provider Gateway with explicit provider credentials, usage limits, audit logging, and safety checks.
+
+For local development, prefer:
+
+```text
+Development tool / local script
+  ↓
+OpenAI SDK / Responses API
+  ↓
+Codex-capable model
+  ↓
+Generated implementation notes, test drafts, or debug suggestions
+```
+
+Keep this separate from the product runtime:
+
+```text
+Browser / user-facing feature
+  ↓
+Next.js API Route / Server Action
+  ↓
+AI Provider Gateway
+  ↓
+OpenAI / Anthropic Claude / Gemini
+```
 
 Allowed development uses:
 
+- Running local SDK scripts for repository analysis
 - Running Codex CLI or Codex app tasks against the local repository
 - Generating implementation plans and review notes
 - Drafting tests, fixtures, and migration checks
@@ -137,8 +162,8 @@ Allowed development uses:
 
 Not allowed:
 
-- Calling Codex subscription access from browser code
-- Calling Codex subscription access from production API routes
+- Calling Codex SDK/API experiments from browser code
+- Calling Codex SDK/API experiments from production API routes
 - Treating a personal ChatGPT/Codex session as a shared backend credential
 - Bypassing AI Provider Gateway cost limits, safety checks, or logs for user-facing features
 
