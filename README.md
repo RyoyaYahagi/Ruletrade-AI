@@ -40,7 +40,7 @@ npm run typecheck
 
 ## Secret Management
 
-Do not call OpenAI, Gemini, Stripe, or Supabase Admin APIs directly from the browser.
+Do not call OpenAI, Anthropic Claude, Gemini, Stripe, or Supabase Admin APIs directly from the browser.
 
 Client components should call internal API routes, Server Actions, or Supabase Edge Functions.
 
@@ -51,7 +51,7 @@ Next.js API Route / Server Action / Supabase Edge Function
   ↓
 AI Provider Gateway / Supabase Admin / Stripe
   ↓
-OpenAI / Gemini / Supabase / Stripe
+OpenAI / Anthropic Claude / Gemini / Supabase / Stripe
 ```
 
 Use `.env.local` only for local development. Do not commit `.env.local`.
@@ -73,6 +73,7 @@ Never create public versions of these variables.
 
 ```env
 OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 STRIPE_SECRET_KEY=
@@ -84,11 +85,38 @@ Never create these variables:
 
 ```env
 NEXT_PUBLIC_OPENAI_API_KEY=
+NEXT_PUBLIC_ANTHROPIC_API_KEY=
 NEXT_PUBLIC_GEMINI_API_KEY=
 NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 Files that read secrets must stay server-only. Add `import "server-only";` to server-only modules that access API keys or service role credentials.
+
+### AI Provider Configuration
+
+Local development starts with the mock provider.
+
+```env
+AI_PROVIDER=mock
+```
+
+Supported provider keys are prepared for later gateway implementation:
+
+```env
+OPENAI_API_KEY=
+OPENAI_MODEL=
+OPENAI_CODEX_MODEL=
+
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=
+
+GEMINI_API_KEY=
+GEMINI_MODEL=
+```
+
+Claude access must go through the server-side AI Provider Gateway. Client Components must never import Anthropic SDKs or read `ANTHROPIC_API_KEY`.
+
+Codex subscription access and OpenAI API access are separate operating surfaces. ChatGPT subscription access can be used from Codex clients such as Codex CLI, IDE integrations, or Codex cloud tasks. A production app server should call OpenAI models through the OpenAI API with server-only credentials and usage controls.
 
 ## Project Structure
 
