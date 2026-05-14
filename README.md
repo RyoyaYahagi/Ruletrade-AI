@@ -2,6 +2,12 @@
 
 AIと一緒に投資ルールを作成・レビューするアプリです。
 
+## Safety
+
+Ruletrade-AI does not provide investment advice.
+
+AI output is used to identify missing rule-design elements, clarify assumptions, and generate follow-up questions. It is checked before display. Outputs that look like buy/sell recommendations, price predictions, or profit guarantees are blocked.
+
 ## Development
 
 ### Requirements
@@ -222,6 +228,15 @@ Not allowed:
 - Calling Codex SDK/API experiments from production API routes
 - Treating a personal ChatGPT/Codex session as a shared backend credential
 - Bypassing AI Provider Gateway cost limits, safety checks, or logs for user-facing features
+
+## Safety
+
+Ruletrade-AI does not provide investment advice.
+
+- AI output is used to identify missing rule-design elements, clarify assumptions, and generate follow-up questions.
+- AI output is checked before display. Outputs that look like buy/sell recommendations or guaranteed predictions are blocked.
+- The Safety Check layer scans AI-generated text for prohibited phrases (e.g. buy/sell recommendations, price predictions, profit guarantees, urgency pressure, privacy risks) and enforces a `block` / `warn` / `allow` decision.
+- See `docs/safety.md` for the full Safety Policy and prohibited phrase categories.
 
 ## Project Structure
 

@@ -9,6 +9,8 @@ export const SafetyViolationTypeSchema = z.enum([
   "profit_guarantee",
   "loss_avoidance_guarantee",
   "decision_delegation",
+  "urgency_pressure",
+  "fear_mongering",
   "privacy_risk",
   "other",
 ]);

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SafetyCheckSchema } from "@/schemas/safety/safety-check-schema";
 
 export const RuleReviewSchema = z.object({
   summary: z.string().min(1),
@@ -26,15 +27,11 @@ export const RuleReviewSchema = z.object({
       source: z.enum(["ai", "system", "user"]),
       status: z.enum(["pending", "answered", "skipped"]),
       displayOrder: z.number().int().min(0),
+      helpText: z.string().min(1).optional(),
     }),
   ),
   suggestedRuleUpdates: z.array(z.unknown()),
-  safety: z.object({
-    passed: z.boolean(),
-    riskLevel: z.enum(["low", "medium", "high"]),
-    violations: z.array(z.string()),
-    prohibitedPhrasesDetected: z.array(z.string()),
-  }),
+  safety: SafetyCheckSchema,
 });
 
 export const ruleReviewOutputSchema = RuleReviewSchema;

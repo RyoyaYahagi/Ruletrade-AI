@@ -3,10 +3,54 @@ import "server-only";
 import { createClient } from "@/lib/db/supabase-server";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { AppError } from "@/lib/errors/app-error";
+import { runSafetyCheck } from "@/lib/safety/safety-check-service";
+import { buildRuleReviewSafetyText } from "@/lib/safety/safety-text";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
   return type;
+}
+
+async function saveUnsafeRuleReview(params: {
+  userId: string;
+  sessionId: string;
+  aiResult: {
+    meta: {
+      provider: string;
+      model: string;
+      promptVersion?: string;
+      latencyMs: number;
+    };
+    usage: {
+      inputTokens?: number;
+      outputTokens?: number;
+      estimatedCostUsd?: number;
+    };
+  };
+  review: unknown;
+  safety: unknown;
+}) {
+  const supabase = await createClient();
+
+  await supabase.from("rule_reviews").insert({
+    user_id: params.userId,
+    session_id: params.sessionId,
+    provider: params.aiResult.meta.provider,
+    model: params.aiResult.meta.model,
+    prompt_version: params.aiResult.meta.promptVersion ?? "unknown",
+    review_json: params.review,
+    summary: null,
+    completion_score: null,
+    needs_more_info: true,
+    can_finalize: false,
+    safety_passed: false,
+    schema_valid: true,
+    input_tokens: params.aiResult.usage.inputTokens ?? null,
+    output_tokens: params.aiResult.usage.outputTokens ?? null,
+    estimated_cost_usd: params.aiResult.usage.estimatedCostUsd ?? null,
+    latency_ms: params.aiResult.meta.latencyMs,
+    error_message: "SAFETY_FAILED",
+  });
 }
 
 export async function runRuleReview(params: { userId: string; sessionId: string }) {
@@ -47,6 +91,41 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
 
   const review = aiResult.data;
 
+  const safetyText = buildRuleReviewSafetyText(review);
+
+  const safety = runSafetyCheck({
+    text: safetyText,
+    context: {
+      taskType: "rule_review",
+      sourceType: "rule_review",
+    },
+  });
+
+  const reviewWithSafety = {
+    ...review,
+    safety,
+  };
+
+  if (!safety.passed) {
+    await saveUnsafeRuleReview({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      aiResult,
+      review: reviewWithSafety,
+      safety,
+    });
+
+    throw new AppError(
+      "SAFETY_FAILED",
+      "AI出力に安全性の問題があったため、表示できません。",
+      422,
+      {
+        safety,
+      },
+      false
+    );
+  }
+
   const { data: savedReview, error: reviewError } = await supabase
     .from("rule_reviews")
     .insert({
@@ -55,12 +134,12 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
       provider: aiResult.meta.provider,
       model: aiResult.meta.model,
       prompt_version: aiResult.meta.promptVersion ?? "unknown",
-      review_json: review,
+      review_json: reviewWithSafety,
       summary: review.summary,
       completion_score: review.completionScore,
       needs_more_info: review.needsMoreInfo,
       can_finalize: review.canFinalize,
-      safety_passed: review.safety?.passed ?? true,
+      safety_passed: safety.passed,
       schema_valid: true,
       input_tokens: aiResult.usage.inputTokens ?? null,
       output_tokens: aiResult.usage.outputTokens ?? null,

@@ -106,6 +106,7 @@ function getMockObject(taskType: string, schemaName: string): unknown {
         riskLevel: "low",
         violations: [],
         prohibitedPhrasesDetected: [],
+        suggestedRewrite: undefined,
       },
     };
   }
