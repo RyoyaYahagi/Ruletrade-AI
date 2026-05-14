@@ -33,11 +33,33 @@ not as an executable truth.
 ```text
 src/
   app/
+    api/
+      me/
+        route.ts
+    auth/
+      callback/
+        route.ts
+    dashboard/
+      page.tsx
     layout.tsx
+    login/
+      page.tsx
     page.tsx
+    signup/
+      page.tsx
   components/
     ui/
   features/
+    auth/
+      components/
+        login-form.tsx
+        logout-button.tsx
+        signup-form.tsx
+      pages/
+        login-page.tsx
+        signup-page.tsx
+      services/
+        auth-client-service.ts
     rules/
       components/
         rule-agent-workbench.tsx
@@ -46,6 +68,17 @@ src/
         trading-rule-validation.ts
       model.ts
   lib/
+    auth/
+      get-current-user.ts
+      require-admin.ts
+      require-user.ts
+    db/
+      supabase-admin.ts
+      supabase-browser.ts
+      supabase-server.ts
+      update-session.ts
+    errors/
+      app-error.ts
     utils.ts
   schemas/
     rules/
@@ -164,6 +197,22 @@ rule was approved, blocked, or rejected.
 When Supabase is introduced, keep service-role access on the server side only.
 Browser code may use public Supabase anon configuration, but must never access
 service-role credentials.
+
+### Auth Layer
+
+Supabase clients are split by runtime:
+
+- `src/lib/db/supabase-browser.ts` is for Client Components and uses only
+  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- `src/lib/db/supabase-server.ts` is for Server Components, Server Actions, and
+  Route Handlers that need the current user's cookie-backed session.
+- `src/lib/db/supabase-admin.ts` is server-only and reserved for privileged
+  operations that truly require `SUPABASE_SERVICE_ROLE_KEY`.
+
+Use `src/proxy.ts` to refresh Supabase SSR sessions. Protected server routes
+should use `getCurrentUser` for optional auth and `requireUser` when auth is
+mandatory. Client code must never import the admin client or read service-role
+credentials.
 
 ## AI Provider Boundary
 

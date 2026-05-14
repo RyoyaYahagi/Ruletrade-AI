@@ -24,6 +24,9 @@ approval and activation.
     targets.
   - `docs/ai-agent-organization.md` for the high-level multi-agent
     organization model.
+  - `docs/frontend-design-reference.md` before implementing or changing
+    investment-facing frontend screens; use the local `frontend-design/`
+    mockups as the UI reference.
   - The relevant file under `node_modules/next/dist/docs/` before using or
     changing Next.js APIs, routing, rendering, metadata, server actions, or
     config.
@@ -84,6 +87,10 @@ approval and activation.
 - Keep UI copy sober and precise. Avoid implying investment certainty.
 - Do not add client-visible feature instructions or implementation notes as UI
   filler.
+- For investment-facing frontend work, compare against the relevant
+  `frontend-design/` mockup and preserve the review-bench structure: structured
+  draft, review warnings, evidence, unresolved items, and explicit approval
+  boundary.
 
 ## Verification
 

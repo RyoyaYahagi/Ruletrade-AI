@@ -196,6 +196,8 @@ Ruletrade-AI is drifting when:
 
 - `docs/architecture.md` explains how the system should be structured.
 - `docs/ai-agent-organization.md` explains how AI responsibilities are split.
+- `docs/frontend-design-reference.md` explains how to use the local
+  `frontend-design/` mockups when implementing investment-facing UI.
 - `AGENTS.md` explains what coding agents must read and preserve while working.
 - ADRs in `docs/adr/` should record durable product or architecture decisions
   when the team chooses one path over another.

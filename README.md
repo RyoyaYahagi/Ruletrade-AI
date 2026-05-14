@@ -23,11 +23,16 @@ Open `http://localhost:3000` and confirm that `Ruletrade-AI` is displayed.
 ### Supabase Local
 
 ```bash
-npx supabase init
-npx supabase start
+npx supabase --help
+npm run db:start
+npm run db:status
+npm run db:stop
 ```
 
-`npx supabase start` requires Docker Desktop to be running.
+`npm run db:start` requires Docker Desktop to be running. The first Supabase CLI
+run may download the CLI through `npx` if it is not already available in your
+environment. If `npm run db:status` reports that the local Supabase container
+does not exist, start it with `npm run db:start`.
 
 ### Scripts
 
@@ -36,7 +41,27 @@ npm run dev
 npm run build
 npm run lint
 npm run typecheck
+npm run db:start
+npm run db:status
+npm run db:stop
 ```
+
+### First Run Check
+
+After setup, run:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000` and confirm the app responds with the
+Ruletrade-AI workbench. For a quick terminal check:
+
+```bash
+curl -I http://localhost:3000
+```
+
+The response should return `HTTP/1.1 200 OK`.
 
 ## Secret Management
 
@@ -88,9 +113,36 @@ NEXT_PUBLIC_OPENAI_API_KEY=
 NEXT_PUBLIC_ANTHROPIC_API_KEY=
 NEXT_PUBLIC_GEMINI_API_KEY=
 NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_STRIPE_SECRET_KEY=
 ```
 
 Files that read secrets must stay server-only. Add `import "server-only";` to server-only modules that access API keys or service role credentials.
+
+## Auth
+
+This project uses Supabase Auth with `@supabase/ssr`.
+
+Supabase clients are separated by runtime:
+
+- Browser client: Client Components only, using public Supabase URL and anon key.
+- Server client: Server Components, Server Actions, and Route Handlers using cookie-backed sessions.
+- Admin client: server-only privileged operations that truly require the service role key.
+
+Never expose `SUPABASE_SERVICE_ROLE_KEY` to browser code and never create
+`NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`.
+
+For local auth callbacks, configure Supabase with:
+
+```text
+Site URL:
+http://localhost:3000
+
+Redirect URL:
+http://localhost:3000/auth/callback
+```
+
+The initial protected route is `/dashboard`. The initial auth status API is
+`/api/me`.
 
 ### AI Provider Configuration
 
