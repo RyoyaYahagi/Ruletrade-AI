@@ -12,7 +12,8 @@
     "db:stop": "npx supabase stop",
     "db:status": "npx supabase status",
     "db:reset": "npx supabase db reset",
-    "db:migration:new": "npx supabase migration new"
+    "db:migration:new": "npx supabase migration new",
+    "db:types": "npx supabase gen types typescript --local --schema public > src/types/database.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
