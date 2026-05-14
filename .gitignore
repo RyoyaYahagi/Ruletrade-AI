@@ -45,6 +45,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Claude
+.claude/
+
 # Playwright
 node_modules/
 /test-results/
