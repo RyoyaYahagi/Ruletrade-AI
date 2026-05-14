@@ -14,7 +14,7 @@ export const RuleReviewSchema = z.object({
       severity: z.enum(["low", "medium", "high"]),
       reason: z.string().min(1),
       suggestedQuestion: z.string().min(1).optional(),
-    }),
+    })
   ),
   nextQuestions: z.array(
     z.object({
@@ -28,7 +28,7 @@ export const RuleReviewSchema = z.object({
       status: z.enum(["pending", "answered", "skipped"]),
       displayOrder: z.number().int().min(0),
       helpText: z.string().min(1).optional(),
-    }),
+    })
   ),
   suggestedRuleUpdates: z.array(z.unknown()),
   safety: SafetyCheckSchema,

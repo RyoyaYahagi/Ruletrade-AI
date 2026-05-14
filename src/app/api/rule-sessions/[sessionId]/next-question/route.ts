@@ -4,7 +4,10 @@ import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { assertOwnRuleSession } from "@/features/rules/services/rule-ownership-service";
 import { getNextQuestion } from "@/features/rules/services/rule-question-service";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ sessionId: string }> }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ sessionId: string }> }
+) {
   const requestId = crypto.randomUUID();
   try {
     const user = await requireUser();

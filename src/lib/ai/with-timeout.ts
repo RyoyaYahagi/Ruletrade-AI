@@ -2,7 +2,7 @@ import { AIProviderError } from "@/lib/ai/ai-provider-error";
 
 export async function withTimeout<T>(
   promise: Promise<T>,
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -13,8 +13,8 @@ export async function withTimeout<T>(
           "AI_PROVIDER_TIMEOUT",
           "AI provider request timed out.",
           undefined,
-          true,
-        ),
+          true
+        )
       );
     }, timeoutMs);
   });

@@ -30,7 +30,9 @@ describe("runSafetyCheck", () => {
 
     expect(result.passed).toBe(false);
     expect(result.riskLevel).toBe("medium");
-    expect(result.violations.some((v) => v.type === "urgency_pressure")).toBe(true);
+    expect(result.violations.some((v) => v.type === "urgency_pressure")).toBe(
+      true
+    );
   });
 
   it("multiple violations collected", () => {

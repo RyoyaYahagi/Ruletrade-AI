@@ -15,7 +15,7 @@ const mockModel = "mock-model";
 
 export class MockProvider implements AIProvider {
   async generateObject<TSchema extends z.ZodType>(
-    params: GenerateObjectParams<TSchema>,
+    params: GenerateObjectParams<TSchema>
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
     const mockData = getMockObject(params.taskType, params.schemaName);
@@ -26,7 +26,7 @@ export class MockProvider implements AIProvider {
         "AI_OUTPUT_SCHEMA_INVALID",
         "Mock output does not match schema.",
         parsed.error.flatten(),
-        false,
+        false
       );
     }
 
@@ -84,7 +84,8 @@ function getMockObject(taskType: string, schemaName: string): unknown {
           status: "warning",
           severity: "medium",
           reason: "最大投資比率が未設定です。",
-          suggestedQuestion: "この銘柄はポートフォリオ全体の何％までにしますか？",
+          suggestedQuestion:
+            "この銘柄はポートフォリオ全体の何％までにしますか？",
         },
       ],
       nextQuestions: [

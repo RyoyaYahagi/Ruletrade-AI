@@ -35,7 +35,7 @@ export class GeminiProvider implements AIProvider {
     if (!apiKey) {
       throw new AIProviderError(
         "AI_PROVIDER_NOT_CONFIGURED",
-        "GEMINI_API_KEY is not set.",
+        "GEMINI_API_KEY is not set."
       );
     }
 
@@ -43,7 +43,7 @@ export class GeminiProvider implements AIProvider {
   }
 
   async generateObject<TSchema extends z.ZodType>(
-    params: GenerateObjectParams<TSchema>,
+    params: GenerateObjectParams<TSchema>
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
     const model = getGeminiModel();
@@ -63,7 +63,7 @@ export class GeminiProvider implements AIProvider {
         throw new AIProviderError(
           "AI_OUTPUT_SCHEMA_INVALID",
           "Gemini output did not match schema.",
-          parsed.error.flatten(),
+          parsed.error.flatten()
         );
       }
 
@@ -118,10 +118,10 @@ export class GeminiProvider implements AIProvider {
       temperature: number;
       maxOutputTokens?: number;
       responseMimeType?: "application/json";
-    },
+    }
   ): Promise<GeminiGenerateContentResponse> {
     const url = new URL(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
     );
     url.searchParams.set("key", this.apiKey);
 
@@ -138,7 +138,7 @@ export class GeminiProvider implements AIProvider {
           },
         }),
       }),
-      getAITimeoutMs(),
+      getAITimeoutMs()
     );
 
     if (!response.ok) {
@@ -148,7 +148,7 @@ export class GeminiProvider implements AIProvider {
           : "AI_PROVIDER_REQUEST_FAILED",
         "Gemini API request failed.",
         { status: response.status, body: await response.text() },
-        response.status >= 500 || response.status === 429,
+        response.status >= 500 || response.status === 429
       );
     }
 
@@ -158,7 +158,7 @@ export class GeminiProvider implements AIProvider {
 
 function toGeminiPrompt(
   messages: Array<{ role: string; content: string }>,
-  schemaName?: string,
+  schemaName?: string
 ): string {
   const prompt = messages
     .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
@@ -190,12 +190,15 @@ function parseJson(rawText: string): unknown {
     throw new AIProviderError(
       "AI_OUTPUT_PARSE_FAILED",
       "Gemini output was not valid JSON.",
-      { rawText, error },
+      { rawText, error }
     );
   }
 }
 
-function normalizeProviderError(error: unknown, message: string): AIProviderError {
+function normalizeProviderError(
+  error: unknown,
+  message: string
+): AIProviderError {
   if (error instanceof AIProviderError) {
     return error;
   }
@@ -204,6 +207,6 @@ function normalizeProviderError(error: unknown, message: string): AIProviderErro
     "AI_PROVIDER_REQUEST_FAILED",
     message,
     error,
-    true,
+    true
   );
 }

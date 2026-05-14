@@ -1,6 +1,10 @@
 import "server-only";
 import { z } from "zod";
-import type { TradingRule, InvestmentMemory, RuleWarning } from "@/schemas/rules/trading-rule";
+import type {
+  TradingRule,
+  InvestmentMemory,
+  RuleWarning,
+} from "@/schemas/rules/trading-rule";
 import { callAi, type TaskWeight } from "../provider-gateway";
 import { dispatchSubAgent, investigateAndSummarize } from "./dispatcher";
 import { buildSubAgentPrompt } from "./prompts";
@@ -39,15 +43,21 @@ const planSchema = z.object({
       instruction: z.string(),
       weight: z.enum(["light", "standard", "heavy"]),
       needsInvestigation: z.boolean(),
-    }),
+    })
   ),
   reasoning: z.string(),
 });
 
-export async function createPlan(
-  context: WorkflowContext,
-): Promise<
-  | { ok: true; plan: OrchestratorPlan; usage: { promptTokens: number; completionTokens: number; totalTokens: number } }
+export async function createPlan(context: WorkflowContext): Promise<
+  | {
+      ok: true;
+      plan: OrchestratorPlan;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }
   | { ok: false; error: string }
 > {
   const { system, prompt } = buildSubAgentPrompt({
@@ -80,17 +90,25 @@ export type StepResult = {
   instruction: string;
   investigation?: SummaryOutput;
   output: unknown;
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 };
 
 export async function executePlan(
   plan: OrchestratorPlan,
-  context: WorkflowContext,
+  context: WorkflowContext
 ): Promise<
   | {
       ok: true;
       results: StepResult[];
-      totalUsage: { promptTokens: number; completionTokens: number; totalTokens: number };
+      totalUsage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
     }
   | { ok: false; error: string }
 > {
@@ -105,10 +123,13 @@ export async function executePlan(
     if (step.needsInvestigation) {
       const investigation = await investigateAndSummarize(
         step.instruction,
-        stepContext,
+        stepContext
       );
       if (!investigation.ok) {
-        return { ok: false, error: `Investigation failed for step ${step.role}: ${investigation.error}` };
+        return {
+          ok: false,
+          error: `Investigation failed for step ${step.role}: ${investigation.error}`,
+        };
       }
       investigationSummary = investigation.data.summary;
       stepContext = {
@@ -131,7 +152,10 @@ export async function executePlan(
     });
 
     if (!stepResult.ok) {
-      return { ok: false, error: `Step ${step.role} failed: ${stepResult.error}` };
+      return {
+        ok: false,
+        error: `Step ${step.role} failed: ${stepResult.error}`,
+      };
     }
 
     results.push({

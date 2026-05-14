@@ -9,6 +9,7 @@ All endpoints require authentication. `userId` is never accepted from the reques
 Create a new rule design session.
 
 **Request:**
+
 ```json
 {
   "ticker": "6758",
@@ -20,6 +21,7 @@ Create a new rule design session.
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -34,6 +36,7 @@ Create a new rule design session.
 List rule design sessions for the authenticated user.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -61,6 +64,7 @@ List rule design sessions for the authenticated user.
 Get session details, including questions, answers, latest review, and quality checks.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -79,6 +83,7 @@ Get session details, including questions, answers, latest review, and quality ch
 Update session status or rule draft JSON.
 
 **Request:**
+
 ```json
 {
   "status": "paused",
@@ -87,6 +92,7 @@ Update session status or rule draft JSON.
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -101,6 +107,7 @@ Update session status or rule draft JSON.
 Save an answer to a question and update the rule draft.
 
 **Request:**
+
 ```json
 {
   "questionId": "uuid",
@@ -114,6 +121,7 @@ Save an answer to a question and update the rule draft.
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -130,6 +138,7 @@ Save an answer to a question and update the rule draft.
 Get the next pending question for the session.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -148,6 +157,7 @@ Get the next pending question for the session.
 Run AI review on the current rule draft.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -166,6 +176,7 @@ Run AI review on the current rule draft.
 Finalize the rule session and save a version.
 
 **Request:**
+
 ```json
 {
   "force": false
@@ -173,6 +184,7 @@ Finalize the rule session and save a version.
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -202,9 +214,9 @@ All errors follow this shape:
 
 ## Common Error Codes
 
-| Code | Status | Meaning |
-|------|--------|---------|
-| `VALIDATION_ERROR` | 400 | Invalid request body |
-| `UNAUTHORIZED` | 401 | Not logged in |
-| `NOT_FOUND` | 404 | Session not found or not owned |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| Code               | Status | Meaning                        |
+| ------------------ | ------ | ------------------------------ |
+| `VALIDATION_ERROR` | 400    | Invalid request body           |
+| `UNAUTHORIZED`     | 401    | Not logged in                  |
+| `NOT_FOUND`        | 404    | Session not found or not owned |
+| `INTERNAL_ERROR`   | 500    | Unexpected server error        |

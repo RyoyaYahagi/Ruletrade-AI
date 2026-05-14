@@ -24,7 +24,7 @@ export const SafetyCheckSchema = z.object({
         type: SafetyViolationTypeSchema,
         phrase: z.string().optional(),
         reason: z.string().min(1),
-      }),
+      })
     )
     .default([]),
   prohibitedPhrasesDetected: z.array(z.string()).default([]),
@@ -32,4 +32,3 @@ export const SafetyCheckSchema = z.object({
 });
 
 export type SafetyCheck = z.infer<typeof SafetyCheckSchema>;
-

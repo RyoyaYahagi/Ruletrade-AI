@@ -38,13 +38,13 @@ describe("RuleReviewSchema", () => {
       RuleReviewSchema.safeParse({
         ...validReview,
         completionScore: 0,
-      }).success,
+      }).success
     ).toBe(true);
     expect(
       RuleReviewSchema.safeParse({
         ...validReview,
         completionScore: 100,
-      }).success,
+      }).success
     ).toBe(true);
   });
 

@@ -13,7 +13,7 @@ export class AIProviderError extends Error {
     public code: AIProviderErrorCode,
     message: string,
     public details?: unknown,
-    public retryable = false,
+    public retryable = false
   ) {
     super(message);
     this.name = "AIProviderError";

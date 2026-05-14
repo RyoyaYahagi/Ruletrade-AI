@@ -11,7 +11,7 @@ export type DetectedProhibitedPhrase = {
 };
 
 export function detectProhibitedPhrases(
-  text: string,
+  text: string
 ): DetectedProhibitedPhrase[] {
   const normalizedText = normalizeText(text);
 

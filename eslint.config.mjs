@@ -17,6 +17,10 @@ const eslintConfig = defineConfig([
     "node_modules/**",
     "test-results/**",
     "playwright-report/**",
+    // Nested git worktrees managed by Claude Code
+    ".claude/**",
+    // UI mockup reference files (not production code)
+    "frontend-design/**",
   ]),
 ]);
 

@@ -7,7 +7,6 @@ import type {
   InvestigationSummary,
   SubAgentDispatchOptions,
   SubAgentRole,
-  SubAgentTask,
   SummaryOutput,
 } from "./types";
 
@@ -43,9 +42,17 @@ function weightForRole(role: SubAgentRole): TaskWeight {
 }
 
 export async function dispatchSubAgent<TInput, TOutput>(
-  options: SubAgentDispatchOptions<TInput, TOutput>,
+  options: SubAgentDispatchOptions<TInput, TOutput>
 ): Promise<
-  | { ok: true; data: TOutput; usage: { promptTokens: number; completionTokens: number; totalTokens: number } }
+  | {
+      ok: true;
+      data: TOutput;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }
   | { ok: false; error: string }
 > {
   const { system, prompt } = buildSubAgentPrompt({
@@ -75,9 +82,17 @@ export async function dispatchSubAgent<TInput, TOutput>(
 
 export async function runInvestigator<TContext>(
   instruction: string,
-  context: TContext,
+  context: TContext
 ): Promise<
-  | { ok: true; data: InvestigationOutput; usage: { promptTokens: number; completionTokens: number; totalTokens: number } }
+  | {
+      ok: true;
+      data: InvestigationOutput;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }
   | { ok: false; error: string }
 > {
   return dispatchSubAgent({
@@ -92,9 +107,17 @@ export async function runInvestigator<TContext>(
 }
 
 export async function runSummarizer(
-  investigationResult: InvestigationOutput,
+  investigationResult: InvestigationOutput
 ): Promise<
-  | { ok: true; data: SummaryOutput; usage: { promptTokens: number; completionTokens: number; totalTokens: number } }
+  | {
+      ok: true;
+      data: SummaryOutput;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }
   | { ok: false; error: string }
 > {
   return dispatchSubAgent({
@@ -111,12 +134,16 @@ export async function runSummarizer(
 
 export async function investigateAndSummarize<TContext>(
   instruction: string,
-  context: TContext,
+  context: TContext
 ): Promise<
   | {
       ok: true;
       data: InvestigationSummary;
-      usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
     }
   | { ok: false; error: string }
 > {
@@ -137,8 +164,10 @@ export async function investigateAndSummarize<TContext>(
       summary: summary.data,
     },
     usage: {
-      promptTokens: investigation.usage.promptTokens + summary.usage.promptTokens,
-      completionTokens: investigation.usage.completionTokens + summary.usage.completionTokens,
+      promptTokens:
+        investigation.usage.promptTokens + summary.usage.promptTokens,
+      completionTokens:
+        investigation.usage.completionTokens + summary.usage.completionTokens,
       totalTokens: investigation.usage.totalTokens + summary.usage.totalTokens,
     },
   };

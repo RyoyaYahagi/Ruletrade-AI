@@ -22,7 +22,7 @@ export async function GET() {
             message: error.message,
           },
         },
-        { status: error.status },
+        { status: error.status }
       );
     }
 
@@ -34,7 +34,7 @@ export async function GET() {
           message: "認証状態を確認できませんでした。",
         },
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

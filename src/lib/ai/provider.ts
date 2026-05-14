@@ -76,7 +76,7 @@ export type EmbedResult = {
 
 export interface AIProvider {
   generateObject<TSchema extends z.ZodType>(
-    params: GenerateObjectParams<TSchema>,
+    params: GenerateObjectParams<TSchema>
   ): Promise<GenerateObjectResult<z.infer<TSchema>>>;
 
   generateText(params: GenerateTextParams): Promise<GenerateTextResult>;

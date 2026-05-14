@@ -4,7 +4,7 @@ export class AppError extends Error {
     message: string,
     public status: number,
     public details?: unknown,
-    public retryable = false,
+    public retryable = false
   ) {
     super(message);
     this.name = "AppError";

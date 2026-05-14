@@ -48,4 +48,3 @@ describe("RuleQuestionSchema", () => {
     expect(result.success).toBe(false);
   });
 });
-

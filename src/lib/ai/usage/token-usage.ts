@@ -20,7 +20,10 @@ export function normalizeAIUsage(usage: AIUsage): AIUsage {
   };
 }
 
-function sumTokens(inputTokens?: number, outputTokens?: number): number | undefined {
+function sumTokens(
+  inputTokens?: number,
+  outputTokens?: number
+): number | undefined {
   if (inputTokens === undefined && outputTokens === undefined) {
     return undefined;
   }

@@ -3,7 +3,7 @@ import { AppError } from "@/lib/errors/app-error";
 
 export async function validateJsonRequest<TSchema extends z.ZodType>(
   request: Request,
-  schema: TSchema,
+  schema: TSchema
 ): Promise<z.infer<TSchema>> {
   let json: unknown;
 
@@ -13,7 +13,7 @@ export async function validateJsonRequest<TSchema extends z.ZodType>(
     throw new AppError(
       "VALIDATION_ERROR",
       "Request body must be valid JSON.",
-      400,
+      400
     );
   }
 
@@ -24,10 +24,9 @@ export async function validateJsonRequest<TSchema extends z.ZodType>(
       "VALIDATION_ERROR",
       "入力内容を確認してください。",
       400,
-      result.error.flatten(),
+      result.error.flatten()
     );
   }
 
   return result.data;
 }
-

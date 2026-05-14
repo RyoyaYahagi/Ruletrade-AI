@@ -15,7 +15,7 @@ export type ValidateAiOutputResult<T> =
 
 export function validateAiOutput<TSchema extends z.ZodType>(
   schema: TSchema,
-  value: unknown,
+  value: unknown
 ): ValidateAiOutputResult<z.infer<TSchema>> {
   const result = schema.safeParse(value);
 
@@ -34,4 +34,3 @@ export function validateAiOutput<TSchema extends z.ZodType>(
     data: result.data,
   };
 }
-

@@ -1,0 +1,12 @@
+.next/
+out/
+build/
+node_modules/
+.venv/
+.notebooklm/
+.agents/
+.claude/
+test-results/
+playwright-report/
+public/
+*.lock

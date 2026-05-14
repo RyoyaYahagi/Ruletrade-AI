@@ -25,7 +25,7 @@ export function LoginForm() {
 
     if (error) {
       setErrorMessage(
-        "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
+        "ログインに失敗しました。メールアドレスとパスワードを確認してください。"
       );
       return;
     }
@@ -60,7 +60,7 @@ export function LoginForm() {
       </label>
 
       {errorMessage ? (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm">
           {errorMessage}
         </p>
       ) : null}
@@ -69,9 +69,9 @@ export function LoginForm() {
         {isLoading ? "ログイン中..." : "ログイン"}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-center text-sm">
         アカウントがない場合は{" "}
-        <Link className="font-medium text-foreground underline" href="/signup">
+        <Link className="text-foreground font-medium underline" href="/signup">
           作成
         </Link>
         できます。

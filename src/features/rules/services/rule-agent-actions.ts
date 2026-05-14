@@ -7,17 +7,22 @@ import {
   generateTradingRule,
   reviewTradingRule,
 } from "./rule-agent-service";
-import type { InvestmentMemory, TradingRule } from "@/schemas/rules/trading-rule";
+import type {
+  InvestmentMemory,
+  TradingRule,
+} from "@/schemas/rules/trading-rule";
 
 const generateInputSchema = z.object({
   userIntent: z.string().min(1),
-  memory: z.object({
-    riskTolerance: z.enum(["low", "medium", "high"]),
-    preferredMarkets: z.array(z.string()),
-    timeHorizons: z.array(z.string()),
-    rejectedPatterns: z.array(z.string()),
-    standingConstraints: z.array(z.string()),
-  }).optional(),
+  memory: z
+    .object({
+      riskTolerance: z.enum(["low", "medium", "high"]),
+      preferredMarkets: z.array(z.string()),
+      timeHorizons: z.array(z.string()),
+      rejectedPatterns: z.array(z.string()),
+      standingConstraints: z.array(z.string()),
+    })
+    .optional(),
 });
 
 export async function runRuleGeneration(input: {
@@ -32,7 +37,7 @@ export async function runRuleGeneration(input: {
   try {
     const result = await generateTradingRule(
       parsed.data.userIntent,
-      parsed.data.memory,
+      parsed.data.memory
     );
     return result;
   } catch (err) {
@@ -54,9 +59,7 @@ export async function runRuleReview(input: {
   }
 }
 
-export async function runRuleEvaluation(input: {
-  rule: TradingRule;
-}) {
+export async function runRuleEvaluation(input: { rule: TradingRule }) {
   try {
     const result = await evaluateTradingRule(input.rule);
     return result;
@@ -66,9 +69,7 @@ export async function runRuleEvaluation(input: {
   }
 }
 
-export async function runRuleExplanation(input: {
-  rule: TradingRule;
-}) {
+export async function runRuleExplanation(input: { rule: TradingRule }) {
   try {
     const result = await explainTradingRule(input.rule);
     return result;

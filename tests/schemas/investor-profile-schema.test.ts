@@ -37,4 +37,3 @@ describe("InvestorProfileSchema", () => {
     expect(result.success).toBe(false);
   });
 });
-

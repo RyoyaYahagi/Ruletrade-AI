@@ -28,7 +28,7 @@ export const ApiErrorResponseSchema = z.object({
 });
 
 export const createApiSuccessResponseSchema = <T extends z.ZodType>(
-  dataSchema: T,
+  dataSchema: T
 ) =>
   z.object({
     ok: z.literal(true),
@@ -37,4 +37,3 @@ export const createApiSuccessResponseSchema = <T extends z.ZodType>(
 
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
-

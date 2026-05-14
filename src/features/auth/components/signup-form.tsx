@@ -31,12 +31,14 @@ export function SignupForm() {
 
     if (error) {
       setErrorMessage(
-        "アカウント作成に失敗しました。入力内容を確認してください。",
+        "アカウント作成に失敗しました。入力内容を確認してください。"
       );
       return;
     }
 
-    setMessage("確認メールを送信しました。メール内のリンクから登録を完了してください。");
+    setMessage(
+      "確認メールを送信しました。メール内のリンクから登録を完了してください。"
+    );
   }
 
   return (
@@ -71,7 +73,7 @@ export function SignupForm() {
         </p>
       ) : null}
       {errorMessage ? (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm">
           {errorMessage}
         </p>
       ) : null}
@@ -80,9 +82,9 @@ export function SignupForm() {
         {isLoading ? "作成中..." : "アカウント作成"}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-center text-sm">
         既にアカウントがある場合は{" "}
-        <Link className="font-medium text-foreground underline" href="/login">
+        <Link className="text-foreground font-medium underline" href="/login">
           ログイン
         </Link>
         してください。

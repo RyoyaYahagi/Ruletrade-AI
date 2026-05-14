@@ -17,7 +17,11 @@ export async function finalizeRuleSession(params: {
     .eq("user_id", params.userId)
     .single();
   if (sessionError || !session) {
-    throw new AppError("NOT_FOUND", "ルール作成セッションが見つかりません。", 404);
+    throw new AppError(
+      "NOT_FOUND",
+      "ルール作成セッションが見つかりません。",
+      404
+    );
   }
 
   const completionScore = session.completion_score ?? 0;
@@ -26,7 +30,7 @@ export async function finalizeRuleSession(params: {
       "VALIDATION_ERROR",
       "完成度スコアが低いため、まだ完成版として保存できません。",
       400,
-      { completionScore },
+      { completionScore }
     );
   }
 
@@ -39,7 +43,12 @@ export async function finalizeRuleSession(params: {
     .eq("id", params.sessionId)
     .eq("user_id", params.userId);
   if (updateError) {
-    throw new AppError("INTERNAL_ERROR", "ルールの完成保存に失敗しました。", 500, updateError);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "ルールの完成保存に失敗しました。",
+      500,
+      updateError
+    );
   }
 
   await createRuleVersion({

@@ -24,7 +24,7 @@ export class OpenAIProvider implements AIProvider {
     if (!apiKey) {
       throw new AIProviderError(
         "AI_PROVIDER_NOT_CONFIGURED",
-        "OPENAI_API_KEY is not set.",
+        "OPENAI_API_KEY is not set."
       );
     }
 
@@ -32,7 +32,7 @@ export class OpenAIProvider implements AIProvider {
   }
 
   async generateObject<TSchema extends z.ZodType>(
-    params: GenerateObjectParams<TSchema>,
+    params: GenerateObjectParams<TSchema>
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
     const model = getOpenAIModel();
@@ -46,7 +46,7 @@ export class OpenAIProvider implements AIProvider {
           max_tokens: params.maxOutputTokens,
           response_format: { type: "json_object" },
         }),
-        getAITimeoutMs(),
+        getAITimeoutMs()
       );
       const rawText = response.choices[0]?.message.content ?? "";
       const parsedJson = parseJson(rawText, "OpenAI");
@@ -56,7 +56,7 @@ export class OpenAIProvider implements AIProvider {
         throw new AIProviderError(
           "AI_OUTPUT_SCHEMA_INVALID",
           "OpenAI output did not match schema.",
-          parsed.error.flatten(),
+          parsed.error.flatten()
         );
       }
 
@@ -93,7 +93,7 @@ export class OpenAIProvider implements AIProvider {
           temperature: params.temperature ?? 0.2,
           max_tokens: params.maxOutputTokens,
         }),
-        getAITimeoutMs(),
+        getAITimeoutMs()
       );
 
       return {
@@ -119,7 +119,7 @@ export class OpenAIProvider implements AIProvider {
 
 function toOpenAIMessages(
   messages: AIMessage[],
-  schemaName: string,
+  schemaName: string
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
   return [
     ...messages,
@@ -137,12 +137,15 @@ function parseJson(rawText: string, providerName: string): unknown {
     throw new AIProviderError(
       "AI_OUTPUT_PARSE_FAILED",
       `${providerName} output was not valid JSON.`,
-      { rawText, error },
+      { rawText, error }
     );
   }
 }
 
-function normalizeProviderError(error: unknown, message: string): AIProviderError {
+function normalizeProviderError(
+  error: unknown,
+  message: string
+): AIProviderError {
   if (error instanceof AIProviderError) {
     return error;
   }
@@ -151,6 +154,6 @@ function normalizeProviderError(error: unknown, message: string): AIProviderErro
     "AI_PROVIDER_REQUEST_FAILED",
     message,
     error,
-    true,
+    true
   );
 }

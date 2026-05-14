@@ -53,7 +53,10 @@ async function saveUnsafeRuleReview(params: {
   });
 }
 
-export async function runRuleReview(params: { userId: string; sessionId: string }) {
+export async function runRuleReview(params: {
+  userId: string;
+  sessionId: string;
+}) {
   const supabase = await createClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
@@ -62,11 +65,16 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
     .eq("user_id", params.userId)
     .single();
   if (sessionError || !session) {
-    throw new AppError("NOT_FOUND", "ルール作成セッションが見つかりません。", 404);
+    throw new AppError(
+      "NOT_FOUND",
+      "ルール作成セッションが見つかりません。",
+      404
+    );
   }
 
   const ai = getAIProvider();
-  const { RuleReviewSchema } = await import("@/schemas/rules/rule-review-schema");
+  const { RuleReviewSchema } =
+    await import("@/schemas/rules/rule-review-schema");
   const aiResult = await ai.generateObject({
     taskType: "rule_review",
     schema: RuleReviewSchema,
@@ -149,7 +157,12 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
     .select("id")
     .single();
   if (reviewError || !savedReview) {
-    throw new AppError("INTERNAL_ERROR", "AIレビュー結果の保存に失敗しました。", 500, reviewError);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "AIレビュー結果の保存に失敗しました。",
+      500,
+      reviewError
+    );
   }
 
   if (review.qualityChecks.length > 0) {
@@ -172,8 +185,8 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
           severity: check.severity,
           reason: check.reason,
           suggested_question: check.suggestedQuestion ?? null,
-        }),
-      ),
+        })
+      )
     );
   }
 
@@ -191,7 +204,7 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
             isRequired: boolean;
             mapsToRuleField?: string;
           },
-          index: number,
+          index: number
         ) => ({
           user_id: params.userId,
           session_id: params.sessionId,
@@ -206,12 +219,14 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
           source: "ai",
           status: "pending",
           display_order: 100 + index,
-        }),
-      ),
+        })
+      )
     );
   }
 
-  const nextStatus = review.canFinalize ? "quality_gate_passed" : "needs_more_info";
+  const nextStatus = review.canFinalize
+    ? "quality_gate_passed"
+    : "needs_more_info";
   await supabase
     .from("rule_design_sessions")
     .update({

@@ -1,7 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 # Ruletrade-AI Agent Instructions
@@ -97,13 +99,60 @@ approval and activation.
 Run the smallest useful set of checks for the change:
 
 ```bash
+npm run format:check
 npm run lint
 npm run typecheck
+npm run test
 npm run build
 ```
 
 For UI changes, run the app and inspect the affected screen. Use Playwright when
 the change affects responsive layout, important workflows, or visual state.
+
+## CI Rules
+
+These rules are non-negotiable. Follow them exactly.
+
+### What AI must never do
+
+- Disable, delete, or weaken any CI job or check.
+- Skip, delete, or add `.skip`/`xit` to tests to make CI pass.
+- Loosen lint rules, typecheck settings, or format config to silence failures.
+- Remove or soften secret-scan rules to hide detected values.
+
+If a test or check is genuinely broken beyond the scope of the current change,
+keep it failing, explain why in the PR description, and ask a human to decide.
+
+### CI jobs (`.github/workflows/ci.yml`)
+
+All jobs run on every PR targeting `main`. Required jobs:
+
+| Job             | Command                                                       |
+| --------------- | ------------------------------------------------------------- |
+| Format Check    | `npm run format:check`                                        |
+| Lint            | `npm run lint`                                                |
+| Type Check      | `npm run typecheck`                                           |
+| Unit Tests      | `npm run test`                                                |
+| Build           | `npm run build`                                               |
+| Secret Scan     | Gitleaks CLI                                                  |
+| Migration Check | psql apply — **only when `supabase/migrations/**` changes\*\* |
+
+### When CI fails
+
+1. Read the full failure log.
+2. Identify the root cause (do not guess).
+3. Fix the underlying code with the minimum change needed.
+4. Never work around the failure by weakening the check.
+
+### Permissions
+
+All jobs run with `permissions: contents: read`. Grant write permissions only
+to specific jobs that provably require them, and document why.
+
+### Merging to main
+
+Only humans merge to `main`. AI must not push directly to `main` or bypass
+branch protection.
 
 ## Documentation Maintenance
 

@@ -13,6 +13,8 @@
     "db:status": "npx supabase status",
     "db:reset": "npx supabase db reset",
     "db:migration:new": "npx supabase migration new",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:types": "npx supabase gen types typescript --local --schema public > src/types/database.ts"
@@ -43,6 +45,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "playwright": "^1.60.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
