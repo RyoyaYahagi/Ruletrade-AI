@@ -34,6 +34,10 @@ run may download the CLI through `npx` if it is not already available in your
 environment. If `npm run db:status` reports that the local Supabase container
 does not exist, start it with `npm run db:start`.
 
+Rule creation tables use Supabase Row Level Security to keep user-owned data
+isolated. See `docs/security.md` for the policy shape and
+`tests/safety/rule_creation_rls_checks.sql` for manual verification queries.
+
 ### Scripts
 
 ```bash
