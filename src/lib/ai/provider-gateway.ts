@@ -1,18 +1,22 @@
 import "server-only";
-import OpenAI from "openai";
+
 import { z } from "zod";
-import { getOpenAiApiKey } from "./env";
-import { validateAiOutput } from "./validate-ai-output";
+import { AIProviderError } from "@/lib/ai/ai-provider-error";
+import { getAIProvider } from "@/lib/ai/provider-factory";
+import type { AITaskType, AIProvider } from "@/lib/ai/provider";
+import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
+import { MockProvider } from "@/lib/ai/providers/mock-provider";
+import { OpenAIProvider } from "@/lib/ai/providers/openai-provider";
 
 export type TaskWeight = "light" | "standard" | "heavy";
 
 const defaultModelByWeight: Record<TaskWeight, string> = {
-  light: "gpt-5.4-nano",
-  standard: "gpt-5.4-mini",
-  heavy: "gpt-5.4",
+  light: "default-light",
+  standard: "default-standard",
+  heavy: "default-heavy",
 };
 
-export type AiProvider = "openai";
+export type AiProvider = "mock" | "openai" | "gemini";
 
 export type AiCallOptions<TOutput> = {
   provider?: AiProvider;
@@ -23,6 +27,9 @@ export type AiCallOptions<TOutput> = {
   outputSchema: z.ZodType<TOutput>;
   temperature?: number;
   maxTokens?: number;
+  taskType?: AITaskType;
+  promptVersion?: string;
+  schemaName?: string;
 };
 
 export type AiUsage = {
@@ -45,96 +52,61 @@ export type AiCallResult<T> =
       model?: string;
     };
 
-function getClient(provider: AiProvider): OpenAI {
-  if (provider === "openai") {
-    return new OpenAI({ apiKey: getOpenAiApiKey() });
-  }
-  throw new Error(`Unsupported AI provider: ${provider}`);
-}
-
-function resolveModel(options: AiCallOptions<unknown>): {
-  provider: AiProvider;
-  model: string;
-} {
-  const provider = options.provider ?? "openai";
-  const model = options.model ?? defaultModelByWeight[options.weight];
-  return { provider, model };
-}
-
 export async function callAi<TOutput>(
   options: AiCallOptions<TOutput>,
 ): Promise<AiCallResult<TOutput>> {
-  const { provider, model } = resolveModel(options);
-  const client = getClient(provider);
-
-  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-  if (options.system) {
-    messages.push({ role: "system", content: options.system });
-  }
-  messages.push({ role: "user", content: options.prompt });
-
   try {
-    const response = await client.chat.completions.create({
-      model,
-      messages,
-      temperature: options.temperature ?? 0.4,
-      max_tokens: options.maxTokens,
-      response_format: { type: "json_object" },
+    const provider = getProviderForCall(options.provider);
+    const result = await provider.generateObject({
+      taskType: options.taskType ?? "eval",
+      schema: options.outputSchema,
+      schemaName: options.schemaName ?? "AiCallOutput",
+      promptVersion: options.promptVersion,
+      temperature: options.temperature,
+      maxOutputTokens: options.maxTokens,
+      messages: [
+        ...(options.system
+          ? [{ role: "system" as const, content: options.system }]
+          : []),
+        { role: "user" as const, content: options.prompt },
+      ],
     });
-
-    const choice = response.choices[0];
-    const rawContent = choice?.message?.content ?? "";
-
-    const usage: AiUsage = {
-      promptTokens: response.usage?.prompt_tokens ?? 0,
-      completionTokens: response.usage?.completion_tokens ?? 0,
-      totalTokens: response.usage?.total_tokens ?? 0,
-    };
-
-    if (!rawContent) {
-      return {
-        ok: false,
-        error: "AI returned empty content.",
-        usage,
-        model,
-      };
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawContent);
-    } catch {
-      return {
-        ok: false,
-        error: `AI output is not valid JSON. Raw: ${rawContent.slice(0, 200)}`,
-        usage,
-        model,
-      };
-    }
-
-    const parseResult = options.outputSchema.safeParse(parsed);
-
-    if (!parseResult.success) {
-      return {
-        ok: false,
-        error: `AI output schema validation failed: ${parseResult.error.message}`,
-        usage,
-        model,
-      };
-    }
 
     return {
       ok: true,
-      data: parseResult.data,
-      usage,
-      model,
+      data: result.data,
+      usage: {
+        promptTokens: result.usage.inputTokens ?? 0,
+        completionTokens: result.usage.outputTokens ?? 0,
+        totalTokens: result.usage.totalTokens ?? 0,
+      },
+      model: result.meta.model || options.model || defaultModelByWeight[options.weight],
     };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+  } catch (error) {
+    const message =
+      error instanceof AIProviderError
+        ? `${error.code}: ${error.message}`
+        : error instanceof Error
+          ? error.message
+          : String(error);
+
     return {
       ok: false,
       error: `AI provider call failed: ${message}`,
-      model,
+      model: options.model ?? defaultModelByWeight[options.weight],
     };
+  }
+}
+
+function getProviderForCall(provider?: AiProvider): AIProvider {
+  switch (provider) {
+    case "mock":
+      return new MockProvider();
+    case "openai":
+      return new OpenAIProvider();
+    case "gemini":
+      return new GeminiProvider();
+    default:
+      return getAIProvider();
   }
 }

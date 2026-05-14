@@ -5,10 +5,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "server-only": path.resolve(__dirname, "tests/setup/server-only.ts"),
     },
   },
   test: {
     globals: false,
   },
 });
-
