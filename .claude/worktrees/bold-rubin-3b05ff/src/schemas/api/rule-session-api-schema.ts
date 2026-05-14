@@ -39,15 +39,6 @@ export const RunRuleReviewResponseSchema = z.object({
   canFinalize: z.boolean(),
 });
 
-export const UpdateRuleSessionRequestSchema = z.object({
-  status: z.enum(["draft", "in_progress", "needs_more_info", "quality_gate_passed", "paused", "finalized", "archived"]).optional(),
-  ruleJson: z.record(z.string(), z.unknown()).optional(),
-});
-
-export const FinalizeRuleSessionRequestSchema = z.object({
-  force: z.boolean().default(false),
-});
-
 export type CreateRuleSessionRequest = z.infer<
   typeof CreateRuleSessionRequestSchema
 >;
@@ -65,11 +56,5 @@ export type RunRuleReviewRequest = z.infer<
 >;
 export type RunRuleReviewResponse = z.infer<
   typeof RunRuleReviewResponseSchema
->;
-export type UpdateRuleSessionRequest = z.infer<
-  typeof UpdateRuleSessionRequestSchema
->;
-export type FinalizeRuleSessionRequest = z.infer<
-  typeof FinalizeRuleSessionRequestSchema
 >;
 
