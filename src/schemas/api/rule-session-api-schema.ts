@@ -5,6 +5,7 @@ import {
   UuidSchema,
 } from "@/schemas/common/primitive-schema";
 import { RuleAnswerSchema } from "@/schemas/rules/rule-answer-schema";
+import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 
 export const CreateRuleSessionRequestSchema = z.object({
   ticker: TickerSchema,
@@ -25,11 +26,7 @@ export const SaveRuleAnswerRequestSchema = RuleAnswerSchema.extend({
 export const SaveRuleAnswerResponseSchema = z.object({
   answerId: UuidSchema,
   sessionId: UuidSchema,
-});
-
-export const RunRuleReviewRequestSchema = z.object({
-  sessionId: UuidSchema.optional(),
-  force: z.boolean().default(false),
+  ruleJson: z.unknown(),
 });
 
 export const RunRuleReviewResponseSchema = z.object({
@@ -37,11 +34,12 @@ export const RunRuleReviewResponseSchema = z.object({
   completionScore: z.number().int().min(0).max(100),
   needsMoreInfo: z.boolean(),
   canFinalize: z.boolean(),
+  nextQuestions: z.array(z.unknown()).default([]),
 });
 
 export const UpdateRuleSessionRequestSchema = z.object({
   status: z.enum(["draft", "in_progress", "needs_more_info", "quality_gate_passed", "paused", "finalized", "archived"]).optional(),
-  ruleJson: z.record(z.string(), z.unknown()).optional(),
+  ruleJson: TradeRuleSchema.optional(),
 });
 
 export const FinalizeRuleSessionRequestSchema = z.object({
@@ -59,9 +57,6 @@ export type SaveRuleAnswerRequest = z.infer<
 >;
 export type SaveRuleAnswerResponse = z.infer<
   typeof SaveRuleAnswerResponseSchema
->;
-export type RunRuleReviewRequest = z.infer<
-  typeof RunRuleReviewRequestSchema
 >;
 export type RunRuleReviewResponse = z.infer<
   typeof RunRuleReviewResponseSchema
