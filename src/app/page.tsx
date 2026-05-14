@@ -1,4 +1,4 @@
-import { AgentWorkbench } from "@/features/agent-organization/agent-workbench"
+import { AgentWorkbench } from "@/features/rules/components/rule-agent-workbench"
 
 export default function HomePage() {
   return <AgentWorkbench />

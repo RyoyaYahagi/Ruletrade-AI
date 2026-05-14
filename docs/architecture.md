@@ -33,17 +33,23 @@ not as an executable truth.
 ```text
 src/
   app/
+    layout.tsx
     page.tsx
   components/
     ui/
   features/
-    agent-organization/
-      agent-workbench.tsx
+    rules/
+      components/
+        rule-agent-workbench.tsx
+      services/
+        rule-workflow.ts
+        trading-rule-validation.ts
       model.ts
   lib/
     utils.ts
   schemas/
-    trading-rule.ts
+    rules/
+      trading-rule.ts
   types/
 
 docs/
@@ -107,8 +113,10 @@ why a rule changed.
 
 ### UI Layer
 
-Use `src/app/` for routing and page entry points. Keep pages thin. Pages should
-compose feature modules rather than own domain behavior.
+Use `src/app/` for routing and page entry points. Next.js also supports a
+top-level `app/` directory, but this repository intentionally uses the `src`
+directory convention. Keep pages thin. Pages should compose feature modules
+rather than own domain behavior.
 
 Use `src/components/ui/` for reusable UI primitives. These components should be
 generic and unaware of trading concepts.
@@ -141,6 +149,11 @@ As workflows grow, introduce service modules for:
 
 Services that access secrets, privileged credentials, provider SDKs, or
 server-only APIs must be server-only modules and include `import "server-only";`.
+
+Feature-specific services should live with their feature first, for example
+`src/features/rules/services/`. Promote code to `src/lib/` only when it becomes
+shared infrastructure across features, such as auth, database clients, provider
+gateways, safety checks, error handling, or configuration.
 
 ### Persistence Layer
 

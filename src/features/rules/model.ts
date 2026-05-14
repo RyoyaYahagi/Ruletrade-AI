@@ -3,7 +3,7 @@ import type {
   InvestmentMemory,
   RuleStatus,
   TradingRule,
-} from "@/schemas/trading-rule"
+} from "@/schemas/rules/trading-rule"
 
 export type AgentDefinition = {
   role: AgentRole
@@ -116,4 +116,3 @@ export const sampleRule: TradingRule = {
     reason: "AIは提案と検証までを担当し、採用判断はユーザーが行うため。",
   },
 }
-

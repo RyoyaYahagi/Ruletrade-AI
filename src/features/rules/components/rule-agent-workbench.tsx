@@ -23,7 +23,8 @@ import {
   ruleStatusLabels,
   sampleInvestmentMemory,
   sampleRule,
-} from "@/features/agent-organization/model"
+} from "@/features/rules/model"
+import { validateTradingRule } from "@/features/rules/services/trading-rule-validation"
 
 const severityClassName = {
   info: "border-sky-200 bg-sky-50 text-sky-950",
@@ -32,6 +33,8 @@ const severityClassName = {
 }
 
 export function AgentWorkbench() {
+  const ruleValidation = validateTradingRule(sampleRule)
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b bg-muted/30">
@@ -143,7 +146,7 @@ export function AgentWorkbench() {
                 </p>
               </div>
               <span className="w-fit rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-950">
-                Approval blocked
+                {ruleValidation.canApprove ? "Ready for approval" : "Approval blocked"}
               </span>
             </div>
 
@@ -176,7 +179,7 @@ export function AgentWorkbench() {
               <h2 className="text-sm font-medium">AI review</h2>
             </div>
             <div className="mt-4 space-y-3">
-              {sampleRule.warnings.map((warning) => (
+              {ruleValidation.warnings.map((warning) => (
                 <div
                   key={warning.id}
                   className={`rounded-lg border p-3 ${severityClassName[warning.severity]}`}
@@ -198,7 +201,7 @@ export function AgentWorkbench() {
               <Button variant="outline" className="flex-1">
                 Reject
               </Button>
-              <Button className="flex-1" disabled>
+              <Button className="flex-1" disabled={!ruleValidation.canApprove}>
                 Approve
               </Button>
             </div>
@@ -232,4 +235,3 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-

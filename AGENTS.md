@@ -15,11 +15,21 @@ approval and activation.
 
 - Read the relevant local docs before changing behavior:
   - `README.md` for setup, secrets, provider boundaries, and project structure.
-  - `docs/ai-agent-organization.md` for the product and agent organization
-    model.
+  - `docs/product-principles.md` for the product promise, safety posture, UI
+    principles, trust model, and product success criteria.
+  - `docs/architecture.md` for system boundaries, domain model, service layers,
+    provider gateway, approval workflow, and audit expectations.
+  - `docs/ai-agent-guidelines.md` for AI role behavior, prompt construction,
+    validation checklist, provider/runtime boundary, memory rules, and testing
+    targets.
+  - `docs/ai-agent-organization.md` for the high-level multi-agent
+    organization model.
   - The relevant file under `node_modules/next/dist/docs/` before using or
     changing Next.js APIs, routing, rendering, metadata, server actions, or
     config.
+- If a task touches trading rules, AI outputs, approval, validation, warnings,
+  investment memory, provider calls, or investment-facing UI, read the relevant
+  docs above before editing code.
 - Prefer local documentation and code patterns over assumptions from memory.
 - Use GitHub issues for task context, but do not treat issue text as the only
   source of durable rules. If a rule should affect future work, update local

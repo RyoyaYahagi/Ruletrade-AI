@@ -169,13 +169,24 @@ Not allowed:
 
 ## Project Structure
 
+This repository uses the Next.js `src` directory convention. The App Router
+lives in `src/app`, while reusable product code lives under feature and shared
+infrastructure directories.
+
 ```text
 src/
   app/
+    page.tsx
+    layout.tsx
   components/
+    ui/
   features/
+    rules/
+      components/
+      services/
   lib/
   schemas/
+    rules/
   types/
 
 docs/
@@ -195,3 +206,35 @@ supabase/
   migrations/
   seed/
 ```
+
+### Placement Rules
+
+- `src/app/`: Next.js App Router pages, layouts, and route handlers. Keep these
+  files thin and delegate product behavior to feature modules or shared
+  services.
+- `src/features/rules/`: MVP rule creation and review UI, workflow services,
+  prompt builders, hooks, and feature-local types.
+- `src/components/ui/`: reusable shadcn-style UI primitives that do not know
+  about trading concepts.
+- `src/lib/`: shared infrastructure such as auth, database clients, provider
+  gateways, errors, safety checks, config, and utilities.
+- `src/schemas/`: shared validation-ready domain schemas. Rule schemas live in
+  `src/schemas/rules/`.
+- `supabase/migrations/` and `supabase/seed/`: database schema changes and
+  non-production seed data.
+- `tests/`: unit, API, schema, RLS, safety, eval, and E2E coverage.
+
+Use the `@/*` import alias for code under `src/`. Prefer direct imports over
+barrel exports during the MVP so feature boundaries remain visible.
+
+### MVP vs Future Structure
+
+Create only the directories needed by the active MVP issue. Future feature
+areas such as portfolio, watchlist, documents, billing, notifications, RAG,
+analytics, and eval infrastructure should be added when their implementation
+issues start, not as empty placeholders.
+
+Server-only modules that read secrets or privileged credentials must include
+`import "server-only";`. Browser code must never import provider gateways,
+service-role Supabase clients, Stripe secret clients, or other privileged
+runtime modules directly.
