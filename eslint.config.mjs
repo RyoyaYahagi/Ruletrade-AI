@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     "node_modules/**",
     "test-results/**",
     "playwright-report/**",
+    ".claude/**",
+    "frontend-design/**",
+    "docs/ai-handoffs/**",
   ]),
 ]);
 
