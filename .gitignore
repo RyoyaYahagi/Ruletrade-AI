@@ -48,6 +48,9 @@ next-env.d.ts
 # Claude
 .claude/
 
+# Agent skills
+.agents/skills/notebooklm/
+
 # Playwright
 node_modules/
 /test-results/
