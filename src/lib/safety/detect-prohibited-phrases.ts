@@ -26,8 +26,10 @@ export function detectProhibitedPhrases(
 }
 
 function normalizeText(text: string) {
+  // TODO: 全角・半角統一、ゼロ幅スペース除去、その他記号の対応を追加予定
   return text
     .toLowerCase()
     .replace(/\s+/g, "")
+    .replace(/\u200B/g, "")
     .replace(/[！!。．.、,]/g, "");
 }

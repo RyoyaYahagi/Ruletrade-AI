@@ -95,10 +95,6 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
 
   const safety = runSafetyCheck({
     text: safetyText,
-    context: {
-      taskType: "rule_review",
-      sourceType: "rule_review",
-    },
   });
 
   const reviewWithSafety = {

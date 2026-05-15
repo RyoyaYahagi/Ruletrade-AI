@@ -3,14 +3,8 @@ import "server-only";
 import { SafetyCheckSchema, type SafetyCheck } from "@/schemas/safety/safety-check-schema";
 import { detectProhibitedPhrases } from "@/lib/safety/detect-prohibited-phrases";
 
-export const SAFETY_RULE_VERSION = "safety-rules-v1";
-
 export function runSafetyCheck(params: {
   text: string;
-  context?: {
-    taskType?: string;
-    sourceType?: string;
-  };
 }): SafetyCheck {
   const detected = detectProhibitedPhrases(params.text);
 

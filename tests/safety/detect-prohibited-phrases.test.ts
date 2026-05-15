@@ -67,4 +67,26 @@ describe("detectProhibitedPhrases", () => {
     );
     expect(result).toHaveLength(0);
   });
+
+  it("detects buy recommendation with mixed punctuation", () => {
+    const result = detectProhibitedPhrases("この銘柄は、買うべきです！");
+    expect(result.some((item) => item.type === "buy_recommendation")).toBe(true);
+  });
+
+  it("detects phrase with full-width spaces", () => {
+    const result = detectProhibitedPhrases("この　銘柄　は　買うべき　です。");
+    expect(result.some((item) => item.type === "buy_recommendation")).toBe(true);
+  });
+
+  it("detects phrase with zero-width spaces", () => {
+    const result = detectProhibitedPhrases("この銘柄は買\u200Bうべきです。");
+    expect(result.some((item) => item.type === "buy_recommendation")).toBe(true);
+  });
+
+  it("passes neutral text with mixed symbols", () => {
+    const result = detectProhibitedPhrases(
+      "損切り条件が、まだ明確ではありません…どの条件で投資仮説を見直すか決めておくと、ルールがより明確になります！"
+    );
+    expect(result).toHaveLength(0);
+  });
 });
