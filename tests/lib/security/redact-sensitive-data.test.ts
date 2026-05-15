@@ -45,7 +45,7 @@ describe("redactSensitiveData", () => {
 
   it("redacts Bearer tokens in strings", () => {
     const result = redactSensitiveData(
-      "Authorization: Bearer abc123.def456.ghi789",
+      "Authorization: Bearer test-token-123",
     );
     expect(result).toBe("Authorization: [REDACTED]");
   });

@@ -19,19 +19,19 @@ export async function logApiError(params: {
   try {
     const supabase = await createClient();
 
-    await supabase.from("api_error_logs").insert({
+      await supabase.from("api_error_logs").insert({
       user_id: params.userId ?? null,
       request_id: params.requestId,
       route: params.route ?? null,
       method: params.method ?? null,
       error_code: params.errorCode,
-      error_message: params.errorMessage,
+      error_message: redactSensitiveData(params.errorMessage),
       status_code: params.statusCode,
       retryable: params.retryable ?? false,
       details: params.details ? redactSensitiveData(params.details) : null,
       metadata: params.metadata ? redactSensitiveData(params.metadata) : {},
     });
-  } catch {
-    // エラーログ保存の失敗で本処理を壊さない
+  } catch (logError) {
+    console.error("[logApiError] エラーログ保存失敗:", logError);
   }
 }

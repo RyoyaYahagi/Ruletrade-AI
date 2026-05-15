@@ -116,12 +116,6 @@ for select
 to authenticated
 using ((select auth.uid()) = user_id);
 
-create policy "Users can insert own api error logs"
-on api_error_logs
-for insert
-to authenticated
-with check ((select auth.uid()) = user_id);
-
 drop policy if exists "Users can read own rate limit counters" on rate_limit_counters;
 drop policy if exists "Users can insert own rate limit counters" on rate_limit_counters;
 drop policy if exists "Users can update own rate limit counters" on rate_limit_counters;
@@ -131,19 +125,6 @@ on rate_limit_counters
 for select
 to authenticated
 using ((select auth.uid()) = user_id);
-
-create policy "Users can insert own rate limit counters"
-on rate_limit_counters
-for insert
-to authenticated
-with check ((select auth.uid()) = user_id);
-
-create policy "Users can update own rate limit counters"
-on rate_limit_counters
-for update
-to authenticated
-using ((select auth.uid()) = user_id)
-with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can read own cost limit counters" on cost_limit_counters;
 drop policy if exists "Users can insert own cost limit counters" on cost_limit_counters;
@@ -155,15 +136,43 @@ for select
 to authenticated
 using ((select auth.uid()) = user_id);
 
-create policy "Users can insert own cost limit counters"
-on cost_limit_counters
-for insert
-to authenticated
-with check ((select auth.uid()) = user_id);
+-- ============================================================
+-- Atomic increment helpers (TOCTOU fix)
+-- ============================================================
 
-create policy "Users can update own cost limit counters"
-on cost_limit_counters
-for update
-to authenticated
-using ((select auth.uid()) = user_id)
-with check ((select auth.uid()) = user_id);
+create or replace function increment_rate_limit_counter(
+  p_user_id uuid,
+  p_limit_key text,
+  p_period_start timestamptz,
+  p_period_end timestamptz,
+  p_increment_by int default 1
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  insert into rate_limit_counters (user_id, limit_key, period_start, period_end, used_count)
+  values (p_user_id, p_limit_key, p_period_start, p_period_end, p_increment_by)
+  on conflict (user_id, limit_key, period_start, period_end)
+  do update set used_count = rate_limit_counters.used_count + p_increment_by;
+end;
+$$;
+
+create or replace function increment_cost_limit_counter(
+  p_user_id uuid,
+  p_period_start timestamptz,
+  p_period_end timestamptz,
+  p_cost_usd numeric(10,6)
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  insert into cost_limit_counters (user_id, period_start, period_end, used_cost_usd)
+  values (p_user_id, p_period_start, p_period_end, p_cost_usd)
+  on conflict (user_id, period_start, period_end)
+  do update set used_cost_usd = cost_limit_counters.used_cost_usd + p_cost_usd;
+end;
+$$;
