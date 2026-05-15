@@ -19,7 +19,7 @@ export async function logApiError(params: {
   try {
     const supabase = await createClient();
 
-      await supabase.from("api_error_logs").insert({
+    await supabase.from("api_error_logs").insert({
       user_id: params.userId ?? null,
       request_id: params.requestId,
       route: params.route ?? null,
