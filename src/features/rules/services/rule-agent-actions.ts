@@ -7,6 +7,7 @@ import {
   generateTradingRule,
   reviewTradingRule,
 } from "./rule-agent-service";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 import type { InvestmentMemory, TradingRule } from "@/schemas/rules/trading-rule";
 
 const generateInputSchema = z.object({
@@ -24,6 +25,11 @@ export async function runRuleGeneration(input: {
   userIntent: string;
   memory?: InvestmentMemory;
 }) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です。" };
+  }
+
   const parsed = generateInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Invalid input", issues: parsed.error.issues };
@@ -45,6 +51,11 @@ export async function runRuleReview(input: {
   rule: TradingRule;
   memory?: InvestmentMemory;
 }) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です。" };
+  }
+
   try {
     const result = await reviewTradingRule(input.rule, input.memory);
     return result;
@@ -57,6 +68,11 @@ export async function runRuleReview(input: {
 export async function runRuleEvaluation(input: {
   rule: TradingRule;
 }) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です。" };
+  }
+
   try {
     const result = await evaluateTradingRule(input.rule);
     return result;
@@ -69,6 +85,11 @@ export async function runRuleEvaluation(input: {
 export async function runRuleExplanation(input: {
   rule: TradingRule;
 }) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です。" };
+  }
+
   try {
     const result = await explainTradingRule(input.rule);
     return result;
