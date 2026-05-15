@@ -21,12 +21,8 @@ export async function saveAiRunLog(input: SaveAiRunLogInput) {
       model: input.model,
       prompt_version: input.promptVersion ?? null,
       status: "started",
-      input_json: input.inputJson
-        ? redactSensitiveData(input.inputJson)
-        : null,
-      metadata: input.metadata
-        ? redactSensitiveData(input.metadata)
-        : {},
+      input_json: input.inputJson ? redactSensitiveData(input.inputJson) : null,
+      metadata: input.metadata ? redactSensitiveData(input.metadata) : {},
       started_at: new Date().toISOString(),
     })
     .select("id")

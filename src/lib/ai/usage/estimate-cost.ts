@@ -19,9 +19,7 @@ export async function estimateAiCostUsd(params: {
 
   const { data, error } = await supabase
     .from("model_pricing_configs")
-    .select(
-      "input_cost_per_1m_tokens_usd, output_cost_per_1m_tokens_usd"
-    )
+    .select("input_cost_per_1m_tokens_usd, output_cost_per_1m_tokens_usd")
     .eq("provider", params.provider)
     .eq("model", params.model)
     .eq("is_active", true)
@@ -36,12 +34,10 @@ export async function estimateAiCostUsd(params: {
   }
 
   const inputCost =
-    (inputTokens / 1_000_000) *
-    Number(data.input_cost_per_1m_tokens_usd);
+    (inputTokens / 1_000_000) * Number(data.input_cost_per_1m_tokens_usd);
 
   const outputCost =
-    (outputTokens / 1_000_000) *
-    Number(data.output_cost_per_1m_tokens_usd);
+    (outputTokens / 1_000_000) * Number(data.output_cost_per_1m_tokens_usd);
 
   return Number((inputCost + outputCost).toFixed(6));
 }

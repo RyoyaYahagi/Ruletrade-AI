@@ -83,8 +83,7 @@ async function callAiWithLogging<TOutput>(
   try {
     const provider = getProviderForCall(options.provider);
     const providerName = options.provider ?? "default";
-    const modelName =
-      options.model ?? defaultModelByWeight[options.weight];
+    const modelName = options.model ?? defaultModelByWeight[options.weight];
 
     const result = await withAiRunLogging({
       userId: options.userId!,
@@ -140,8 +139,7 @@ async function callAiWithLogging<TOutput>(
         promptTokens: result.usage.inputTokens ?? 0,
         completionTokens: result.usage.outputTokens ?? 0,
         totalTokens:
-          (result.usage.inputTokens ?? 0) +
-          (result.usage.outputTokens ?? 0),
+          (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
       },
       model: result.meta.model,
       aiRunLogId: result.aiRunLogId,

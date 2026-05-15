@@ -92,28 +92,19 @@ export async function withAiRunLogging<T>(params: {
     };
   } catch (error) {
     const errorCode =
-      error instanceof AIProviderError
-        ? error.code
-        : "AI_UNKNOWN_ERROR";
+      error instanceof AIProviderError ? error.code : "AI_UNKNOWN_ERROR";
 
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown AI error";
+      error instanceof Error ? error.message : "Unknown AI error";
 
     await updateAiRunLog({
       aiRunLogId,
       userId: params.userId,
-      status:
-        errorCode === "AI_PROVIDER_TIMEOUT"
-          ? "timeout"
-          : "failed",
+      status: errorCode === "AI_PROVIDER_TIMEOUT" ? "timeout" : "failed",
       errorCode,
       errorMessage,
       errorDetails:
-        error instanceof AIProviderError
-          ? error.details
-          : undefined,
+        error instanceof AIProviderError ? error.details : undefined,
     });
 
     await logAiRunEvent({
