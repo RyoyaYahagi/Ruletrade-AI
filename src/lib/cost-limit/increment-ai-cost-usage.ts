@@ -6,12 +6,12 @@ import { getMonthlyCostPeriod } from "@/lib/cost-limit/cost-limit-period";
 export async function incrementAiCostUsage(params: {
   userId: string;
   costUsd: number;
-}) {
+}): Promise<number> {
   const { periodStart, periodEnd } = getMonthlyCostPeriod();
 
   const supabase = await createClient();
 
-  const { error } = await supabase.rpc("increment_cost_limit_counter", {
+  const { data, error } = await supabase.rpc("increment_cost_limit_counter", {
     p_user_id: params.userId,
     p_period_start: periodStart,
     p_period_end: periodEnd,
@@ -21,4 +21,6 @@ export async function incrementAiCostUsage(params: {
   if (error) {
     throw error;
   }
+
+  return Number(data ?? params.costUsd);
 }

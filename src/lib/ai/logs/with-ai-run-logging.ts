@@ -72,9 +72,10 @@ export async function withAiRunLogging<T>(params: {
       userId: params.userId,
       status: "succeeded",
       schemaValid: true,
+      safetyPassed: undefined,
       inputTokens: result.usage.inputTokens,
       outputTokens: result.usage.outputTokens,
-      estimatedCostUsd,
+      estimatedCostUsd: estimatedCostUsd ?? undefined,
       latencyMs: result.meta.latencyMs,
       outputJson: result.data,
     });

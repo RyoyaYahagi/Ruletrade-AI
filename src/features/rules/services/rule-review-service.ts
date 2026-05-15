@@ -5,15 +5,31 @@ import { getAIProvider } from "@/lib/ai/provider-factory";
 import { AppError } from "@/lib/errors/app-error";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { buildRuleReviewSafetyText } from "@/lib/safety/safety-text";
+import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
+import { updateAiRunLog } from "@/lib/ai/logs/update-ai-run-log";
+import { logAiRunEvent } from "@/lib/ai/logs/log-ai-run-event";
+import {
+  getConfiguredAIProvider,
+  getOpenAIModel,
+  getGeminiModel,
+} from "@/lib/ai/model-config";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
   return type;
 }
 
+function getConfiguredModelForLog(): string {
+  const provider = getConfiguredAIProvider();
+  if (provider === "openai") return getOpenAIModel();
+  if (provider === "gemini") return getGeminiModel();
+  return "mock-model";
+}
+
 async function saveUnsafeRuleReview(params: {
   userId: string;
   sessionId: string;
+  aiRunLogId: string;
   aiResult: {
     meta: {
       provider: string;
@@ -35,6 +51,7 @@ async function saveUnsafeRuleReview(params: {
   const { error } = await supabase.from("rule_reviews").insert({
     user_id: params.userId,
     session_id: params.sessionId,
+    ai_run_log_id: params.aiRunLogId,
     provider: params.aiResult.meta.provider,
     model: params.aiResult.meta.model,
     prompt_version: params.aiResult.meta.promptVersion ?? "unknown",
@@ -83,26 +100,43 @@ export async function runRuleReview(params: {
   const ai = getAIProvider();
   const { RuleReviewSchema } =
     await import("@/schemas/rules/rule-review-schema");
-  const aiResult = await ai.generateObject({
+
+  const aiResult = await withAiRunLogging({
+    userId: params.userId,
     taskType: "rule_review",
-    schema: RuleReviewSchema,
-    schemaName: "RuleReview",
+    sourceType: "rule_session",
+    sourceId: params.sessionId,
+    sessionId: params.sessionId,
+    provider: getConfiguredAIProvider(),
+    model: getConfiguredModelForLog(),
     promptVersion: "rule-reviewer-v1",
-    messages: [
-      {
-        role: "system",
-        content:
-          "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。",
-      },
-      {
-        role: "user",
-        content: JSON.stringify({
-          ticker: session.ticker,
-          companyName: session.company_name,
-          rule: session.rule_json,
-        }),
-      },
-    ],
+    inputJson: {
+      ticker: session.ticker,
+      companyName: session.company_name,
+      rule: session.rule_json,
+    },
+    run: () =>
+      ai.generateObject({
+        taskType: "rule_review",
+        schema: RuleReviewSchema,
+        schemaName: "RuleReview",
+        promptVersion: "rule-reviewer-v1",
+        messages: [
+          {
+            role: "system",
+            content:
+              "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              ticker: session.ticker,
+              companyName: session.company_name,
+              rule: session.rule_json,
+            }),
+          },
+        ],
+      }),
   });
 
   const review = aiResult.data;
@@ -119,9 +153,31 @@ export async function runRuleReview(params: {
   };
 
   if (!safety.passed) {
+    await updateAiRunLog({
+      aiRunLogId: aiResult.aiRunLogId,
+      userId: params.userId,
+      status: "failed",
+      schemaValid: true,
+      safetyPassed: false,
+      errorCode: "SAFETY_FAILED",
+      errorMessage: "AI output failed safety check.",
+      errorDetails: {
+        safety,
+      },
+    });
+
+    await logAiRunEvent({
+      aiRunLogId: aiResult.aiRunLogId,
+      userId: params.userId,
+      eventType: "safety_failed",
+      message: "AI output failed safety check.",
+      metadata: { safety },
+    });
+
     await saveUnsafeRuleReview({
       userId: params.userId,
       sessionId: params.sessionId,
+      aiRunLogId: aiResult.aiRunLogId,
       aiResult,
       review: reviewWithSafety,
       safety,
@@ -143,6 +199,7 @@ export async function runRuleReview(params: {
     .insert({
       user_id: params.userId,
       session_id: params.sessionId,
+      ai_run_log_id: aiResult.aiRunLogId,
       provider: aiResult.meta.provider,
       model: aiResult.meta.model,
       prompt_version: aiResult.meta.promptVersion ?? "unknown",
