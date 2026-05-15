@@ -6,34 +6,34 @@ import {
   Database,
   GitBranch,
   ShieldCheck,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   agentDefinitions,
   ruleStatusLabels,
   sampleInvestmentMemory,
   sampleRule,
-} from "@/features/rules/model"
-import { validateTradingRule } from "@/features/rules/services/trading-rule-validation"
+} from "@/features/rules/model";
+import { validateTradingRule } from "@/features/rules/services/trading-rule-validation";
 
 const severityClassName = {
   info: "border-sky-200 bg-sky-50 text-sky-950",
   warning: "border-amber-200 bg-amber-50 text-amber-950",
   blocker: "border-rose-200 bg-rose-50 text-rose-950",
-}
+};
 
 export function AgentWorkbench() {
-  const ruleValidation = validateTradingRule(sampleRule)
+  const ruleValidation = validateTradingRule(sampleRule);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -114,17 +114,28 @@ export function AgentWorkbench() {
             </div>
             <dl className="mt-4 space-y-3 text-sm">
               <div>
-                <dt className="text-xs text-muted-foreground">Risk tolerance</dt>
-                <dd className="mt-1 font-medium">{sampleInvestmentMemory.riskTolerance}</dd>
+                <dt className="text-xs text-muted-foreground">
+                  Risk tolerance
+                </dt>
+                <dd className="mt-1 font-medium">
+                  {sampleInvestmentMemory.riskTolerance}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Preferred markets</dt>
-                <dd className="mt-1">{sampleInvestmentMemory.preferredMarkets.join(" / ")}</dd>
+                <dt className="text-xs text-muted-foreground">
+                  Preferred markets
+                </dt>
+                <dd className="mt-1">
+                  {sampleInvestmentMemory.preferredMarkets.join(" / ")}
+                </dd>
               </div>
             </dl>
             <ul className="mt-4 space-y-2">
               {sampleInvestmentMemory.standingConstraints.map((constraint) => (
-                <li key={constraint} className="flex gap-2 text-xs leading-5 text-muted-foreground">
+                <li
+                  key={constraint}
+                  className="flex gap-2 text-xs leading-5 text-muted-foreground"
+                >
                   <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
                   {constraint}
                 </li>
@@ -140,19 +151,30 @@ export function AgentWorkbench() {
                 <p className="text-xs font-medium uppercase text-muted-foreground">
                   {ruleStatusLabels[sampleRule.status]}
                 </p>
-                <h2 className="mt-1 text-xl font-semibold">{sampleRule.title}</h2>
+                <h2 className="mt-1 text-xl font-semibold">
+                  {sampleRule.title}
+                </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {sampleRule.market} / {sampleRule.timeframe} / risk {sampleRule.riskLevel}
+                  {sampleRule.market} / {sampleRule.timeframe} / risk{" "}
+                  {sampleRule.riskLevel}
                 </p>
               </div>
               <span className="w-fit rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-950">
-                {ruleValidation.canApprove ? "Ready for approval" : "Approval blocked"}
+                {ruleValidation.canApprove
+                  ? "Ready for approval"
+                  : "Approval blocked"}
               </span>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <RuleList title="Entry conditions" items={sampleRule.entryConditions} />
-              <RuleList title="Exit conditions" items={sampleRule.exitConditions} />
+              <RuleList
+                title="Entry conditions"
+                items={sampleRule.entryConditions}
+              />
+              <RuleList
+                title="Exit conditions"
+                items={sampleRule.exitConditions}
+              />
               <RuleList title="Risk limits" items={sampleRule.riskLimits} />
               <RuleList title="Assumptions" items={sampleRule.assumptions} />
             </div>
@@ -164,10 +186,22 @@ export function AgentWorkbench() {
               <h2 className="text-sm font-medium">Evaluation evidence</h2>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-4">
-              <Metric label="Backtest window" value={sampleRule.evidence.backtestWindow} />
-              <Metric label="Sample size" value={String(sampleRule.evidence.sampleSize)} />
-              <Metric label="Max drawdown" value={sampleRule.evidence.expectedMaxDrawdown} />
-              <Metric label="Confidence" value={sampleRule.evidence.confidence} />
+              <Metric
+                label="Backtest window"
+                value={sampleRule.evidence.backtestWindow}
+              />
+              <Metric
+                label="Sample size"
+                value={String(sampleRule.evidence.sampleSize)}
+              />
+              <Metric
+                label="Max drawdown"
+                value={sampleRule.evidence.expectedMaxDrawdown}
+              />
+              <Metric
+                label="Confidence"
+                value={sampleRule.evidence.confidence}
+              />
             </div>
           </div>
         </div>
@@ -186,7 +220,9 @@ export function AgentWorkbench() {
                 >
                   <p className="text-sm font-medium">{warning.title}</p>
                   <p className="mt-1 text-xs leading-5">{warning.detail}</p>
-                  <p className="mt-2 text-xs opacity-75">Owner: {warning.owner}</p>
+                  <p className="mt-2 text-xs opacity-75">
+                    Owner: {warning.owner}
+                  </p>
                 </div>
               ))}
             </div>
@@ -209,7 +245,7 @@ export function AgentWorkbench() {
         </aside>
       </section>
     </main>
-  )
+  );
 }
 
 function RuleList({ title, items }: { title: string; items: string[] }) {
@@ -224,7 +260,7 @@ function RuleList({ title, items }: { title: string; items: string[] }) {
         ))}
       </ul>
     </div>
-  )
+  );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -233,5 +269,5 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
-  )
+  );
 }

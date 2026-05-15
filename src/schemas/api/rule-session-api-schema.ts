@@ -38,7 +38,17 @@ export const RunRuleReviewResponseSchema = z.object({
 });
 
 export const UpdateRuleSessionRequestSchema = z.object({
-  status: z.enum(["draft", "in_progress", "needs_more_info", "quality_gate_passed", "paused", "finalized", "archived"]).optional(),
+  status: z
+    .enum([
+      "draft",
+      "in_progress",
+      "needs_more_info",
+      "quality_gate_passed",
+      "paused",
+      "finalized",
+      "archived",
+    ])
+    .optional(),
   ruleJson: TradeRuleSchema.optional(),
 });
 
@@ -52,19 +62,14 @@ export type CreateRuleSessionRequest = z.infer<
 export type CreateRuleSessionResponse = z.infer<
   typeof CreateRuleSessionResponseSchema
 >;
-export type SaveRuleAnswerRequest = z.infer<
-  typeof SaveRuleAnswerRequestSchema
->;
+export type SaveRuleAnswerRequest = z.infer<typeof SaveRuleAnswerRequestSchema>;
 export type SaveRuleAnswerResponse = z.infer<
   typeof SaveRuleAnswerResponseSchema
 >;
-export type RunRuleReviewResponse = z.infer<
-  typeof RunRuleReviewResponseSchema
->;
+export type RunRuleReviewResponse = z.infer<typeof RunRuleReviewResponseSchema>;
 export type UpdateRuleSessionRequest = z.infer<
   typeof UpdateRuleSessionRequestSchema
 >;
 export type FinalizeRuleSessionRequest = z.infer<
   typeof FinalizeRuleSessionRequestSchema
 >;
-

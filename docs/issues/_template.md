@@ -41,7 +41,7 @@ List the local docs reviewed before or during implementation.
 
 Track meaningful repo changes.
 
-- 
+-
 
 ## Tests and verification
 
@@ -82,7 +82,7 @@ Track durable documentation decisions created or modified by this issue.
 
 Record comments or status updates posted back to GitHub.
 
-- 
+-
 
 ## Final reviewer verdict
 
@@ -94,4 +94,4 @@ Record comments or status updates posted back to GitHub.
 
 List intentional deferrals or newly discovered tasks.
 
-- 
+-

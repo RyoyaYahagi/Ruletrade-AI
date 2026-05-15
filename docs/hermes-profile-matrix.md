@@ -25,6 +25,7 @@ Recommended model ownership:
 ### 1. `rt-orchestrator-gpt54m`
 
 Purpose:
+
 - issue intake
 - queue selection
 - Kanban routing
@@ -33,6 +34,7 @@ Purpose:
 - final completion coordination
 
 Recommended tools:
+
 - kanban
 - file
 - terminal
@@ -40,6 +42,7 @@ Recommended tools:
 - skills
 
 Notes:
+
 - This profile should stay focused on orchestration rather than implementation.
 - It should not be used as the final review authority.
 - Model intent: GPT-5.5 low.
@@ -48,98 +51,117 @@ Notes:
 ### 2. `rt-planner-kimi26`
 
 Purpose:
+
 - produce saved plans in `.hermes/plans/`
 - define task slices, file ownership, and checkpoints
 - identify ADR/doc impact early
 
 Recommended tools:
+
 - file
 - terminal
 - skills
 
 Notes:
+
 - Keep this profile planning-only during the initial phase.
 - It should not start code changes until the plan is saved.
 
 ### 3. `rt-implementer-kimi26`
 
 Purpose:
+
 - central implementation tasks
 - sensitive workflow changes
 - code that benefits from stronger context continuity
 
 Recommended tools:
+
 - file
 - terminal
 - skills
 
 Notes:
+
 - Route through OpenCode Go-backed execution for Kimi-based work.
 - Use for tasks that are too important or broad for a quick utility worker.
 
 ### 4. `rt-finalcheck-gpt55low`
 
 Purpose:
+
 - final code review
 - regression and integration check
 - approval of issue completion
 
 Recommended tools:
+
 - file
 - terminal
 - skills
 
 Notes:
+
 - Must remain separate from the implementation lead.
 - This profile should review the final state, not the draft plan.
 
 ### 5. `rt-worker-copilot-gpt54mini`
 
 Purpose:
+
 - lightweight tests
 - small refactors
 - bounded fixups
 - short follow-up tasks
 
 Recommended tools:
+
 - file
 - terminal
 - skills
 
 Provider rule:
+
 - GitHub Copilot only
 
 Notes:
+
 - Use for narrow tasks with low file-overlap risk.
 - Good for tiny test additions or mechanical edits.
 
 ### 6. `rt-worker-opencode-kimi26`
 
 Purpose:
+
 - Kimi-based worker tasks that should run through OpenCode Go plan
 - medium-size implementation or analysis tasks requiring Kimi
 
 Recommended tools:
+
 - file
 - terminal
 - skills
 
 Notes:
+
 - This is the recommended bridge for the user’s Kimi/OpenCode requirement.
 
 ### 7. `rt-worker-deepseek-v4pro`
 
 Purpose:
+
 - independent analysis
 - supporting implementation work
 - secondary review or investigation
 
 Recommended tools:
+
 - file
 - terminal
 - skills
 
 Notes:
+
 - Use when the task is non-trivial but does not need the full Kimi lead.
 
 ## Profile design rules
