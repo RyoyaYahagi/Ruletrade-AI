@@ -1,39 +1,21 @@
 import "server-only";
 
-import type { User } from "@supabase/supabase-js";
-
 import { createClient } from "@/lib/db/supabase-server";
 
-function createMockUser(): User {
-  const now = new Date().toISOString();
-  return {
-    id: "mock-user-id",
-    aud: "authenticated",
-    role: "authenticated",
-    email: "mock@example.com",
-    email_confirmed_at: now,
-    phone: "",
-    confirmation_sent_at: now,
-    confirmed_at: now,
-    last_sign_in_at: now,
-    app_metadata: {
-      provider: "email",
-      providers: ["email"],
-      role: "admin",
-    },
-    user_metadata: {
-      name: "Mock User",
-    },
-    identities: [],
-    created_at: now,
-    updated_at: now,
-    is_anonymous: false,
-  } as User;
-}
+const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
+const MOCK_AUTH_USER_ID = process.env.MOCK_AUTH_USER_ID ?? "mock-user-id";
 
 export async function getCurrentUser() {
-  if (process.env.MOCK_AUTH === "true") {
-    return createMockUser();
+  // Development mock: return mock user without hitting Supabase
+  if (MOCK_AUTH_EMAIL) {
+    return {
+      id: MOCK_AUTH_USER_ID,
+      email: MOCK_AUTH_EMAIL,
+      app_metadata: { role: "admin" },
+      user_metadata: {},
+      aud: "authenticated",
+      created_at: new Date().toISOString(),
+    } as unknown as import("@supabase/supabase-js").User;
   }
 
   let supabase;
