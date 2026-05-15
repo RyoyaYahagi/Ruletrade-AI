@@ -26,6 +26,6 @@ export async function POST(
     });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, { requestId });
   }
 }

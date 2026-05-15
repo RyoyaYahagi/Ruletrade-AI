@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const result = await createRuleSession({ userId: user.id, ...input });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, { requestId });
   }
 }
 
@@ -32,6 +32,6 @@ export async function GET() {
     const result = await listRuleSessions({ userId: user.id });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, { requestId });
   }
 }
