@@ -54,9 +54,10 @@ export function AnswerInput({
           placeholder="下限"
           className="rounded-md border px-3 py-2"
           onChange={(event) => {
+            const value = event.target.value;
             onAnswerJsonChange({
               ...answerJson,
-              min: Number(event.target.value),
+              min: value === "" ? undefined : Number(value),
             });
           }}
         />
@@ -65,9 +66,10 @@ export function AnswerInput({
           placeholder="上限"
           className="rounded-md border px-3 py-2"
           onChange={(event) => {
+            const value = event.target.value;
             onAnswerJsonChange({
               ...answerJson,
-              max: Number(event.target.value),
+              max: value === "" ? undefined : Number(value),
             });
           }}
         />

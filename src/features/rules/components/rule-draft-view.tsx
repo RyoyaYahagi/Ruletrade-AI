@@ -64,7 +64,7 @@ function RuleField({ label, value }: { label: string; value: unknown }) {
     <div>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 whitespace-pre-wrap">
-        {value ? String(value) : "未設定"}
+        {value == null ? "未設定" : String(value)}
       </p>
     </div>
   );

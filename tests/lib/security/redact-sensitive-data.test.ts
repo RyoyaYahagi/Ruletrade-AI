@@ -29,7 +29,7 @@ describe("redactSensitiveData", () => {
   });
 
   it("redacts Bearer tokens in strings", () => {
-    const input = { header: "Authorization: Bearer xyz789" };
+    const input = { header: "Authorization: Bearer test-token-123" };
     const result = redactSensitiveData(input) as Record<string, unknown>;
     expect(result.header).toBe("Authorization: [REDACTED]");
   });

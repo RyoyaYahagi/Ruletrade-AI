@@ -13,9 +13,15 @@ export function useRuleSession(sessionId: string) {
 
     try {
       const response = await fetch(`/api/rule-sessions/${sessionId}`);
+
+      if (!response.ok) {
+        setErrorMessage("データの取得に失敗しました。");
+        return;
+      }
+
       const json = await response.json();
 
-      if (!response.ok || !json.ok) {
+      if (!json.ok) {
         setErrorMessage(json.error?.message ?? "データの取得に失敗しました。");
         return;
       }
