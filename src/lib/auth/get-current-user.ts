@@ -7,7 +7,8 @@ export async function getCurrentUser() {
 
   try {
     supabase = await createClient();
-  } catch {
+  } catch (err) {
+    console.error("Failed to create supabase client:", err);
     return null;
   }
 
