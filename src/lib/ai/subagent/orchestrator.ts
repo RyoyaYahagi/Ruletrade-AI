@@ -48,9 +48,7 @@ const planSchema = z.object({
   reasoning: z.string(),
 });
 
-export async function createPlan(
-  context: WorkflowContext,
-): Promise<
+export async function createPlan(context: WorkflowContext): Promise<
   | {
       ok: true;
       plan: OrchestratorPlan;
