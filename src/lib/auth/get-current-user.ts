@@ -11,7 +11,7 @@ export async function getCurrentUser() {
     return {
       id: MOCK_AUTH_USER_ID,
       email: MOCK_AUTH_EMAIL,
-      app_metadata: {},
+      app_metadata: { role: "admin" },
       user_metadata: {},
       aud: "authenticated",
       created_at: new Date().toISOString(),
