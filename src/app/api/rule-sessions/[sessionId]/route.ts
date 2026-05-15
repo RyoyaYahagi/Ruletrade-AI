@@ -21,7 +21,7 @@ export async function GET(
     const result = await getRuleSessionDetail({ userId: user.id, sessionId });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, { requestId });
   }
 }
 
@@ -45,6 +45,6 @@ export async function PATCH(
     });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, { requestId });
   }
 }

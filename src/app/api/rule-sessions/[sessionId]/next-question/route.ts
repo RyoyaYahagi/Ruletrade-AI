@@ -16,6 +16,6 @@ export async function GET(
     const result = await getNextQuestion({ userId: user.id, sessionId });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, { requestId });
   }
 }
