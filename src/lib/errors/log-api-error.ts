@@ -27,12 +27,8 @@ export async function logApiError(params: {
       error_message: params.errorMessage,
       status_code: params.statusCode,
       retryable: params.retryable ?? false,
-      details: params.details
-        ? redactSensitiveData(params.details)
-        : null,
-      metadata: params.metadata
-        ? redactSensitiveData(params.metadata)
-        : {},
+      details: params.details ? redactSensitiveData(params.details) : null,
+      metadata: params.metadata ? redactSensitiveData(params.metadata) : {},
     });
   } catch {
     // エラーログ保存の失敗で本処理を壊さない
