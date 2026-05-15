@@ -12,8 +12,7 @@
 create index if not exists idx_app_users_id
 on public.app_users(id);
 
-create index if not exists idx_investor_profiles_user_id
-on public.investor_profiles(user_id);
+-- idx_investor_profiles_user_id は 20260514000000_initial_rule_creation_schema.sql で既に作成済み
 
 create index if not exists idx_rule_design_sessions_user_id
 on public.rule_design_sessions(user_id);
