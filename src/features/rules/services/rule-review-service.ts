@@ -276,5 +276,6 @@ export async function runRuleReview(params: {
     needsMoreInfo: review.needsMoreInfo,
     canFinalize: review.canFinalize,
     nextQuestions: review.nextQuestions,
+    estimatedCostUsd: aiResult.usage?.estimatedCostUsd ?? 0,
   };
 }

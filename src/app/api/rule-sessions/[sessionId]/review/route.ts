@@ -49,10 +49,10 @@ export async function POST(
       key: "ai_rule_review_daily",
     });
 
-    if (result.usage?.estimatedCostUsd) {
+    if (result.estimatedCostUsd) {
       await incrementAiCostUsage({
         userId: user.id,
-        costUsd: result.usage.estimatedCostUsd,
+        costUsd: result.estimatedCostUsd,
       });
     }
 
