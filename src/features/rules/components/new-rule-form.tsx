@@ -55,7 +55,7 @@ export function NewRuleForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5 rounded-lg border p-6">
       <div>
-        <label className="text-sm font-medium">銀棄コード</label>
+        <label className="text-sm font-medium">銘柄コード</label>
         <input
           value={ticker}
           onChange={(event) => setTicker(event.target.value)}
@@ -66,7 +66,7 @@ export function NewRuleForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium">銀棄名</label>
+        <label className="text-sm font-medium">銘柄名</label>
         <input
           value={companyName}
           onChange={(event) => setCompanyName(event.target.value)}
