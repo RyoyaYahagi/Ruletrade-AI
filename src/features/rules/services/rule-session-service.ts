@@ -45,9 +45,48 @@ export async function getRuleSessionDetail(params: { userId: string; sessionId: 
 
 export async function updateRuleSession(params: { userId: string; sessionId: string; status?: string; ruleJson?: unknown; }) {
   const supabase = await createClient();
+
+  const { data: currentSession, error: fetchError } = await supabase
+    .from("rule_design_sessions")
+    .select("status")
+    .eq("id", params.sessionId)
+    .eq("user_id", params.userId)
+    .single();
+  if (fetchError || !currentSession) {
+    throw new AppError("NOT_FOUND", "ルール作成セッションが見つかりません。", 404);
+  }
+
+  const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+    draft: ["in_progress", "archived"],
+    in_progress: ["needs_more_info", "quality_gate_passed", "paused", "draft", "archived"],
+    needs_more_info: ["in_progress", "paused", "archived"],
+    quality_gate_passed: ["finalized", "paused", "archived"],
+    paused: ["in_progress", "draft", "archived"],
+    finalized: ["archived"],
+    archived: [],
+  };
+
+  if (params.status && params.status !== currentSession.status) {
+    const allowed = VALID_STATUS_TRANSITIONS[currentSession.status] ?? [];
+    if (!allowed.includes(params.status)) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        `ステータス「${currentSession.status}」から「${params.status}」への遷移は許可されていません。`,
+        400,
+      );
+    }
+  }
+
   const updatePayload: Record<string, unknown> = {};
   if (params.status) updatePayload.status = params.status;
-  if (params.ruleJson) updatePayload.rule_json = params.ruleJson;
+  if (params.ruleJson !== undefined) {
+    const parseResult = TradeRuleSchema.safeParse(params.ruleJson);
+    if (!parseResult.success) {
+      throw new AppError("VALIDATION_ERROR", "ruleJsonの形式が正しくありません。", 400, parseResult.error.issues);
+    }
+    updatePayload.rule_json = parseResult.data;
+  }
+
   const { data, error } = await supabase.from("rule_design_sessions").update(updatePayload).eq("id", params.sessionId).eq("user_id", params.userId).select("id, status, rule_json, updated_at").single();
   if (error || !data) { throw new AppError("INTERNAL_ERROR", "ルール作成セッションの更新に失敗しました。", 500, error); }
   return { session: data };
@@ -59,4 +98,11 @@ export async function createRuleVersion(params: { userId: string; sessionId: str
   const nextVersionNumber = (latestVersion?.version_number ?? 0) + 1;
   const { error } = await supabase.from("rule_versions").insert({ user_id: params.userId, session_id: params.sessionId, version_number: nextVersionNumber, rule_json: params.ruleJson, change_reason: params.changeReason, created_by: params.createdBy });
   if (error) { throw new AppError("INTERNAL_ERROR", "ルールバージョンの保存に失敗しました。", 500, error); }
+}
+
+// TODO: buildRuleFromSession の実装詳細を決定する（セッションの回答とルールJSONから最終的なTradeRuleを構築）
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function buildRuleFromSession(_params: { userId: string; sessionId: string }) {
+  // TODO: セッション情報、回答履歴、rule_json を統合して完全な TradeRule を構築する
+  throw new AppError("NOT_IMPLEMENTED", "buildRuleFromSession は未実装です。", 501);
 }

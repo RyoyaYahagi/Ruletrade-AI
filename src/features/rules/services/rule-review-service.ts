@@ -32,7 +32,7 @@ async function saveUnsafeRuleReview(params: {
 }) {
   const supabase = await createClient();
 
-  await supabase.from("rule_reviews").insert({
+  const { error } = await supabase.from("rule_reviews").insert({
     user_id: params.userId,
     session_id: params.sessionId,
     provider: params.aiResult.meta.provider,
@@ -51,6 +51,9 @@ async function saveUnsafeRuleReview(params: {
     latency_ms: params.aiResult.meta.latencyMs,
     error_message: "SAFETY_FAILED",
   });
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", "安全性チェック不合格レビューの保存に失敗しました。", 500, error);
+  }
 }
 
 export async function runRuleReview(params: { userId: string; sessionId: string }) {
@@ -149,7 +152,7 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
   }
 
   if (review.qualityChecks.length > 0) {
-    await supabase.from("rule_quality_checks").insert(
+    const { error: checksError } = await supabase.from("rule_quality_checks").insert(
       review.qualityChecks.map(
         (check: {
           checkKey: string;
@@ -171,10 +174,13 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
         }),
       ),
     );
+    if (checksError) {
+      throw new AppError("INTERNAL_ERROR", "品質チェックの保存に失敗しました。", 500, checksError);
+    }
   }
 
   if (review.nextQuestions.length > 0) {
-    await supabase.from("rule_questions").insert(
+    const { error: questionsError } = await supabase.from("rule_questions").insert(
       review.nextQuestions.map(
         (
           question: {
@@ -205,10 +211,13 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
         }),
       ),
     );
+    if (questionsError) {
+      throw new AppError("INTERNAL_ERROR", "次の質問の保存に失敗しました。", 500, questionsError);
+    }
   }
 
   const nextStatus = review.canFinalize ? "quality_gate_passed" : "needs_more_info";
-  await supabase
+  const { error: updateError } = await supabase
     .from("rule_design_sessions")
     .update({
       completion_score: review.completionScore,
@@ -218,6 +227,9 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
     })
     .eq("id", params.sessionId)
     .eq("user_id", params.userId);
+  if (updateError) {
+    throw new AppError("INTERNAL_ERROR", "セッションの更新に失敗しました。", 500, updateError);
+  }
 
   return {
     reviewId: savedReview.id,
