@@ -23,15 +23,18 @@ export function FinalizeRuleButton({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/rule-sessions/${encodeURIComponent(sessionId)}/finalize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/rule-sessions/${encodeURIComponent(sessionId)}/finalize`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            force: false,
+          }),
         },
-        body: JSON.stringify({
-          force: false,
-        }),
-      });
+      );
 
       const json = await response.json();
 
