@@ -18,42 +18,13 @@ export async function incrementRateLimit(params: {
 
   const supabase = await createClient();
 
-  const { data: existing, error: existingError } = await supabase
-    .from("rate_limit_counters")
-    .select("id, used_count")
-    .eq("user_id", params.userId)
-    .eq("limit_key", params.key)
-    .eq("period_start", periodStart)
-    .eq("period_end", periodEnd)
-    .maybeSingle();
-
-  if (existingError) {
-    throw existingError;
-  }
-
-  if (!existing) {
-    const { error } = await supabase.from("rate_limit_counters").insert({
-      user_id: params.userId,
-      limit_key: params.key,
-      period_start: periodStart,
-      period_end: periodEnd,
-      used_count: incrementBy,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    return;
-  }
-
-  const { error } = await supabase
-    .from("rate_limit_counters")
-    .update({
-      used_count: existing.used_count + incrementBy,
-    })
-    .eq("id", existing.id)
-    .eq("user_id", params.userId);
+  const { error } = await supabase.rpc("increment_rate_limit_counter", {
+    p_user_id: params.userId,
+    p_limit_key: params.key,
+    p_period_start: periodStart,
+    p_period_end: periodEnd,
+    p_increment_by: incrementBy,
+  });
 
   if (error) {
     throw error;
