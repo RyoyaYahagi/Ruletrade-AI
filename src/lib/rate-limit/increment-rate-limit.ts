@@ -11,14 +11,14 @@ export async function incrementRateLimit(params: {
   userId: string;
   key: RateLimitKey;
   incrementBy?: number;
-}) {
+}): Promise<number> {
   const config = RATE_LIMIT_CONFIGS[params.key];
   const { periodStart, periodEnd } = getRateLimitPeriod(config.window);
   const incrementBy = params.incrementBy ?? 1;
 
   const supabase = await createClient();
 
-  const { error } = await supabase.rpc("increment_rate_limit_counter", {
+  const { data, error } = await supabase.rpc("increment_rate_limit_counter", {
     p_user_id: params.userId,
     p_limit_key: params.key,
     p_period_start: periodStart,
@@ -29,4 +29,6 @@ export async function incrementRateLimit(params: {
   if (error) {
     throw error;
   }
+
+  return data ?? incrementBy;
 }

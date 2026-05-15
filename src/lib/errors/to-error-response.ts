@@ -1,6 +1,7 @@
 import { AppError } from "@/lib/errors/app-error";
 import { ERROR_CODES } from "@/lib/errors/error-codes";
 import { logApiError } from "@/lib/errors/log-api-error";
+import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
 
 export async function toErrorResponse(
   error: unknown,
@@ -30,7 +31,7 @@ export async function toErrorResponse(
         error: {
           code: error.code,
           message: error.message,
-          details: error.details,
+          details: redactSensitiveData(error.details),
           requestId: params.requestId,
           retryable: error.retryable,
         },
