@@ -11,6 +11,8 @@ export type RateLimitConfig = {
   window: "hour" | "day" | "month";
 };
 
+// MVP 固定値 — 本番前にDB管理へ移行する予定
+// 参考: OpenAI GPT-4o で 1回あたり約 $0.01〜$0.05 の場合、時間20回=約$1〜$5
 export const RATE_LIMIT_CONFIGS: Record<RateLimitKey, RateLimitConfig> = {
   ai_rule_review_hourly: {
     key: "ai_rule_review_hourly",

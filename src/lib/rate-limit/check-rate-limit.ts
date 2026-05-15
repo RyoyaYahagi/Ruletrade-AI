@@ -27,7 +27,13 @@ export async function checkRateLimit(params: {
     .maybeSingle();
 
   if (error) {
-    throw error;
+    throw new AppError(
+      "DATABASE_ERROR",
+      "レート制限の確認に失敗しました。",
+      500,
+      { originalError: error.message },
+      false,
+    );
   }
 
   const usedCount = data?.used_count ?? 0;
