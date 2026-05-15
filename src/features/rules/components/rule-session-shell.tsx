@@ -39,6 +39,18 @@ type RuleSessionData = {
   }>;
 };
 
+function isRuleSessionData(data: unknown): data is RuleSessionData {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return (
+    typeof d.session === "object" &&
+    d.session !== null &&
+    Array.isArray(d.questions) &&
+    (d.latestReview === null || typeof d.latestReview === "object") &&
+    Array.isArray(d.qualityChecks)
+  );
+}
+
 export function RuleSessionShell({ sessionId }: { sessionId: string }) {
   const { data, isLoading, errorMessage, reload } = useRuleSession(sessionId);
 
@@ -65,7 +77,7 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
     );
   }
 
-  if (!data) {
+  if (!data || !isRuleSessionData(data)) {
     return (
       <div className="rounded-lg border p-6 text-sm text-muted-foreground">
         ルール作成セッションが見つかりません。
@@ -73,8 +85,7 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
     );
   }
 
-  const { session, questions, latestReview, qualityChecks } =
-    data as RuleSessionData;
+  const { session, questions, latestReview, qualityChecks } = data;
 
   const pendingQuestion = questions?.find(
     (question) => question.status === "pending",

@@ -7,9 +7,10 @@ import { checkRateLimit } from "@/lib/rate-limit/check-rate-limit";
 import { incrementRateLimit } from "@/lib/rate-limit/increment-rate-limit";
 import { checkAiCostLimit } from "@/lib/cost-limit/check-ai-cost-limit";
 import { incrementAiCostUsage } from "@/lib/cost-limit/increment-ai-cost-usage";
+import { ESTIMATED_AI_RULE_REVIEW_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   const requestId = crypto.randomUUID();
@@ -34,7 +35,7 @@ export async function POST(
 
     await checkAiCostLimit({
       userId: user.id,
-      estimatedNextCostUsd: 0.05,
+      estimatedNextCostUsd: ESTIMATED_AI_RULE_REVIEW_COST_USD,
     });
 
     const result = await runRuleReview({ userId: user.id, sessionId });
@@ -61,8 +62,8 @@ export async function POST(
     return toErrorResponse(error, {
       requestId,
       userId,
-      route: "/api/rule-sessions/[sessionId]/review",
-      method: "POST",
+      route: new URL(request.url).pathname,
+      method: request.method,
     });
   }
 }
