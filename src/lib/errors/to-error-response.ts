@@ -46,8 +46,7 @@ export async function toErrorResponse(
     route: params.route,
     method: params.method,
     errorCode: "INTERNAL_ERROR",
-    errorMessage:
-      error instanceof Error ? error.message : "Unknown error",
+    errorMessage: error instanceof Error ? error.message : "Unknown error",
     statusCode: 500,
     retryable: false,
   });

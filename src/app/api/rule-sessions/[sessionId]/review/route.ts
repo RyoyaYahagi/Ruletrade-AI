@@ -3,19 +3,66 @@ import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { assertOwnRuleSession } from "@/features/rules/services/rule-ownership-service";
 import { runRuleReview } from "@/features/rules/services/rule-review-service";
+import { checkRateLimit } from "@/lib/rate-limit/check-rate-limit";
+import { incrementRateLimit } from "@/lib/rate-limit/increment-rate-limit";
+import { checkAiCostLimit } from "@/lib/cost-limit/check-ai-cost-limit";
+import { incrementAiCostUsage } from "@/lib/cost-limit/increment-ai-cost-usage";
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   const requestId = crypto.randomUUID();
+  let userId: string | null = null;
+
   try {
     const user = await requireUser();
+    userId = user.id;
+
     const { sessionId } = await params;
     await assertOwnRuleSession({ userId: user.id, sessionId });
+
+    await checkRateLimit({
+      userId: user.id,
+      key: "ai_rule_review_hourly",
+    });
+
+    await checkRateLimit({
+      userId: user.id,
+      key: "ai_rule_review_daily",
+    });
+
+    await checkAiCostLimit({
+      userId: user.id,
+      estimatedNextCostUsd: 0.05,
+    });
+
     const result = await runRuleReview({ userId: user.id, sessionId });
+
+    await incrementRateLimit({
+      userId: user.id,
+      key: "ai_rule_review_hourly",
+    });
+
+    await incrementRateLimit({
+      userId: user.id,
+      key: "ai_rule_review_daily",
+    });
+
+    if (result.usage?.estimatedCostUsd) {
+      await incrementAiCostUsage({
+        userId: user.id,
+        costUsd: result.usage.estimatedCostUsd,
+      });
+    }
+
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, requestId);
+    return toErrorResponse(error, {
+      requestId,
+      userId,
+      route: "/api/rule-sessions/[sessionId]/review",
+      method: "POST",
+    });
   }
 }
