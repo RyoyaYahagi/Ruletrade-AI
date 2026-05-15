@@ -35,7 +35,7 @@ describe("redactSensitiveData", () => {
   });
 
   it("redacts OpenAI-style API keys", () => {
-    const input = { key: "sk-proj-1234567890abcdef" };
+    const input = { key: "sk-test-fake-key-for-redaction" };
     const result = redactSensitiveData(input) as Record<string, unknown>;
     expect(result.key).toBe("[REDACTED]");
   });
