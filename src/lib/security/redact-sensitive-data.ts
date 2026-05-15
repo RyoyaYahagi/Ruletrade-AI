@@ -58,9 +58,7 @@ export function redactSensitiveData(value: unknown): unknown {
 function isSensitiveKey(key: string) {
   const normalized = key.toLowerCase();
 
-  return SENSITIVE_KEY_PATTERNS.some((pattern) =>
-    normalized.includes(pattern)
-  );
+  return SENSITIVE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern));
 }
 
 function redactString(value: string) {

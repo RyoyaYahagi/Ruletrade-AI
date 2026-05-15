@@ -41,10 +41,7 @@ describe("redactSensitiveData", () => {
   });
 
   it("redacts arrays recursively", () => {
-    const input = [
-      { api_key: "secret1" },
-      { api_key: "secret2" },
-    ];
+    const input = [{ api_key: "secret1" }, { api_key: "secret2" }];
     const result = redactSensitiveData(input) as Array<Record<string, unknown>>;
     expect(result[0].api_key).toBe("[REDACTED]");
     expect(result[1].api_key).toBe("[REDACTED]");
