@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:start": "npx supabase start",
-    "db:stop": "npx supabase stop",
+    "db:stop": "docker stop $(docker ps -q --filter 'name=supabase_') 2>/dev/null; true",
     "db:status": "npx supabase status",
     "db:reset": "npx supabase db reset",
     "db:migration:new": "npx supabase migration new",
