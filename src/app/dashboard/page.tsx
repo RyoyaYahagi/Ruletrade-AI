@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -17,16 +18,24 @@ export default async function DashboardPage() {
           <p className="text-sm font-medium text-muted-foreground">Dashboard</p>
           <h1 className="mt-2 text-2xl font-semibold">Ruletrade-AI</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            ログイン中: {user.email}
+            AIと一緒に、買う前の投資ルールを整理します。
           </p>
         </div>
         <LogoutButton />
       </div>
 
       <section className="rounded-lg border bg-background p-5">
-        <h2 className="text-base font-medium">認証状態</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-medium">投資ルール作成</h2>
+          <Link
+            href="/rules/new"
+            className="rounded-md bg-black px-4 py-2 text-sm text-white"
+          >
+            新しいルールを作る
+          </Link>
+        </div>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          このページはログイン済みユーザーだけが表示できます。投資ルールやレビュー履歴は、後続のDB/RLS実装でユーザーごとに分離します。
+          銘柄コードを入力して、AIが質問しながら買い方・損切り・利確・最大投資比率を整理します。
         </p>
       </section>
     </main>
