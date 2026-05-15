@@ -48,7 +48,7 @@ next-env.d.ts
 # Claude
 .claude/
 
-# Agent skills
+# Agent skills (large external packages)
 .agents/skills/notebooklm/
 
 # Playwright
