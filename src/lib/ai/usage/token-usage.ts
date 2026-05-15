@@ -8,9 +8,9 @@ export const zeroAIUsage: AIUsage = {
 };
 
 export function normalizeAIUsage(usage: AIUsage): AIUsage {
-  const inputTokens = usage.inputTokens;
-  const outputTokens = usage.outputTokens;
-  const totalTokens = usage.totalTokens ?? sumTokens(inputTokens, outputTokens);
+  const inputTokens = usage.inputTokens ?? 0;
+  const outputTokens = usage.outputTokens ?? 0;
+  const totalTokens = usage.totalTokens ?? inputTokens + outputTokens;
 
   return {
     inputTokens,
@@ -18,12 +18,4 @@ export function normalizeAIUsage(usage: AIUsage): AIUsage {
     totalTokens,
     estimatedCostUsd: usage.estimatedCostUsd,
   };
-}
-
-function sumTokens(inputTokens?: number, outputTokens?: number): number | undefined {
-  if (inputTokens === undefined && outputTokens === undefined) {
-    return undefined;
-  }
-
-  return (inputTokens ?? 0) + (outputTokens ?? 0);
 }

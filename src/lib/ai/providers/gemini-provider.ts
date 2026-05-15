@@ -123,12 +123,16 @@ export class GeminiProvider implements AIProvider {
     const url = new URL(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     );
-    url.searchParams.set("key", this.apiKey);
+
+    const controller = new AbortController();
 
     const response = await withTimeout(
       fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey,
+        },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: options.prompt }] }],
           generationConfig: {
@@ -137,8 +141,10 @@ export class GeminiProvider implements AIProvider {
             responseMimeType: options.responseMimeType,
           },
         }),
+        signal: controller.signal,
       }),
       getAITimeoutMs(),
+      controller,
     );
 
     if (!response.ok) {
