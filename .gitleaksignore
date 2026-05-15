@@ -1,0 +1,2 @@
+# Test files with intentionally fake secrets for redaction testing
+tests/lib/security/redact-sensitive-data.test.ts
