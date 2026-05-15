@@ -23,7 +23,13 @@ export async function checkAiCostLimit(params: {
     .maybeSingle();
 
   if (error) {
-    throw error;
+    throw new AppError(
+      "DATABASE_ERROR",
+      "コスト制限の確認に失敗しました。",
+      500,
+      { originalError: error.message },
+      false,
+    );
   }
 
   const usedCostUsd = Number(data?.used_cost_usd ?? 0);

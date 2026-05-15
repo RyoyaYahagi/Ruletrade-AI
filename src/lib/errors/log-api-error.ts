@@ -2,13 +2,14 @@ import "server-only";
 
 import { createClient } from "@/lib/db/supabase-server";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
+import type { ErrorCode } from "@/lib/errors/error-codes";
 
 export async function logApiError(params: {
   userId?: string | null;
   requestId: string;
   route?: string;
   method?: string;
-  errorCode: string;
+  errorCode: ErrorCode;
   errorMessage: string;
   statusCode: number;
   retryable?: boolean;
