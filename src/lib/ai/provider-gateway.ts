@@ -11,9 +11,9 @@ import { OpenAIProvider } from "@/lib/ai/providers/openai-provider";
 export type TaskWeight = "light" | "standard" | "heavy";
 
 const defaultModelByWeight: Record<TaskWeight, string> = {
-  light: "default-light",
-  standard: "default-standard",
-  heavy: "default-heavy",
+  light: "gpt-4.1-mini",
+  standard: "gpt-4.1",
+  heavy: "gpt-4.1",
 };
 
 export type AiProvider = "mock" | "openai" | "gemini";

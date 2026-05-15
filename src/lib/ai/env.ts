@@ -13,13 +13,18 @@ export function getOpenAiApiKey(): string {
 }
 
 export function getOptionalAnthropicApiKey(): string | null {
+  // TODO: 将来の Claude 対応用 — 現在未使用
   return process.env.ANTHROPIC_API_KEY ?? null;
 }
 
-export function getAnthropicApiKey(): string {
-  const key = getOptionalAnthropicApiKey();
+export function getOptionalGeminiApiKey(): string | null {
+  return process.env.GEMINI_API_KEY ?? null;
+}
+
+export function getGeminiApiKey(): string {
+  const key = getOptionalGeminiApiKey();
   if (!key) {
-    throw new Error("Missing ANTHROPIC_API_KEY environment variable");
+    throw new Error("Missing GEMINI_API_KEY environment variable");
   }
   return key;
 }
