@@ -1,17 +1,23 @@
 "use server";
 
 import { z } from "zod";
-import { createPlan, executePlan, type WorkflowContext } from "./subagent/orchestrator";
+import {
+  createPlan,
+  executePlan,
+  type WorkflowContext,
+} from "./subagent/orchestrator";
 
 const runAgentWorkflowInputSchema = z.object({
   userIntent: z.string().min(1),
-  investmentMemory: z.object({
-    riskTolerance: z.enum(["low", "medium", "high"]),
-    preferredMarkets: z.array(z.string()),
-    timeHorizons: z.array(z.string()),
-    rejectedPatterns: z.array(z.string()),
-    standingConstraints: z.array(z.string()),
-  }).optional(),
+  investmentMemory: z
+    .object({
+      riskTolerance: z.enum(["low", "medium", "high"]),
+      preferredMarkets: z.array(z.string()),
+      timeHorizons: z.array(z.string()),
+      rejectedPatterns: z.array(z.string()),
+      standingConstraints: z.array(z.string()),
+    })
+    .optional(),
   currentRule: z.unknown().optional(),
 });
 

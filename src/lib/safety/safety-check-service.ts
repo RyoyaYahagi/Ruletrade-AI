@@ -1,11 +1,12 @@
 import "server-only";
 
-import { SafetyCheckSchema, type SafetyCheck } from "@/schemas/safety/safety-check-schema";
+import {
+  SafetyCheckSchema,
+  type SafetyCheck,
+} from "@/schemas/safety/safety-check-schema";
 import { detectProhibitedPhrases } from "@/lib/safety/detect-prohibited-phrases";
 
-export function runSafetyCheck(params: {
-  text: string;
-}): SafetyCheck {
+export function runSafetyCheck(params: { text: string }): SafetyCheck {
   const detected = detectProhibitedPhrases(params.text);
 
   const hasHighRisk = detected.some((item) => item.riskLevel === "high");

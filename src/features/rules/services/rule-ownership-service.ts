@@ -20,7 +20,7 @@ export async function assertOwnRuleSession(params: {
     throw new AppError(
       "NOT_FOUND",
       "ルール作成セッションが見つかりません。",
-      404
+      404,
     );
   }
 

@@ -80,7 +80,10 @@ export async function callAi<TOutput>(
         completionTokens: result.usage.outputTokens ?? 0,
         totalTokens: result.usage.totalTokens ?? 0,
       },
-      model: result.meta.model || options.model || defaultModelByWeight[options.weight],
+      model:
+        result.meta.model ||
+        options.model ||
+        defaultModelByWeight[options.weight],
     };
   } catch (error) {
     const message =

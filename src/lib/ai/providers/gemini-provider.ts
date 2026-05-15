@@ -201,7 +201,10 @@ function parseJson(rawText: string): unknown {
   }
 }
 
-function normalizeProviderError(error: unknown, message: string): AIProviderError {
+function normalizeProviderError(
+  error: unknown,
+  message: string,
+): AIProviderError {
   if (error instanceof AIProviderError) {
     return error;
   }

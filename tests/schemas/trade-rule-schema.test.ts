@@ -61,4 +61,3 @@ describe("TradeRuleSchema", () => {
     expect(result.success).toBe(false);
   });
 });
-

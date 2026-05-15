@@ -36,7 +36,9 @@ export function SignupForm() {
       return;
     }
 
-    setMessage("確認メールを送信しました。メール内のリンクから登録を完了してください。");
+    setMessage(
+      "確認メールを送信しました。メール内のリンクから登録を完了してください。",
+    );
   }
 
   return (

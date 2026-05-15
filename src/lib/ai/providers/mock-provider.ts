@@ -84,7 +84,8 @@ function getMockObject(taskType: string, schemaName: string): unknown {
           status: "warning",
           severity: "medium",
           reason: "最大投資比率が未設定です。",
-          suggestedQuestion: "この銘柄はポートフォリオ全体の何％までにしますか？",
+          suggestedQuestion:
+            "この銘柄はポートフォリオ全体の何％までにしますか？",
         },
       ],
       nextQuestions: [
