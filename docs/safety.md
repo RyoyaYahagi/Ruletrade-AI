@@ -58,6 +58,7 @@ failed → UI hidden & log saved & safe fallback message displayed
 ## False Positive / False Negative Prevention
 
 Tests must cover both:
+
 - **False negative prevention**: Dangerous expressions must be reliably blocked
 - **False positive prevention**: Neutral rule-review and risk-management wording must not be blocked
 
@@ -66,6 +67,7 @@ Tests must cover both:
 Safety rules are versioned. Current version: `safety-rules-v1`
 
 Saved with each review:
+
 - `prompt_version`
 - `safety_rule_version`
 - `safety_passed`

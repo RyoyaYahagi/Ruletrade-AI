@@ -3,38 +3,42 @@ import type {
   InvestmentMemory,
   RuleStatus,
   TradingRule,
-} from "@/schemas/rules/trading-rule"
+} from "@/schemas/rules/trading-rule";
 
 export type AgentDefinition = {
-  role: AgentRole
-  name: string
-  responsibility: string
-  output: string
-}
+  role: AgentRole;
+  name: string;
+  responsibility: string;
+  output: string;
+};
 
 export const agentDefinitions: AgentDefinition[] = [
   {
     role: "orchestrator",
     name: "Orchestrator",
-    responsibility: "ユーザー入力、共有記憶、各AIの成果物を結び、承認待ちを管理する。",
+    responsibility:
+      "ユーザー入力、共有記憶、各AIの成果物を結び、承認待ちを管理する。",
     output: "タスク状態と次の担当",
   },
   {
     role: "rule_generator",
     name: "Rule Generator",
-    responsibility: "投資方針からエントリー、イグジット、リスク管理を構造化して起案する。",
+    responsibility:
+      "投資方針からエントリー、イグジット、リスク管理を構造化して起案する。",
     output: "構造化ルール案",
   },
   {
     role: "risk_reviewer",
     name: "Risk Reviewer",
-    responsibility: "矛盾、未来情報、損切り不在、過剰最適化、説明との不一致を検出する。",
+    responsibility:
+      "矛盾、未来情報、損切り不在、過剰最適化、説明との不一致を検出する。",
     output: "警告とブロッカー",
   },
   {
     role: "backtest_evaluator",
     name: "Backtest Evaluator",
-    responsibility: "検証期間、サンプル数、ドローダウン、未検証領域を記録する。",
+    responsibility:
+      "検証期間、サンプル数、ドローダウン、未検証領域を記録する。",
     output: "評価証跡",
   },
   {
@@ -43,7 +47,7 @@ export const agentDefinitions: AgentDefinition[] = [
     responsibility: "構造化ルールをユーザーが承認判断しやすい文章へ変換する。",
     output: "承認用サマリー",
   },
-]
+];
 
 export const ruleStatusLabels: Record<RuleStatus, string> = {
   draft: "Draft",
@@ -51,19 +55,23 @@ export const ruleStatusLabels: Record<RuleStatus, string> = {
   blocked: "Blocked",
   approved: "Approved",
   rejected: "Rejected",
-}
+};
 
 export const sampleInvestmentMemory: InvestmentMemory = {
   riskTolerance: "medium",
   preferredMarkets: ["日本株", "米国大型株", "ETF"],
   timeHorizons: ["スイング", "中期"],
-  rejectedPatterns: ["根拠のないナンピン", "損切り条件なし", "短すぎる検証期間"],
+  rejectedPatterns: [
+    "根拠のないナンピン",
+    "損切り条件なし",
+    "短すぎる検証期間",
+  ],
   standingConstraints: [
     "実運用前にユーザー承認を必須にする",
     "最大損失と撤退条件を常に明記する",
     "バックテスト未実施のルールは承認不可にする",
   ],
-}
+};
 
 export const sampleRule: TradingRule = {
   id: "rule-draft-001",
@@ -115,4 +123,4 @@ export const sampleRule: TradingRule = {
     required: true,
     reason: "AIは提案と検証までを担当し、採用判断はユーザーが行うため。",
   },
-}
+};

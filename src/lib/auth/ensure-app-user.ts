@@ -15,7 +15,7 @@ export async function ensureAppUser(user: User) {
       },
       {
         onConflict: "id",
-      }
+      },
     )
     .select("id, email")
     .single();

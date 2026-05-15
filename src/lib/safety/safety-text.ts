@@ -22,7 +22,10 @@ export function buildRuleReviewSafetyText(review: RuleReviewOutput) {
     }
   }
 
-  if (review.suggestedRuleUpdates && Array.isArray(review.suggestedRuleUpdates)) {
+  if (
+    review.suggestedRuleUpdates &&
+    Array.isArray(review.suggestedRuleUpdates)
+  ) {
     for (const update of review.suggestedRuleUpdates) {
       if (
         typeof update === "object" &&

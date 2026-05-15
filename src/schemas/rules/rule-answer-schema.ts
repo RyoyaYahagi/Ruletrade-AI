@@ -29,4 +29,3 @@ export const RuleAnswerSchema = z.object({
 });
 
 export type RuleAnswer = z.infer<typeof RuleAnswerSchema>;
-

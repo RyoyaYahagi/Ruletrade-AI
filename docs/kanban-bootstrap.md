@@ -60,6 +60,7 @@ Start with a single issue that is not obviously blocked and does not require a
 large cross-cutting refactor.
 
 Prefer:
+
 - an active-priority issue
 - a small-to-medium slice with clear file ownership
 - work that can demonstrate planning, implementation, and final review in one run
@@ -76,9 +77,11 @@ Suggested title pattern:
 - `Issue #<n> orchestration`
 
 Assignee:
+
 - `rt-orchestrator-gpt54m`
 
 Purpose:
+
 - own the workflow, not the code
 - track status and handoffs
 - decide when to escalate or block
@@ -92,9 +95,11 @@ Suggested title pattern:
 - `Plan issue #<n>`
 
 Assignee:
+
 - `rt-planner-kimi26`
 
 Output expectation:
+
 - a saved plan under `.hermes/plans/`
 
 ### 6. Split implementation into task cards
@@ -102,6 +107,7 @@ Output expectation:
 Create cards for each independent slice.
 
 Good task examples:
+
 - schema/domain change
 - service/backend change
 - UI change
@@ -109,6 +115,7 @@ Good task examples:
 - issue record or ADR update
 
 Assignment guidance:
+
 - core implementation: `rt-implementer-kimi26`
 - small bounded edits/tests: `rt-worker-copilot-gpt54mini`
 - Kimi/OpenCode-specific work: `rt-worker-opencode-kimi26`
@@ -126,6 +133,7 @@ Suggested title pattern:
 - `Final verification for issue #<n>`
 
 Assignee:
+
 - `rt-finalcheck-gpt55low`
 
 This card should not start until the implementation tasks are complete.
@@ -135,6 +143,7 @@ This card should not start until the implementation tasks are complete.
 Add a card for the repo-local execution record and any durable doc changes.
 
 Possible responsibilities:
+
 - update `docs/issues/<issue-number>.md`
 - update or create an ADR
 - update runbook or profile matrix if the process itself changed

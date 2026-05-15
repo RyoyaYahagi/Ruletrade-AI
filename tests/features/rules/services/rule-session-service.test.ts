@@ -51,7 +51,12 @@ describe("updateRuleSession validation", () => {
         error: null,
       })
       .mockResolvedValueOnce({
-        data: { id: "session-1", status: "needs_more_info", rule_json: {}, updated_at: new Date().toISOString() },
+        data: {
+          id: "session-1",
+          status: "needs_more_info",
+          rule_json: {},
+          updated_at: new Date().toISOString(),
+        },
         error: null,
       });
 

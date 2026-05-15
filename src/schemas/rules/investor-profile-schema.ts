@@ -17,12 +17,7 @@ export const InvestmentStyleSchema = z.enum([
   "undecided",
 ]);
 
-export const RiskToleranceSchema = z.enum([
-  "low",
-  "medium",
-  "high",
-  "unknown",
-]);
+export const RiskToleranceSchema = z.enum(["low", "medium", "high", "unknown"]);
 
 export const CashBufferRangeSchema = z.enum([
   "under_100k",
@@ -52,4 +47,3 @@ export const InvestorProfileSchema = z.object({
 });
 
 export type InvestorProfile = z.infer<typeof InvestorProfileSchema>;
-

@@ -37,4 +37,3 @@ export const createApiSuccessResponseSchema = <T extends z.ZodType>(
 
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
-

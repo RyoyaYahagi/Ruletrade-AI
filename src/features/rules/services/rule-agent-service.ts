@@ -20,7 +20,11 @@ export async function generateTradingRule(
   userIntent: string,
   memory?: InvestmentMemory,
   options?: { skipInvestigation?: boolean },
-): Promise<AgentServiceResult<import("@/schemas/rules/rule-generation-schema").RuleGenerationOutput>> {
+): Promise<
+  AgentServiceResult<
+    import("@/schemas/rules/rule-generation-schema").RuleGenerationOutput
+  >
+> {
   const context: Record<string, unknown> = { userIntent, memory };
   let investigationSummary: string | undefined;
 
@@ -62,7 +66,11 @@ export async function reviewTradingRule(
   rule: TradingRule,
   memory?: InvestmentMemory,
   options?: { skipInvestigation?: boolean },
-): Promise<AgentServiceResult<import("@/schemas/rules/rule-review-schema").RuleReviewOutput>> {
+): Promise<
+  AgentServiceResult<
+    import("@/schemas/rules/rule-review-schema").RuleReviewOutput
+  >
+> {
   const context: Record<string, unknown> = { rule, memory };
   let investigationSummary: string | undefined;
 
@@ -104,7 +112,11 @@ export async function reviewTradingRule(
 export async function evaluateTradingRule(
   rule: TradingRule,
   options?: { skipInvestigation?: boolean },
-): Promise<AgentServiceResult<import("@/schemas/rules/rule-evaluation-schema").RuleEvaluationOutput>> {
+): Promise<
+  AgentServiceResult<
+    import("@/schemas/rules/rule-evaluation-schema").RuleEvaluationOutput
+  >
+> {
   const context: Record<string, unknown> = { rule };
   let investigationSummary: string | undefined;
 
@@ -146,7 +158,11 @@ export async function evaluateTradingRule(
 export async function explainTradingRule(
   rule: TradingRule,
   options?: { skipInvestigation?: boolean },
-): Promise<AgentServiceResult<import("@/schemas/rules/rule-explanation-schema").RuleExplanationOutput>> {
+): Promise<
+  AgentServiceResult<
+    import("@/schemas/rules/rule-explanation-schema").RuleExplanationOutput
+  >
+> {
   const context: Record<string, unknown> = { rule };
   let investigationSummary: string | undefined;
 

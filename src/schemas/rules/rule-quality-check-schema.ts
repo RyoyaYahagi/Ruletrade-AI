@@ -14,4 +14,3 @@ export const RuleQualityCheckSchema = z.object({
 });
 
 export type RuleQualityCheck = z.infer<typeof RuleQualityCheckSchema>;
-

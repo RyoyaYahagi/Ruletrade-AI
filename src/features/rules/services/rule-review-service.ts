@@ -52,11 +52,19 @@ async function saveUnsafeRuleReview(params: {
     error_message: "SAFETY_FAILED",
   });
   if (error) {
-    throw new AppError("INTERNAL_ERROR", "安全性チェック不合格レビューの保存に失敗しました。", 500, error);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "安全性チェック不合格レビューの保存に失敗しました。",
+      500,
+      error,
+    );
   }
 }
 
-export async function runRuleReview(params: { userId: string; sessionId: string }) {
+export async function runRuleReview(params: {
+  userId: string;
+  sessionId: string;
+}) {
   const supabase = await createClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
@@ -65,11 +73,16 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
     .eq("user_id", params.userId)
     .single();
   if (sessionError || !session) {
-    throw new AppError("NOT_FOUND", "ルール作成セッションが見つかりません。", 404);
+    throw new AppError(
+      "NOT_FOUND",
+      "ルール作成セッションが見つかりません。",
+      404,
+    );
   }
 
   const ai = getAIProvider();
-  const { RuleReviewSchema } = await import("@/schemas/rules/rule-review-schema");
+  const { RuleReviewSchema } =
+    await import("@/schemas/rules/rule-review-schema");
   const aiResult = await ai.generateObject({
     taskType: "rule_review",
     schema: RuleReviewSchema,
@@ -121,7 +134,7 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
       {
         safety,
       },
-      false
+      false,
     );
   }
 
@@ -148,75 +161,96 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
     .select("id")
     .single();
   if (reviewError || !savedReview) {
-    throw new AppError("INTERNAL_ERROR", "AIレビュー結果の保存に失敗しました。", 500, reviewError);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "AIレビュー結果の保存に失敗しました。",
+      500,
+      reviewError,
+    );
   }
 
   if (review.qualityChecks.length > 0) {
-    const { error: checksError } = await supabase.from("rule_quality_checks").insert(
-      review.qualityChecks.map(
-        (check: {
-          checkKey: string;
-          label: string;
-          status: string;
-          severity: string;
-          reason: string;
-          suggestedQuestion?: string;
-        }) => ({
-          user_id: params.userId,
-          session_id: params.sessionId,
-          review_id: savedReview.id,
-          check_key: check.checkKey,
-          label: check.label,
-          status: check.status,
-          severity: check.severity,
-          reason: check.reason,
-          suggested_question: check.suggestedQuestion ?? null,
-        }),
-      ),
-    );
+    const { error: checksError } = await supabase
+      .from("rule_quality_checks")
+      .insert(
+        review.qualityChecks.map(
+          (check: {
+            checkKey: string;
+            label: string;
+            status: string;
+            severity: string;
+            reason: string;
+            suggestedQuestion?: string;
+          }) => ({
+            user_id: params.userId,
+            session_id: params.sessionId,
+            review_id: savedReview.id,
+            check_key: check.checkKey,
+            label: check.label,
+            status: check.status,
+            severity: check.severity,
+            reason: check.reason,
+            suggested_question: check.suggestedQuestion ?? null,
+          }),
+        ),
+      );
     if (checksError) {
-      throw new AppError("INTERNAL_ERROR", "品質チェックの保存に失敗しました。", 500, checksError);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "品質チェックの保存に失敗しました。",
+        500,
+        checksError,
+      );
     }
   }
 
   if (review.nextQuestions.length > 0) {
-    const { error: questionsError } = await supabase.from("rule_questions").insert(
-      review.nextQuestions.map(
-        (
-          question: {
-            questionKey: string;
-            questionText: string;
-            questionType: string;
-            options?: unknown;
-            helpText?: string;
-            priority: number;
-            isRequired: boolean;
-            mapsToRuleField?: string;
-          },
-          index: number,
-        ) => ({
-          user_id: params.userId,
-          session_id: params.sessionId,
-          question_key: question.questionKey,
-          question_text: question.questionText,
-          question_type: mapQuestionType(question.questionType),
-          options: question.options ?? null,
-          help_text: question.helpText ?? null,
-          priority: question.priority,
-          is_required: question.isRequired,
-          maps_to_rule_field: question.mapsToRuleField ?? null,
-          source: "ai",
-          status: "pending",
-          display_order: 100 + index,
-        }),
-      ),
-    );
+    const { error: questionsError } = await supabase
+      .from("rule_questions")
+      .insert(
+        review.nextQuestions.map(
+          (
+            question: {
+              questionKey: string;
+              questionText: string;
+              questionType: string;
+              options?: unknown;
+              helpText?: string;
+              priority: number;
+              isRequired: boolean;
+              mapsToRuleField?: string;
+            },
+            index: number,
+          ) => ({
+            user_id: params.userId,
+            session_id: params.sessionId,
+            question_key: question.questionKey,
+            question_text: question.questionText,
+            question_type: mapQuestionType(question.questionType),
+            options: question.options ?? null,
+            help_text: question.helpText ?? null,
+            priority: question.priority,
+            is_required: question.isRequired,
+            maps_to_rule_field: question.mapsToRuleField ?? null,
+            source: "ai",
+            status: "pending",
+            display_order: 100 + index,
+          }),
+        ),
+      );
     if (questionsError) {
-      throw new AppError("INTERNAL_ERROR", "次の質問の保存に失敗しました。", 500, questionsError);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "次の質問の保存に失敗しました。",
+        500,
+        questionsError,
+      );
     }
   }
 
-  const nextStatus = review.canFinalize ? "quality_gate_passed" : "needs_more_info";
+  const nextStatus = review.canFinalize
+    ? "quality_gate_passed"
+    : "needs_more_info";
   const { error: updateError } = await supabase
     .from("rule_design_sessions")
     .update({
@@ -228,7 +262,12 @@ export async function runRuleReview(params: { userId: string; sessionId: string 
     .eq("id", params.sessionId)
     .eq("user_id", params.userId);
   if (updateError) {
-    throw new AppError("INTERNAL_ERROR", "セッションの更新に失敗しました。", 500, updateError);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "セッションの更新に失敗しました。",
+      500,
+      updateError,
+    );
   }
 
   return {

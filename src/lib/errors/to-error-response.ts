@@ -15,7 +15,7 @@ export function toErrorResponse(error: unknown, requestId?: string) {
       },
       {
         status: error.status,
-      }
+      },
     );
   }
 
@@ -31,6 +31,6 @@ export function toErrorResponse(error: unknown, requestId?: string) {
     },
     {
       status: 500,
-    }
+    },
   );
 }
