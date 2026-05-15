@@ -217,16 +217,14 @@ export async function createRuleVersion(params: {
     .limit(1)
     .maybeSingle();
   const nextVersionNumber = (latestVersion?.version_number ?? 0) + 1;
-  const { error } = await supabase
-    .from("rule_versions")
-    .insert({
-      user_id: params.userId,
-      session_id: params.sessionId,
-      version_number: nextVersionNumber,
-      rule_json: params.ruleJson,
-      change_reason: params.changeReason,
-      created_by: params.createdBy,
-    });
+  const { error } = await supabase.from("rule_versions").insert({
+    user_id: params.userId,
+    session_id: params.sessionId,
+    version_number: nextVersionNumber,
+    rule_json: params.ruleJson,
+    change_reason: params.changeReason,
+    created_by: params.createdBy,
+  });
   if (error) {
     throw new AppError(
       "INTERNAL_ERROR",
