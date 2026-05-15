@@ -88,8 +88,10 @@ export async function runRuleReviewEvalCase(params: {
     maxScoreMatches &&
     safety.passed;
 
+  const status = passed ? "passed" : "failed";
+
   return {
-    status: (passed ? "passed" : "failed") as const,
+    status: status as "passed" | "failed",
     actualJson: review,
     expectedJson: expected,
     matchedChecks: checkComparison.matchedChecks,
