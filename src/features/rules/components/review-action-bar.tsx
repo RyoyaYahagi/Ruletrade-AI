@@ -22,7 +22,7 @@ export function ReviewActionBar({
     setError(null);
 
     try {
-      const response = await fetch(`/api/rule-sessions/${sessionId}/review`, {
+      const response = await fetch(`/api/rule-sessions/${encodeURIComponent(sessionId)}/review`, {
         method: "POST",
       });
 

@@ -44,7 +44,8 @@ export function NewRuleForm() {
       }
 
       router.push(`/rules/${json.data.sessionId}`);
-    } catch {
+    } catch (error) {
+      console.error("[NewRuleForm] セッション作成エラー:", error);
       setErrorMessage("通信に失敗しました。もう一度お試しください。");
     } finally {
       setIsSubmitting(false);

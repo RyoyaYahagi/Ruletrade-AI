@@ -35,7 +35,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          銀棄コードを入力して、AIが質問しながら買い方・損切り・利硫・最大投資比率を整理します。
+          銘柄コードを入力して、AIが質問しながら買い方・損切り・利確・最大投資比率を整理します。
         </p>
       </section>
     </main>

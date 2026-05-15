@@ -1,4 +1,5 @@
 import { AppError } from "@/lib/errors/app-error";
+import { ERROR_CODES } from "@/lib/errors/error-codes";
 import { logApiError } from "@/lib/errors/log-api-error";
 
 export async function toErrorResponse(
@@ -45,7 +46,7 @@ export async function toErrorResponse(
     requestId: params.requestId,
     route: params.route,
     method: params.method,
-    errorCode: "INTERNAL_ERROR",
+    errorCode: ERROR_CODES.INTERNAL_ERROR,
     errorMessage: error instanceof Error ? error.message : "Unknown error",
     statusCode: 500,
     retryable: false,
@@ -55,7 +56,7 @@ export async function toErrorResponse(
     {
       ok: false,
       error: {
-        code: "INTERNAL_ERROR",
+        code: ERROR_CODES.INTERNAL_ERROR,
         message: "予期しないエラーが発生しました。",
         requestId: params.requestId,
         retryable: false,
