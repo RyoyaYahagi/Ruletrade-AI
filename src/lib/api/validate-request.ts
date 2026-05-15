@@ -30,4 +30,3 @@ export async function validateJsonRequest<TSchema extends z.ZodType>(
 
   return result.data;
 }
-

@@ -32,4 +32,3 @@ export const SafetyCheckSchema = z.object({
 });
 
 export type SafetyCheck = z.infer<typeof SafetyCheckSchema>;
-

@@ -34,4 +34,3 @@ export function validateAiOutput<TSchema extends z.ZodType>(
     data: result.data,
   };
 }
-

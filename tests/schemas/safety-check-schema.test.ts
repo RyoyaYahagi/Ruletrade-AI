@@ -39,4 +39,3 @@ describe("SafetyCheckSchema", () => {
     expect(result.success).toBe(false);
   });
 });
-

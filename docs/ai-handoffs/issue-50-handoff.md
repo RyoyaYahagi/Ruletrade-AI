@@ -1,9 +1,11 @@
 # AI Handoff: Issue #50 - Safety Check MVP
 
 ## 実装日
+
 2026-05-14
 
 ## 実装者
+
 Hermes Agent (kimi-k2.6)
 
 ---
@@ -20,41 +22,41 @@ Issue #50 は、AI 出力（ルールレビュー、追加質問生成など）�
 
 ### Safety 層（新規5ファイル）
 
-| ファイル | 機能 |
-|---------|------|
-| `src/lib/safety/prohibited-phrases.ts` | 9カテゴリ32ルールの禁止表現リスト。各ルールに type, phrase, reason, riskLevel を含む |
-| `src/lib/safety/detect-prohibited-phrases.ts` | テキスト正規化（小文字化・空白・句読点除去）後、ルールベースで禁止表現を検出 |
-| `src/lib/safety/safety-check-service.ts` | `runSafetyCheck({ text, context })` — 検出結果を `SafetyCheckSchema` で検証し、passed/riskLevel/violations/suggestedRewrite を返す |
-| `src/lib/safety/safety-text.ts` | `buildRuleReviewSafetyText(review)` — `RuleReview` から summary, qualityChecks, nextQuestions, suggestedRuleUpdates をテキスト化 |
-| `src/lib/safety/safety-fallback.ts` | `getSafetyFallbackMessage()` — Safety failed 時のユーザー向け固定文言 |
+| ファイル                                      | 機能                                                                                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/safety/prohibited-phrases.ts`        | 9カテゴリ32ルールの禁止表現リスト。各ルールに type, phrase, reason, riskLevel を含む                                               |
+| `src/lib/safety/detect-prohibited-phrases.ts` | テキスト正規化（小文字化・空白・句読点除去）後、ルールベースで禁止表現を検出                                                       |
+| `src/lib/safety/safety-check-service.ts`      | `runSafetyCheck({ text, context })` — 検出結果を `SafetyCheckSchema` で検証し、passed/riskLevel/violations/suggestedRewrite を返す |
+| `src/lib/safety/safety-text.ts`               | `buildRuleReviewSafetyText(review)` — `RuleReview` から summary, qualityChecks, nextQuestions, suggestedRuleUpdates をテキスト化   |
+| `src/lib/safety/safety-fallback.ts`           | `getSafetyFallbackMessage()` — Safety failed 時のユーザー向け固定文言                                                              |
 
 ### Service 層（修正1ファイル）
 
-| ファイル | 修正内容 |
-|---------|---------|
+| ファイル                                             | 修正内容                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/features/rules/services/rule-review-service.ts` | AIレビュー取得後に `buildRuleReviewSafetyText` → `runSafetyCheck` を実行。Safety passed なら通常保存（`safety_passed: true`）。Safety failed なら `saveUnsafeRuleReview` で `rule_reviews` に保存（`safety_passed: false`, `error_message: SAFETY_FAILED`）し、`AppError("SAFETY_FAILED", ..., 422, { safety }, false)` を throw |
 
 ### Schema（修正2ファイル）
 
-| ファイル | 修正内容 |
-|---------|---------|
-| `src/schemas/rules/rule-review-schema.ts` | `safety` フィールドを `SafetyCheckSchema` に置き換え。`nextQuestions` に `helpText` フィールドを追加 |
-| `src/schemas/safety/safety-check-schema.ts` | `SafetyViolationTypeSchema` に `urgency_pressure`, `fear_mongering` を追加（既存に上書き） |
+| ファイル                                    | 修正内容                                                                                             |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `src/schemas/rules/rule-review-schema.ts`   | `safety` フィールドを `SafetyCheckSchema` に置き換え。`nextQuestions` に `helpText` フィールドを追加 |
+| `src/schemas/safety/safety-check-schema.ts` | `SafetyViolationTypeSchema` に `urgency_pressure`, `fear_mongering` を追加（既存に上書き）           |
 
 ### AI Provider（修正1ファイル）
 
-| ファイル | 修正内容 |
-|---------|---------|
+| ファイル                                | 修正内容                                                                                             |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `src/lib/ai/providers/mock-provider.ts` | mock データの `safety` フィールドに `suggestedRewrite: undefined` を追加（`SafetyCheckSchema` 互換） |
 
 ### ドキュメント・テスト（新規4ファイル、修正1ファイル）
 
-| ファイル | 内容 |
-|---------|------|
+| ファイル                                         | 内容                                                                                                                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | `tests/safety/detect-prohibited-phrases.test.ts` | 禁止表現検出テスト（買い/売り/株価断定/利益保証/損失回避/判断代行/急かす/不安煽り/秘密情報）+ false positive 防止テスト |
-| `tests/safety/safety-check-service.test.ts` | `runSafetyCheck` テスト（high risk fail / safe pass / medium risk / multiple violations / false positive prevention） |
-| `docs/safety.md` | Safety Policy ドキュメント（block/warn/allow の3段階判定、禁止カテゴリ一覧、false positive/false negative 方針） |
-| `README.md` | Safety セクション追加（非投資助言方針） |
+| `tests/safety/safety-check-service.test.ts`      | `runSafetyCheck` テスト（high risk fail / safe pass / medium risk / multiple violations / false positive prevention）   |
+| `docs/safety.md`                                 | Safety Policy ドキュメント（block/warn/allow の3段階判定、禁止カテゴリ一覧、false positive/false negative 方針）        |
+| `README.md`                                      | Safety セクション追加（非投資助言方針）                                                                                 |
 
 ---
 
@@ -64,13 +66,13 @@ Issue #50 は、AI 出力（ルールレビュー、追加質問生成など）�
 
 ### 実装中に見つけた問題と対応
 
-| 問題 | 対応 |
-|------|------|
-| `RuleReviewSchema` の `safety` フィールドと `SafetyCheckSchema` の型が不一致（violations の型が異なる） | `RuleReviewSchema` の `safety` を `SafetyCheckSchema` に置き換え |
-| `RuleReviewSchema.nextQuestions` に `helpText` がなかった | `helpText: z.string().min(1).optional()` を追加 |
-| `safety-text.ts` で `question.helpText` にアクセスできない | 上記スキーマ修正で解決 |
-| mock-provider の `safety` フィールドに `suggestedRewrite` が欠けていた | `suggestedRewrite: undefined` を追加 |
-| テストで `今すぐ売買するのではなく...` が false positive 検出された | MVP のルールベース検出では文脈を考慮できないため、テストケースを `今すぐ` を含まない安全な文言に変更 |
+| 問題                                                                                                    | 対応                                                                                                 |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `RuleReviewSchema` の `safety` フィールドと `SafetyCheckSchema` の型が不一致（violations の型が異なる） | `RuleReviewSchema` の `safety` を `SafetyCheckSchema` に置き換え                                     |
+| `RuleReviewSchema.nextQuestions` に `helpText` がなかった                                               | `helpText: z.string().min(1).optional()` を追加                                                      |
+| `safety-text.ts` で `question.helpText` にアクセスできない                                              | 上記スキーマ修正で解決                                                                               |
+| mock-provider の `safety` フィールドに `suggestedRewrite` が欠けていた                                  | `suggestedRewrite: undefined` を追加                                                                 |
+| テストで `今すぐ売買するのではなく...` が false positive 検出された                                     | MVP のルールベース検出では文脈を考慮できないため、テストケースを `今すぐ` を含まない安全な文言に変更 |
 
 ---
 
@@ -117,6 +119,7 @@ Issue #50 は、AI 出力（ルールレビュー、追加質問生成など）�
 - [x] READMEに非投資助言方針が書かれている
 
 ### 追加完了条件（2026-05-13追記）
+
 - [ ] Safety判定に `allow` / `warn` / `block` の概念がある ← **MVPでは `passed` のみ。`allow/warn/block` の区別は未実装（後続 Issue）**
 - [ ] `SAFETY_RULE_VERSION` が定義されている ← **`safety-rules-v1` を定義済み**
 - [x] false positive防止テストがある

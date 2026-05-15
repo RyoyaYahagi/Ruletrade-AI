@@ -90,6 +90,7 @@ Recommended priority rule:
 4. avoid issues labeled `Backlog Later` unless no active-priority issue remains
 
 Open question for implementation:
+
 - define a canonical label set such as `priority:high|medium|low`, `blocked`, `needs-product-decision`, `ready`
 
 ### Phase 1: planning gate
@@ -110,9 +111,11 @@ Planning lead (Kimi K2.6):
    - Discord reporting checkpoints
 
 Gate:
+
 - No implementation begins until a saved plan exists.
 
 Artifacts:
+
 - plan markdown file
 - optional issue comment: “plan created”
 - Discord report with plan path and unresolved questions
@@ -254,18 +257,23 @@ Create/update ADR when:
 ### 3. Discord message templates
 
 Start:
+
 - `Starting issue #<n> <title>. Plan phase assigned to Kimi K2.6. Orchestrator: GPT-5.4 medium.`
 
 Plan ready:
+
 - `Plan saved for issue #<n>: <path>. Open questions: ...`
 
 Blocker:
+
 - `Blocked on issue #<n>, task <name>. Cause: ... Need decision/input on: ...`
 
 Done pending final review:
+
 - `Implementation complete for issue #<n>. Running final GPT-5.5 low verification.`
 
 Final result:
+
 - `Issue #<n> verified. Checks: lint/typecheck/build = ... Follow-ups: ...`
 
 ## Recommended Hermes implementation architecture
@@ -284,10 +292,12 @@ Use one profile per leader/worker class:
 - `rt-worker-deepseek-v4pro`
 
 Pros:
+
 - direct provider/model pinning per profile
 - easy to reason about phase ownership
 
 Cons:
+
 - more process orchestration overhead
 - more logging/report plumbing needed
 
@@ -313,14 +323,17 @@ Task assignment:
 - finalcheck profile handles review cards
 
 Pros:
+
 - durable queue and status history
 - clearer multi-agent separation
 - natural fit for blocker handling and Discord notifications
 
 Cons:
+
 - requires initial board setup and conventions
 
 Recommendation:
+
 - use Kanban as the durable control plane
 - use profile-pinned Hermes workers as execution agents
 
