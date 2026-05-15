@@ -89,7 +89,7 @@ export async function runRuleReviewEvalCase(params: {
     safety.passed;
 
   return {
-    status: passed ? "passed" : "failed",
+    status: (passed ? "passed" : "failed") as const,
     actualJson: review,
     expectedJson: expected,
     matchedChecks: checkComparison.matchedChecks,
