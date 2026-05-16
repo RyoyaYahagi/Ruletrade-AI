@@ -12,7 +12,7 @@ export async function finalizeRuleSession(params: {
   const supabase = await createClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
-    .select("id, completion_score, quality_gate_status, rule_json")
+    .select("id, completion_score, quality_gate_status, rule_json, status")
     .eq("id", params.sessionId)
     .eq("user_id", params.userId)
     .single();
@@ -25,12 +25,21 @@ export async function finalizeRuleSession(params: {
   }
 
   const completionScore = session.completion_score ?? 0;
-  if (!params.force && completionScore < 80) {
+  const canFinalize =
+    completionScore >= 95 &&
+    session.quality_gate_status === "passed" &&
+    session.status === "quality_gate_passed";
+
+  if (!params.force && !canFinalize) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "完成度スコアが低いため、まだ完成版として保存できません。",
+      "Quality Gateを通過していないため、まだ完成版として保存できません。",
       400,
-      { completionScore },
+      {
+        completionScore,
+        qualityGateStatus: session.quality_gate_status,
+        status: session.status,
+      },
     );
   }
 

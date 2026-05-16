@@ -7,7 +7,6 @@ import type {
   InvestigationSummary,
   SubAgentDispatchOptions,
   SubAgentRole,
-  SubAgentTask,
   SummaryOutput,
 } from "./types";
 
