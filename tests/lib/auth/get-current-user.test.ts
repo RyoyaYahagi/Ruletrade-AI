@@ -59,7 +59,7 @@ describe("getCurrentUser", () => {
           error: null,
         }),
       },
-    } as any);
+    } as unknown);
     const { getCurrentUser } = await import("@/lib/auth/get-current-user");
     const user = await getCurrentUser();
     expect(user).toEqual(mockUser);
@@ -74,7 +74,7 @@ describe("getCurrentUser", () => {
           error: new Error("auth error"),
         }),
       },
-    } as any);
+    } as unknown);
     const { getCurrentUser } = await import("@/lib/auth/get-current-user");
     const user = await getCurrentUser();
     expect(user).toBeNull();
