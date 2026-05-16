@@ -1,15 +1,43 @@
 import type { z } from "zod";
 
+export type AIProviderKey = "mock" | "openai" | "gemini";
+
 export type AITaskType =
+  | "intake_question"
+  | "rule_draft_generation"
   | "rule_review"
   | "question_generation"
-  | "safety_check"
+  | "loop_judgement"
   | "portfolio_review"
   | "watchlist_review"
   | "reflection_review"
-  | "document_rag_review"
-  | "embedding"
-  | "eval";
+  | "memory_summary"
+  | "rag_context_summary"
+  | "document_summary"
+  | "safety_check"
+  | "compliance_check"
+  | "eval_judge"
+  | "embedding";
+
+export type AIAgentName =
+  | "intake_agent"
+  | "rule_builder_agent"
+  | "rule_review_agent"
+  | "question_generator_agent"
+  | "loop_manager_agent"
+  | "portfolio_review_agent"
+  | "watchlist_review_agent"
+  | "memory_agent"
+  | "safety_agent"
+  | "compliance_agent"
+  | "eval_agent";
+
+export type AIModelCostTier =
+  | "free_mock"
+  | "cheap"
+  | "balanced"
+  | "high_quality"
+  | "embedding";
 
 export type AIMessage = {
   role: "system" | "user" | "assistant";
@@ -27,12 +55,35 @@ export type AIProviderMeta = {
   provider: string;
   model: string;
   taskType: AITaskType;
+  agentName?: AIAgentName;
   promptVersion?: string;
+  costTier?: AIModelCostTier;
+  temperature?: number;
+  maxOutputTokens?: number;
+  fallbackUsed: boolean;
   latencyMs: number;
+};
+
+export type AIModelConfig = {
+  taskType: AITaskType;
+  agentName?: AIAgentName;
+  provider: AIProviderKey;
+  model: string;
+  fallbackProvider?: AIProviderKey;
+  fallbackModel?: string;
+  temperature: number;
+  maxOutputTokens: number;
+  costTier: AIModelCostTier;
+  timeoutMs: number;
+  requireStructuredOutput: boolean;
+  requireSafetyCheck: boolean;
+  requireComplianceGate: boolean;
+  enabled: boolean;
 };
 
 export type GenerateObjectParams<TSchema extends z.ZodType> = {
   taskType: AITaskType;
+  agentName?: AIAgentName;
   schema: TSchema;
   schemaName: string;
   messages: AIMessage[];
@@ -50,6 +101,7 @@ export type GenerateObjectResult<T> = {
 
 export type GenerateTextParams = {
   taskType: AITaskType;
+  agentName?: AIAgentName;
   messages: AIMessage[];
   promptVersion?: string;
   temperature?: number;

@@ -76,7 +76,11 @@ describe("applyAnswerToRuleJson", () => {
     mockSingle.mockResolvedValueOnce({
       data: {
         rule_json: {
-          entryPlan: { targetPriceMin: 1000, targetPriceMax: 1200, currency: "JPY" },
+          entryPlan: {
+            targetPriceMin: 1000,
+            targetPriceMax: 1200,
+            currency: "JPY",
+          },
         },
       },
       error: null,
@@ -90,7 +94,11 @@ describe("applyAnswerToRuleJson", () => {
     });
 
     expect(result).toMatchObject({
-      entryPlan: { targetPriceMin: 1000, targetPriceMax: 1200, currency: "JPY" },
+      entryPlan: {
+        targetPriceMin: 1000,
+        targetPriceMax: 1200,
+        currency: "JPY",
+      },
     });
   });
 
@@ -157,7 +165,11 @@ describe("applyAnswerToRuleJson", () => {
 
   it("throws validation error when ruleJson is invalid", async () => {
     mockSingle.mockResolvedValueOnce({
-      data: { id: "session-1", rule_json: { timeHorizon: "invalid_value" }, question_count: 0 },
+      data: {
+        id: "session-1",
+        rule_json: { timeHorizon: "invalid_value" },
+        question_count: 0,
+      },
       error: null,
     });
 

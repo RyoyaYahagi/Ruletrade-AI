@@ -72,7 +72,9 @@ export class OpenAIProvider implements AIProvider {
           provider: "openai",
           model,
           taskType: params.taskType,
+          agentName: params.agentName,
           promptVersion: params.promptVersion,
+          fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };
@@ -107,7 +109,9 @@ export class OpenAIProvider implements AIProvider {
           provider: "openai",
           model,
           taskType: params.taskType,
+          agentName: params.agentName,
           promptVersion: params.promptVersion,
+          fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };

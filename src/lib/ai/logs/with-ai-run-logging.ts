@@ -20,6 +20,7 @@ export async function withAiRunLogging<T>(params: {
   model: string;
   promptVersion?: string;
   inputJson?: unknown;
+  metadata?: Record<string, unknown>;
   run: () => Promise<{
     data: T;
     meta: {
@@ -47,6 +48,7 @@ export async function withAiRunLogging<T>(params: {
     model: params.model,
     promptVersion: params.promptVersion,
     inputJson: params.inputJson,
+    metadata: params.metadata,
   });
 
   await logAiRunEvent({
