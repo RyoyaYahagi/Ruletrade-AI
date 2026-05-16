@@ -15,7 +15,7 @@ describe("requireUser", () => {
 
   it("returns user when authenticated", async () => {
     const mockUser = { id: "user-1", email: "user@example.com" };
-    vi.mocked(getCurrentUser).mockResolvedValueOnce(mockUser as any);
+    vi.mocked(getCurrentUser).mockResolvedValueOnce(mockUser as unknown);
     const result = await requireUser();
     expect(result).toEqual(mockUser);
   });

@@ -32,7 +32,7 @@ beforeEach(() => {
   mockSingle.mockReset();
   vi.mocked(createServerClient).mockResolvedValue({
     from: mockFrom,
-  } as any);
+  } as unknown);
   vi.mocked(applyAnswerToRuleJson).mockResolvedValue({ investmentThesis: "test" });
 });
 
