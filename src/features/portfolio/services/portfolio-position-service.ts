@@ -4,10 +4,13 @@ import { createClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import { getOrCreateMainPortfolio } from "@/features/portfolio/services/portfolio-service";
 
-export async function listPortfolioPositions(params: { userId: string }) {
+export async function listPortfolioPositions(params: {
+  userId: string;
+  portfolioId?: string;
+}) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("portfolio_positions")
     .select("*")
     .eq("user_id", params.userId)
@@ -15,6 +18,12 @@ export async function listPortfolioPositions(params: { userId: string }) {
     .order("market_value", {
       ascending: false,
     });
+
+  if (params.portfolioId) {
+    query = query.eq("portfolio_id", params.portfolioId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new AppError(

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const ASSET_TYPES = [
   { value: "stock", label: "株式" },
@@ -36,6 +37,8 @@ export function NewPositionPage() {
     setIsSubmitting(true);
     setErrorMessage(null);
 
+    const controller = new AbortController();
+
     const formData = new FormData(event.currentTarget);
     const payload = {
       ticker: String(formData.get("ticker")),
@@ -66,6 +69,7 @@ export function NewPositionPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
 
       const json = await response.json();
@@ -83,6 +87,8 @@ export function NewPositionPage() {
     } finally {
       setIsSubmitting(false);
     }
+
+    return () => controller.abort();
   }
 
   return (
@@ -90,15 +96,21 @@ export function NewPositionPage() {
       <h1 className="text-2xl font-bold">保有銘柄を追加</h1>
 
       {errorMessage ? (
-        <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <p
+          className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+        >
           {errorMessage}
         </p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium">銘柄コード *</label>
+          <label htmlFor="ticker" className="block text-sm font-medium">
+            銘柄コード *
+          </label>
           <input
+            id="ticker"
             name="ticker"
             required
             maxLength={32}
@@ -107,18 +119,24 @@ export function NewPositionPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">会社名</label>
+          <label htmlFor="companyName" className="block text-sm font-medium">
+            会社名
+          </label>
           <input
+            id="companyName"
             name="companyName"
             maxLength={200}
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className="block text-sm font-medium">市場 *</label>
+            <label htmlFor="market" className="block text-sm font-medium">
+              市場 *
+            </label>
             <select
+              id="market"
               name="market"
               required
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
@@ -132,8 +150,11 @@ export function NewPositionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">通貨 *</label>
+            <label htmlFor="currency" className="block text-sm font-medium">
+              通貨 *
+            </label>
             <select
+              id="currency"
               name="currency"
               required
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
@@ -147,8 +168,11 @@ export function NewPositionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">資産タイプ *</label>
+            <label htmlFor="assetType" className="block text-sm font-medium">
+              資産タイプ *
+            </label>
             <select
+              id="assetType"
               name="assetType"
               required
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
@@ -162,10 +186,13 @@ export function NewPositionPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium">セクター</label>
+            <label htmlFor="sector" className="block text-sm font-medium">
+              セクター
+            </label>
             <input
+              id="sector"
               name="sector"
               maxLength={100}
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
@@ -173,8 +200,11 @@ export function NewPositionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">テーマ</label>
+            <label htmlFor="theme" className="block text-sm font-medium">
+              テーマ
+            </label>
             <input
+              id="theme"
               name="theme"
               maxLength={100}
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
@@ -182,10 +212,13 @@ export function NewPositionPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className="block text-sm font-medium">数量</label>
+            <label htmlFor="quantity" className="block text-sm font-medium">
+              数量
+            </label>
             <input
+              id="quantity"
               name="quantity"
               type="number"
               min={0}
@@ -195,8 +228,11 @@ export function NewPositionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">平均取得単価</label>
+            <label htmlFor="averageCost" className="block text-sm font-medium">
+              平均取得単価
+            </label>
             <input
+              id="averageCost"
               name="averageCost"
               type="number"
               min={0}
@@ -206,8 +242,11 @@ export function NewPositionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">現在価格</label>
+            <label htmlFor="currentPrice" className="block text-sm font-medium">
+              現在価格
+            </label>
             <input
+              id="currentPrice"
               name="currentPrice"
               type="number"
               min={0}
@@ -217,10 +256,13 @@ export function NewPositionPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium">評価額 *</label>
+            <label htmlFor="marketValue" className="block text-sm font-medium">
+              評価額 *
+            </label>
             <input
+              id="marketValue"
               name="marketValue"
               type="number"
               required
@@ -231,8 +273,14 @@ export function NewPositionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">目標比率 (%)</label>
+            <label
+              htmlFor="targetWeightPercent"
+              className="block text-sm font-medium"
+            >
+              目標比率 (%)
+            </label>
             <input
+              id="targetWeightPercent"
               name="targetWeightPercent"
               type="number"
               min={0}
@@ -244,8 +292,11 @@ export function NewPositionPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">メモ</label>
+          <label htmlFor="memo" className="block text-sm font-medium">
+            メモ
+          </label>
           <textarea
+            id="memo"
             name="memo"
             maxLength={4000}
             rows={3}
@@ -262,9 +313,12 @@ export function NewPositionPage() {
             {isSubmitting ? "追加中..." : "追加"}
           </button>
 
-          <a href="/portfolio" className="rounded-md border px-4 py-2 text-sm">
+          <Link
+            href="/portfolio"
+            className="rounded-md border px-4 py-2 text-sm"
+          >
             キャンセル
-          </a>
+          </Link>
         </div>
       </form>
     </main>
