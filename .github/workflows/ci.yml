@@ -119,7 +119,7 @@ jobs:
       - name: Scan for secrets
         run: gitleaks detect --source . --redact --no-git
 
-  # ── Migration check (only when supabase/migrations/** changes) ────────────
+  # ── Migration Check ───────────────────────────────────────────────────────
   migration-check:
     name: Migration Check
     needs: detect-changes
@@ -127,15 +127,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Start PostgreSQL
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+      - name: Start Supabase local
         run: |
-          sudo systemctl start postgresql
-          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+          supabase db start
       - name: Apply migrations
-        env:
-          PGPASSWORD: postgres
         run: |
-          for f in $(ls supabase/migrations/*.sql | sort); do
-            echo "Applying $f ..."
-            psql -h localhost -U postgres -d postgres -f "$f"
-          done
+          supabase db reset
