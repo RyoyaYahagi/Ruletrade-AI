@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PortfolioSummaryCard } from "@/features/portfolio/components/portfolio-summary-card";
 import { PortfolioPositionTable } from "@/features/portfolio/components/portfolio-position-table";
 import { PortfolioReviewPanel } from "@/features/portfolio/components/portfolio-review-panel";
@@ -20,12 +19,12 @@ export function PortfolioPage() {
           </p>
         </div>
 
-        <Link
+        <a
           href="/portfolio/positions/new"
           className="rounded-md bg-black px-4 py-2 text-sm text-white"
         >
           保有銘柄を追加
-        </Link>
+        </a>
       </div>
 
       <div className="mt-6 space-y-6">

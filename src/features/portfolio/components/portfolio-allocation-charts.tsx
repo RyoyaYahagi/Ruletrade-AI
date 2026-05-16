@@ -25,40 +25,18 @@ export function PortfolioAllocationCharts() {
       percent: number;
     }>;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-
     async function load() {
-      setIsLoading(true);
-      setError(null);
+      const [portfolioRes, positionsRes] = await Promise.all([
+        fetch("/api/portfolio"),
+        fetch("/api/portfolio/positions"),
+      ]);
 
-      try {
-        const [portfolioRes, positionsRes] = await Promise.all([
-          fetch("/api/portfolio", { signal: controller.signal }),
-          fetch("/api/portfolio/positions", {
-            signal: controller.signal,
-          }),
-        ]);
+      const portfolioJson = await portfolioRes.json();
+      const positionsJson = await positionsRes.json();
 
-        const portfolioJson = await portfolioRes.json();
-        const positionsJson = await positionsRes.json();
-
-        if (!portfolioJson.ok) {
-          setError(
-            portfolioJson.error?.message ?? "データの取得に失敗しました",
-          );
-          return;
-        }
-        if (!positionsJson.ok) {
-          setError(
-            positionsJson.error?.message ?? "データの取得に失敗しました",
-          );
-          return;
-        }
-
+      if (portfolioJson.ok && positionsJson.ok) {
         const cashAmount = Number(
           portfolioJson.data.portfolio.cash_amount ?? 0,
         );
@@ -140,20 +118,13 @@ export function PortfolioAllocationCharts() {
             }),
           ),
         });
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-        setError("データの取得に失敗しました");
-      } finally {
-        setIsLoading(false);
       }
     }
 
     void load();
-
-    return () => controller.abort();
   }, []);
 
-  if (isLoading) {
+  if (!data) {
     return (
       <section className="rounded-lg border p-6 text-sm text-muted-foreground">
         配分情報を読み込み中...
@@ -161,15 +132,7 @@ export function PortfolioAllocationCharts() {
     );
   }
 
-  if (error) {
-    return (
-      <section className="rounded-lg border p-6 text-sm text-red-600">
-        {error}
-      </section>
-    );
-  }
-
-  if (!data || data.totalValue === 0) {
+  if (data.totalValue === 0) {
     return (
       <section className="rounded-lg border p-6">
         <h2 className="text-lg font-semibold">資産配分</h2>
