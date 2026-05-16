@@ -1,3 +1,5 @@
+import type { AITaskType } from "../provider";
+
 export type AiRunStatus =
   | "started"
   | "succeeded"
@@ -15,16 +17,7 @@ export type AiRunSourceType =
   | "eval_case"
   | "system";
 
-export type AiTaskType =
-  | "rule_review"
-  | "question_generation"
-  | "safety_check"
-  | "portfolio_review"
-  | "watchlist_review"
-  | "reflection_review"
-  | "document_rag_review"
-  | "embedding"
-  | "eval";
+export type AiTaskType = AITaskType;
 
 export type SaveAiRunLogInput = {
   userId: string;

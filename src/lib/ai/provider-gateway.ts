@@ -4,7 +4,11 @@ import { z } from "zod";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
-import type { AITaskType, AIProvider } from "@/lib/ai/provider";
+import type { AITaskType, AIAgentName, AIProvider } from "@/lib/ai/provider";
+import {
+  resolveAIModelConfig,
+  getConfiguredAIProvider,
+} from "@/lib/ai/model-config";
 import type { AiRunSourceType } from "@/lib/ai/logs/ai-run-log-types";
 import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
 import { MockProvider } from "@/lib/ai/providers/mock-provider";
@@ -30,6 +34,7 @@ export type AiCallOptions<TOutput> = {
   temperature?: number;
   maxTokens?: number;
   taskType?: AITaskType;
+  agentName?: AIAgentName;
   promptVersion?: string;
   schemaName?: string;
   // Observability options
@@ -81,14 +86,31 @@ async function callAiWithLogging<TOutput>(
   options: AiCallOptions<TOutput>,
 ): Promise<AiCallResult<TOutput>> {
   try {
-    const provider = getProviderForCall(options.provider);
-    const providerName = options.provider ?? "default";
-    const modelName = options.model ?? defaultModelByWeight[options.weight];
+    // Resolve model config via routing when taskType is provided
+    const resolvedConfig = options.taskType
+      ? resolveAIModelConfig({
+          taskType: options.taskType,
+          agentName: options.agentName,
+        })
+      : undefined;
+
+    const providerName: string =
+      options.provider ?? resolvedConfig?.provider ?? getConfiguredAIProvider();
+    const modelName: string =
+      options.model ??
+      resolvedConfig?.model ??
+      defaultModelByWeight[options.weight];
+    const temperature =
+      options.temperature ?? resolvedConfig?.temperature ?? 0.4;
+    const maxOutputTokens =
+      options.maxTokens ?? resolvedConfig?.maxOutputTokens ?? 2048;
+
+    const provider = getProviderForCall(providerName as AiProvider);
 
     const result = await withAiRunLogging({
       userId: options.userId!,
       requestId: options.requestId,
-      taskType: options.taskType ?? "eval",
+      taskType: options.taskType ?? "eval_judge",
       sourceType: options.sourceType,
       sourceId: options.sourceId,
       sessionId: options.sessionId,
@@ -97,15 +119,25 @@ async function callAiWithLogging<TOutput>(
       model: modelName,
       promptVersion: options.promptVersion,
       inputJson: options.inputJson,
+      metadata: resolvedConfig
+        ? {
+            agentName: resolvedConfig.agentName,
+            costTier: resolvedConfig.costTier,
+            fallbackUsed: false,
+            temperature: resolvedConfig.temperature,
+            maxOutputTokens: resolvedConfig.maxOutputTokens,
+          }
+        : undefined,
       run: async () => {
         const start = performance.now();
         const aiResult = await provider.generateObject({
-          taskType: options.taskType ?? "eval",
+          taskType: options.taskType ?? "eval_judge",
+          agentName: options.agentName,
           schema: options.outputSchema,
           schemaName: options.schemaName ?? "AiCallOutput",
           promptVersion: options.promptVersion,
-          temperature: options.temperature,
-          maxOutputTokens: options.maxTokens,
+          temperature,
+          maxOutputTokens,
           messages: [
             ...(options.system
               ? [{ role: "system" as const, content: options.system }]
@@ -165,14 +197,33 @@ async function callAiWithoutLogging<TOutput>(
   options: AiCallOptions<TOutput>,
 ): Promise<AiCallResult<TOutput>> {
   try {
-    const provider = getProviderForCall(options.provider);
+    const resolvedConfig = options.taskType
+      ? resolveAIModelConfig({
+          taskType: options.taskType,
+          agentName: options.agentName,
+        })
+      : undefined;
+
+    const providerName: string =
+      options.provider ?? resolvedConfig?.provider ?? getConfiguredAIProvider();
+    const modelName: string =
+      options.model ??
+      resolvedConfig?.model ??
+      defaultModelByWeight[options.weight];
+    const temperature =
+      options.temperature ?? resolvedConfig?.temperature ?? 0.4;
+    const maxOutputTokens =
+      options.maxTokens ?? resolvedConfig?.maxOutputTokens ?? 2048;
+
+    const provider = getProviderForCall(providerName as AiProvider);
     const result = await provider.generateObject({
-      taskType: options.taskType ?? "eval",
+      taskType: options.taskType ?? "eval_judge",
+      agentName: options.agentName,
       schema: options.outputSchema,
       schemaName: options.schemaName ?? "AiCallOutput",
       promptVersion: options.promptVersion,
-      temperature: options.temperature,
-      maxOutputTokens: options.maxTokens,
+      temperature,
+      maxOutputTokens,
       messages: [
         ...(options.system
           ? [{ role: "system" as const, content: options.system }]
@@ -189,10 +240,7 @@ async function callAiWithoutLogging<TOutput>(
         completionTokens: result.usage.outputTokens ?? 0,
         totalTokens: result.usage.totalTokens ?? 0,
       },
-      model:
-        result.meta.model ||
-        options.model ||
-        defaultModelByWeight[options.weight],
+      model: result.meta.model || modelName,
     };
   } catch (error) {
     const message =

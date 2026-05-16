@@ -105,7 +105,9 @@ describe("detectProhibitedPhrases", () => {
   });
 
   it("detects phrase with multiple zero-width spaces", () => {
-    const result = detectProhibitedPhrases("\u200B買\u200Bう\u200Bべ\u200Bき\u200B");
+    const result = detectProhibitedPhrases(
+      "\u200B買\u200Bう\u200Bべ\u200Bき\u200B",
+    );
     expect(result.some((item) => item.type === "buy_recommendation")).toBe(
       true,
     );
