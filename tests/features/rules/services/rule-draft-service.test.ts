@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(createServerClient).mockResolvedValue({
     from: mockFrom,
-  } as any);
+  } as unknown);
 });
 
 function mockSession(ruleJson: unknown) {

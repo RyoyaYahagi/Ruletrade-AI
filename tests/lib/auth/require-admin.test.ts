@@ -15,7 +15,7 @@ describe("requireAdmin", () => {
 
   it("returns user when role is admin", async () => {
     const mockUser = { id: "admin-1", app_metadata: { role: "admin" } };
-    vi.mocked(requireUser).mockResolvedValueOnce(mockUser as any);
+    vi.mocked(requireUser).mockResolvedValueOnce(mockUser as unknown);
     const result = await requireAdmin();
     expect(result).toEqual(mockUser);
   });
@@ -24,7 +24,7 @@ describe("requireAdmin", () => {
     vi.mocked(requireUser).mockResolvedValue({
       id: "user-1",
       app_metadata: { role: "user" },
-    } as any);
+    } as unknown);
     await expect(requireAdmin()).rejects.toThrow(AppError);
     await expect(requireAdmin()).rejects.toThrow("管理者権限が必要です。");
     await expect(requireAdmin()).rejects.toMatchObject({
@@ -37,7 +37,7 @@ describe("requireAdmin", () => {
     vi.mocked(requireUser).mockResolvedValue({
       id: "user-1",
       app_metadata: {},
-    } as any);
+    } as unknown);
     await expect(requireAdmin()).rejects.toThrow(AppError);
     await expect(requireAdmin()).rejects.toThrow("管理者権限が必要です。");
   });
