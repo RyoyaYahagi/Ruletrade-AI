@@ -5,23 +5,28 @@ import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { signInWithPassword } from "@/features/auth/services/auth-client-service";
+import {
+  signInAnonymously,
+  signInWithPassword,
+} from "@/features/auth/services/auth-client-service";
+
+type AuthMode = "password" | "guest";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState<AuthMode | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setIsLoading(true);
+    setLoadingMode("password");
     setErrorMessage(null);
 
     const { error } = await signInWithPassword({ email, password });
 
-    setIsLoading(false);
+    setLoadingMode(null);
 
     if (error) {
       setErrorMessage(
@@ -32,6 +37,26 @@ export function LoginForm() {
 
     window.location.href = "/dashboard";
   }
+
+  async function handleGuestLogin() {
+    setLoadingMode("guest");
+    setErrorMessage(null);
+
+    const { error } = await signInAnonymously();
+
+    setLoadingMode(null);
+
+    if (error) {
+      setErrorMessage(
+        "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",
+      );
+      return;
+    }
+
+    window.location.href = "/dashboard";
+  }
+
+  const isLoading = loadingMode !== null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +91,23 @@ export function LoginForm() {
       ) : null}
 
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "ログイン中..." : "ログイン"}
+        {loadingMode === "password" ? "ログイン中..." : "ログイン"}
+      </Button>
+
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="h-px flex-1 bg-border" />
+        <span>または</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={isLoading}
+        onClick={() => void handleGuestLogin()}
+      >
+        {loadingMode === "guest" ? "ゲストログイン中..." : "ゲストで試す"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">

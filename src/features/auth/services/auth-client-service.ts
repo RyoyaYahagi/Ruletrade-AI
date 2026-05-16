@@ -11,6 +11,12 @@ export async function signInWithPassword(input: {
   return supabase.auth.signInWithPassword(input);
 }
 
+export async function signInAnonymously() {
+  const supabase = createClient();
+
+  return supabase.auth.signInAnonymously();
+}
+
 export async function signUpWithPassword(input: {
   email: string;
   password: string;

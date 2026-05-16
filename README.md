@@ -154,6 +154,11 @@ http://localhost:3000/auth/callback
 The initial protected route is `/dashboard`. The initial auth status API is
 `/api/me`.
 
+Local development also allows anonymous guest sign-in from `/login` so the MVP
+rule-creation flow can be tried without creating an email/password account.
+Guest users still go through Supabase Auth and the same user-owned data
+boundaries as regular users.
+
 ### AI Provider Configuration
 
 Local development starts with the mock provider.
