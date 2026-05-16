@@ -227,6 +227,19 @@ Allowed development uses:
 - Drafting tests, fixtures, and migration checks
 - Debugging local build, lint, and type errors
 
+To smoke-test a Codex-capable model locally through the OpenAI SDK and
+Responses API:
+
+```bash
+OPENAI_API_KEY=... OPENAI_CODEX_MODEL=gpt-5.2-codex npm run codex:smoke
+```
+
+You can pass a custom prompt after `--`:
+
+```bash
+npm run codex:smoke -- "このリポジトリのAIレビュー機能に追加すべきテストを提案して"
+```
+
 Not allowed:
 
 - Calling Codex SDK/API experiments from browser code
