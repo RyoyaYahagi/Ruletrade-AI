@@ -15,51 +15,28 @@ type DbPosition = {
 export function PortfolioPositionTable() {
   const [positions, setPositions] = useState<DbPosition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-
     async function load() {
       setIsLoading(true);
-      setError(null);
 
-      try {
-        const response = await fetch("/api/portfolio/positions", {
-          signal: controller.signal,
-        });
-        const json = await response.json();
+      const response = await fetch("/api/portfolio/positions");
+      const json = await response.json();
 
-        if (json.ok) {
-          setPositions(json.data.positions);
-        } else {
-          setError(json.error?.message ?? "データの取得に失敗しました");
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-        setError("データの取得に失敗しました");
-      } finally {
-        setIsLoading(false);
+      if (json.ok) {
+        setPositions(json.data.positions);
       }
+
+      setIsLoading(false);
     }
 
     void load();
-
-    return () => controller.abort();
   }, []);
 
   if (isLoading) {
     return (
       <section className="rounded-lg border p-6 text-sm text-muted-foreground">
         保有銘柄を読み込み中...
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="rounded-lg border p-6 text-sm text-red-600">
-        {error}
       </section>
     );
   }

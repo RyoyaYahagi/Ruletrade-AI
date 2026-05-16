@@ -1,44 +1,9 @@
 export const PORTFOLIO_REVIEW_PROMPT_VERSION = "portfolio-reviewer-v1";
 
 export function buildPortfolioReviewPrompt(input: {
-  portfolio: {
-    name: string;
-    baseCurrency: string;
-    cashAmount: number;
-    notes: string | null;
-  };
-  positions: Array<{
-    ticker: string;
-    companyName?: string;
-    market?: string;
-    sector?: string;
-    assetType: string;
-    marketValue: number;
-    targetWeightPercent?: number;
-    ruleSessionId?: string;
-  }>;
-  summary: {
-    totalValue: number;
-    totalPositionValue: number;
-    cashAmount: number;
-    cashWeightPercent: number;
-    positionCount: number;
-    positionsWithWeight: Array<{
-      ticker: string;
-      company_name?: string | null;
-      market_value: number;
-      sector?: string | null;
-      theme?: string | null;
-      currency?: string | null;
-      rule_session_id?: string | null;
-      weightPercent: number;
-    }>;
-    sectorWeights: Array<{
-      sector: string;
-      weightPercent: number;
-    }>;
-    positionsWithoutRuleCount: number;
-  };
+  portfolio: unknown;
+  positions: unknown[];
+  summary: unknown;
 }) {
   return {
     system: `
