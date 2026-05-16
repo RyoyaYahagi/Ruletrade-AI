@@ -17,7 +17,7 @@ describe("ensureAppUser", () => {
     vi.clearAllMocks();
     vi.mocked(createServerClient).mockResolvedValue({
       from: mockFrom,
-    } as any);
+    } as unknown);
   });
 
   afterEach(() => {
@@ -27,7 +27,7 @@ describe("ensureAppUser", () => {
   it("returns mock user when MOCK_AUTH is true", async () => {
     vi.stubEnv("MOCK_AUTH", "true");
     const user = { id: "mock-id", email: "mock@example.com" };
-    const result = await ensureAppUser(user as any);
+    const result = await ensureAppUser(user as unknown);
     expect(result).toEqual({ id: "mock-id", email: "mock@example.com" });
     expect(createServerClient).not.toHaveBeenCalled();
   });
@@ -39,7 +39,7 @@ describe("ensureAppUser", () => {
       data: { id: "real-id", email: "real@example.com" },
       error: null,
     });
-    const result = await ensureAppUser(user as any);
+    const result = await ensureAppUser(user as unknown);
     expect(mockFrom).toHaveBeenCalledWith("app_users");
     expect(mockUpsert).toHaveBeenCalledWith(
       { id: "real-id", email: "real@example.com" },
@@ -55,6 +55,6 @@ describe("ensureAppUser", () => {
       data: null,
       error: new Error("db error"),
     });
-    await expect(ensureAppUser(user as any)).rejects.toThrow("db error");
+    await expect(ensureAppUser(user as unknown)).rejects.toThrow("db error");
   });
 });

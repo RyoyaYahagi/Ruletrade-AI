@@ -32,8 +32,10 @@ beforeEach(() => {
   mockSingle.mockReset();
   vi.mocked(createServerClient).mockResolvedValue({
     from: mockFrom,
-  } as any);
-  vi.mocked(applyAnswerToRuleJson).mockResolvedValue({ investmentThesis: "test" });
+  } as unknown);
+  vi.mocked(applyAnswerToRuleJson).mockResolvedValue({
+    investmentThesis: "test",
+  });
 });
 
 describe("saveRuleAnswer", () => {
@@ -74,7 +76,10 @@ describe("saveRuleAnswer", () => {
   });
 
   it("throws 500 when answer insert fails", async () => {
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "insert failed" } });
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: "insert failed" },
+    });
 
     await expect(
       saveRuleAnswer({

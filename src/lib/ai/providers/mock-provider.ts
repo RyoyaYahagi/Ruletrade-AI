@@ -38,7 +38,9 @@ export class MockProvider implements AIProvider {
         provider: "mock",
         model: mockModel,
         taskType: params.taskType,
+        agentName: params.agentName,
         promptVersion: params.promptVersion,
+        fallbackUsed: false,
         latencyMs: Date.now() - startedAt,
       },
     };
@@ -54,7 +56,9 @@ export class MockProvider implements AIProvider {
         provider: "mock",
         model: mockModel,
         taskType: params.taskType,
+        agentName: params.agentName,
         promptVersion: params.promptVersion,
+        fallbackUsed: false,
         latencyMs: Date.now() - startedAt,
       },
     };

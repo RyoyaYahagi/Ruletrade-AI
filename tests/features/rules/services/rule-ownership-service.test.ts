@@ -20,7 +20,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(createServerClient).mockResolvedValue({
     from: mockFrom,
-  } as any);
+  } as unknown);
 });
 
 describe("assertOwnRuleSession", () => {
