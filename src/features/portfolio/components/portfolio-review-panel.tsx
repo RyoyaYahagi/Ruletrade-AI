@@ -90,26 +90,34 @@ export function PortfolioReviewPanel({
           </div>
 
           <div className="space-y-3">
-            {review.qualityChecks?.map((check: { checkKey: string; label: string; status: string; reason: string; relatedTickers: string[] }) => (
-              <div key={check.checkKey} className="rounded-md border p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{check.label}</p>
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                    {check.status}
-                  </span>
-                </div>
+            {review.qualityChecks?.map(
+              (check: {
+                checkKey: string;
+                label: string;
+                status: string;
+                reason: string;
+                relatedTickers: string[];
+              }) => (
+                <div key={check.checkKey} className="rounded-md border p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">{check.label}</p>
+                    <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
+                      {check.status}
+                    </span>
+                  </div>
 
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {check.reason}
-                </p>
-
-                {check.relatedTickers?.length > 0 ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    関連銘柄: {check.relatedTickers.join(", ")}
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {check.reason}
                   </p>
-                ) : null}
-              </div>
-            ))}
+
+                  {check.relatedTickers?.length > 0 ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      関連銘柄: {check.relatedTickers.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+              ),
+            )}
           </div>
         </div>
       ) : null}

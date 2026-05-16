@@ -7,15 +7,17 @@ create table portfolios (
 
   user_id uuid not null references app_users(id) on delete cascade,
 
-  name text not null default 'Main Portfolio',
+  name text not null default 'Main Portfolio' check (length(name) <= 100),
 
-  base_currency text not null default 'JPY',
+  base_currency text not null default 'JPY' check (
+    base_currency in ('JPY', 'USD', 'EUR', 'GBP', 'OTHER')
+  ),
 
   cash_amount numeric(18,2) not null default 0 check (
     cash_amount >= 0
   ),
 
-  notes text,
+  notes text check (length(notes) <= 4000),
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -32,11 +34,15 @@ create table portfolio_positions (
   user_id uuid not null references app_users(id) on delete cascade,
   portfolio_id uuid not null references portfolios(id) on delete cascade,
 
-  ticker text not null,
-  company_name text,
+  ticker text not null check (length(ticker) <= 32),
+  company_name text check (length(company_name) <= 200),
 
-  market text,
-  currency text not null default 'JPY',
+  market text not null default 'JP' check (
+    market in ('JP', 'US', 'OTHER')
+  ),
+  currency text not null default 'JPY' check (
+    currency in ('JPY', 'USD', 'EUR', 'GBP', 'OTHER')
+  ),
 
   asset_type text not null default 'stock' check (
     asset_type in (
@@ -90,7 +96,7 @@ create table portfolio_positions (
     )
   ),
 
-  memo text,
+  memo text check (length(memo) <= 4000),
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -100,6 +106,11 @@ create trigger set_portfolio_positions_updated_at
 before update on portfolio_positions
 for each row
 execute function set_updated_at();
+
+-- 同一ポートフォリオ内での銘柄重複防止
+alter table portfolio_positions
+add constraint unique_portfolio_ticker
+unique (portfolio_id, ticker);
 
 create table portfolio_reviews (
   id uuid primary key default gen_random_uuid(),
@@ -113,7 +124,7 @@ create table portfolio_reviews (
 
   review_json jsonb not null,
 
-  summary text,
+  summary text check (length(summary) <= 4000),
 
   risk_score int check (
     risk_score is null
@@ -176,8 +187,8 @@ create table portfolio_quality_checks (
   portfolio_id uuid not null references portfolios(id) on delete cascade,
   review_id uuid references portfolio_reviews(id) on delete cascade,
 
-  check_key text not null,
-  label text not null,
+  check_key text not null check (length(check_key) <= 100),
+  label text not null check (length(label) <= 200),
 
   status text not null check (
     status in (
@@ -195,7 +206,7 @@ create table portfolio_quality_checks (
     )
   ),
 
-  reason text not null,
+  reason text not null check (length(reason) <= 2000),
 
   related_tickers text[] not null default '{}',
 
@@ -303,6 +314,8 @@ using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can read own portfolio reviews" on portfolio_reviews;
 drop policy if exists "Users can insert own portfolio reviews" on portfolio_reviews;
+drop policy if exists "Users can update own portfolio reviews" on portfolio_reviews;
+drop policy if exists "Users can delete own portfolio reviews" on portfolio_reviews;
 
 create policy "Users can read own portfolio reviews"
 on portfolio_reviews
@@ -316,8 +329,23 @@ for insert
 to authenticated
 with check ((select auth.uid()) = user_id);
 
+create policy "Users can update own portfolio reviews"
+on portfolio_reviews
+for update
+to authenticated
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
+
+create policy "Users can delete own portfolio reviews"
+on portfolio_reviews
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
+
 drop policy if exists "Users can read own portfolio quality checks" on portfolio_quality_checks;
 drop policy if exists "Users can insert own portfolio quality checks" on portfolio_quality_checks;
+drop policy if exists "Users can update own portfolio quality checks" on portfolio_quality_checks;
+drop policy if exists "Users can delete own portfolio quality checks" on portfolio_quality_checks;
 
 create policy "Users can read own portfolio quality checks"
 on portfolio_quality_checks
@@ -330,3 +358,16 @@ on portfolio_quality_checks
 for insert
 to authenticated
 with check ((select auth.uid()) = user_id);
+
+create policy "Users can update own portfolio quality checks"
+on portfolio_quality_checks
+for update
+to authenticated
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
+
+create policy "Users can delete own portfolio quality checks"
+on portfolio_quality_checks
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
