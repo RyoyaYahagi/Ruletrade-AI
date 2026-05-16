@@ -1,12 +1,12 @@
 "use client";
 
-import { createClient } from "@/lib/db/supabase-browser";
+import { createBrowserClient } from "@/lib/db/supabase-browser";
 
 export async function signInWithPassword(input: {
   email: string;
   password: string;
 }) {
-  const supabase = createClient();
+  const supabase = createBrowserClient();
 
   return supabase.auth.signInWithPassword(input);
 }
@@ -16,7 +16,7 @@ export async function signUpWithPassword(input: {
   password: string;
   redirectTo: string;
 }) {
-  const supabase = createClient();
+  const supabase = createBrowserClient();
 
   return supabase.auth.signUp({
     email: input.email,
@@ -28,7 +28,7 @@ export async function signUpWithPassword(input: {
 }
 
 export async function signOut() {
-  const supabase = createClient();
+  const supabase = createBrowserClient();
 
   return supabase.auth.signOut();
 }

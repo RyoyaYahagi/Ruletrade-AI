@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createClient } from "@/lib/db/supabase-browser";
+import { createBrowserClient as sut } from "@/lib/db/supabase-browser";
 
 vi.mock("@/lib/db/env", () => ({
   getPublicSupabaseEnv: vi.fn(() => ({
@@ -21,7 +21,7 @@ describe("createClient (browser)", () => {
   });
 
   it("creates browser client with public env", () => {
-    const client = createClient();
+    const client = sut();
     expect(getPublicSupabaseEnv).toHaveBeenCalled();
     expect(createBrowserClient).toHaveBeenCalledWith(
       "https://example.supabase.co",

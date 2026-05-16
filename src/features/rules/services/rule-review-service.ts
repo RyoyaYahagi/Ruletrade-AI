@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { AppError } from "@/lib/errors/app-error";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
@@ -46,7 +46,7 @@ async function saveUnsafeRuleReview(params: {
   review: unknown;
   safety: unknown;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { error } = await supabase.from("rule_reviews").insert({
     user_id: params.userId,
@@ -82,7 +82,7 @@ export async function runRuleReview(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
     .select("*")

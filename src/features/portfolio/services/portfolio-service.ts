@@ -1,10 +1,10 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function getOrCreateMainPortfolio(params: { userId: string }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data: existing, error: findError } = await supabase
     .from("portfolios")

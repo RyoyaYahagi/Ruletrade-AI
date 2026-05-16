@@ -1,10 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/lib/db/supabase-server", () => ({
-  createClient: vi.fn(),
+  createServerClient: vi.fn(),
 }));
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 describe("getCurrentUser", () => {
   const originalEnv = { ...process.env };
@@ -29,7 +29,7 @@ describe("getCurrentUser", () => {
       email: "mock@example.com",
       app_metadata: { role: "admin" },
     });
-    expect(createClient).not.toHaveBeenCalled();
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 
   it("returns mock user with default id when MOCK_AUTH_USER_ID is not set", async () => {
@@ -43,7 +43,7 @@ describe("getCurrentUser", () => {
 
   it("returns null when createClient throws", async () => {
     delete process.env.MOCK_AUTH_EMAIL;
-    vi.mocked(createClient).mockRejectedValueOnce(new Error("db error"));
+    vi.mocked(createServerClient).mockRejectedValueOnce(new Error("db error"));
     const { getCurrentUser } = await import("@/lib/auth/get-current-user");
     const user = await getCurrentUser();
     expect(user).toBeNull();
@@ -52,7 +52,7 @@ describe("getCurrentUser", () => {
   it("returns user from supabase when authenticated", async () => {
     delete process.env.MOCK_AUTH_EMAIL;
     const mockUser = { id: "real-user", email: "real@example.com" };
-    vi.mocked(createClient).mockResolvedValueOnce({
+    vi.mocked(createServerClient).mockResolvedValueOnce({
       auth: {
         getUser: vi.fn().mockResolvedValueOnce({
           data: { user: mockUser },
@@ -67,7 +67,7 @@ describe("getCurrentUser", () => {
 
   it("returns null when supabase auth returns error", async () => {
     delete process.env.MOCK_AUTH_EMAIL;
-    vi.mocked(createClient).mockResolvedValueOnce({
+    vi.mocked(createServerClient).mockResolvedValueOnce({
       auth: {
         getUser: vi.fn().mockResolvedValueOnce({
           data: { user: null },

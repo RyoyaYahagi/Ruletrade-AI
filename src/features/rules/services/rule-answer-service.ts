@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
 
@@ -12,7 +12,7 @@ export async function saveRuleAnswer(params: {
   answerText?: string;
   answerJson: unknown;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: answer, error: answerError } = await supabase
     .from("rule_answers")
     .insert({

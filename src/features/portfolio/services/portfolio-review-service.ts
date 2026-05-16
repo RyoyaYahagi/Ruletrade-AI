@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { PortfolioReviewSchema } from "@/schemas/portfolio/portfolio-review-schema";
 import { calculatePortfolioSummary } from "@/features/portfolio/services/portfolio-aggregation-service";
@@ -15,7 +15,7 @@ export async function runPortfolioReview(params: {
   userId: string;
   requestId?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data: portfolio, error: portfolioError } = await supabase
     .from("portfolios")

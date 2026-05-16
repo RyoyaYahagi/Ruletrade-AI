@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
 
 export async function logAiRunEvent(params: {
@@ -10,7 +10,7 @@ export async function logAiRunEvent(params: {
   message?: string;
   metadata?: Record<string, unknown>;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { error } = await supabase.from("ai_run_log_events").insert({
     ai_run_log_id: params.aiRunLogId,

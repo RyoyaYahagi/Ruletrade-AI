@@ -3,14 +3,14 @@ import { saveRuleAnswer } from "@/features/rules/services/rule-answer-service";
 import { AppError } from "@/lib/errors/app-error";
 
 vi.mock("@/lib/db/supabase-server", () => ({
-  createClient: vi.fn(),
+  createServerClient: vi.fn(),
 }));
 
 vi.mock("@/features/rules/services/rule-draft-service", () => ({
   applyAnswerToRuleJson: vi.fn(),
 }));
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
 
 const mockSingle = vi.fn();
@@ -30,7 +30,7 @@ const mockFrom = vi.fn(() => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockSingle.mockReset();
-  vi.mocked(createClient).mockResolvedValue({
+  vi.mocked(createServerClient).mockResolvedValue({
     from: mockFrom,
   } as any);
   vi.mocked(applyAnswerToRuleJson).mockResolvedValue({ investmentThesis: "test" });

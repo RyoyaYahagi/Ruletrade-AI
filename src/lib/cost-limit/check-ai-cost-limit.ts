@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import { getMonthlyCostPeriod } from "@/lib/cost-limit/cost-limit-period";
 import { DEFAULT_MONTHLY_AI_COST_LIMIT_USD } from "@/lib/cost-limit/cost-limit-types";
@@ -12,7 +12,7 @@ export async function checkAiCostLimit(params: {
   const { periodStart, periodEnd } = getMonthlyCostPeriod();
   const estimatedNextCostUsd = params.estimatedNextCostUsd ?? 0;
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from("cost_limit_counters")

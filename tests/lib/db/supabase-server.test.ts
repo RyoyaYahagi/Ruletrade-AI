@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient as sut } from "@/lib/db/supabase-server";
 
 const mockCookieStore = {
   getAll: vi.fn(() => []),
@@ -32,7 +32,7 @@ describe("createClient (server)", () => {
   });
 
   it("creates server client with cookies and public env", async () => {
-    await createClient();
+    await sut();
     expect(cookies).toHaveBeenCalled();
     expect(getPublicSupabaseEnv).toHaveBeenCalled();
     expect(createServerClient).toHaveBeenCalledWith(
@@ -51,7 +51,7 @@ describe("createClient (server)", () => {
     mockCookieStore.getAll.mockReturnValueOnce([
       { name: "sb-auth", value: "token" },
     ]);
-    await createClient();
+    await sut();
     const callArgs = vi.mocked(createServerClient).mock.calls[0][2];
     const result = callArgs?.cookies?.getAll();
     expect(mockCookieStore.getAll).toHaveBeenCalled();
@@ -59,7 +59,7 @@ describe("createClient (server)", () => {
   });
 
   it("cookie setAll sets cookies via cookieStore", async () => {
-    await createClient();
+    await sut();
     const callArgs = vi.mocked(createServerClient).mock.calls[0][2];
     callArgs?.cookies?.setAll([
       { name: "sb-auth", value: "token", options: { path: "/" } },
