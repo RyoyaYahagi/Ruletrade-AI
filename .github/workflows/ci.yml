@@ -127,13 +127,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - name: Start Supabase local
+      - name: Start PostgreSQL
         run: |
-          npx supabase db start
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+      - name: Setup Supabase auth schema and roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -e
+          # Create roles that Supabase RLS policies expect
+          psql -h localhost -U postgres -d postgres -c "DO \$\$ BEGIN CREATE ROLE authenticated; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;"
+          psql -h localhost -U postgres -d postgres -c "DO \$\$ BEGIN CREATE ROLE anon; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;"
+          psql -h localhost -U postgres -d postgres -c "DO \$\$ BEGIN CREATE ROLE service_role; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;"
+          # Create auth schema
+          psql -h localhost -U postgres -d postgres -c "CREATE SCHEMA IF NOT EXISTS auth;"
+          # Create auth.uid() function used by RLS policies
+          psql -h localhost -U postgres -d postgres -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT NULL::uuid \$\$;"
+          # Create pgcrypto extension
+          psql -h localhost -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
       - name: Apply migrations
+        env:
+          PGPASSWORD: postgres
         run: |
-          npx supabase db reset
+          set -e
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "Applying $f ..."
+            psql -h localhost -U postgres -d postgres -f "$f" || exit 1
+          done

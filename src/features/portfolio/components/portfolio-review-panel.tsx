@@ -90,7 +90,7 @@ export function PortfolioReviewPanel({
           </div>
 
           <div className="space-y-3">
-            {review.qualityChecks?.map((check: any) => (
+            {review.qualityChecks?.map((check: { checkKey: string; label: string; status: string; reason: string }) => (
               <div key={check.checkKey} className="rounded-md border p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{check.label}</p>
