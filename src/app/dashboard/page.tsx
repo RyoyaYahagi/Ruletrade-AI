@@ -4,6 +4,8 @@ import Link from "next/link";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
