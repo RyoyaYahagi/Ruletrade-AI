@@ -2,13 +2,20 @@ import "server-only";
 
 import { z } from "zod";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
-import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getConfiguredAIProvider } from "@/lib/ai/model-config";
 import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
 import type { AITaskType, AIProvider } from "@/lib/ai/provider";
 import type { AiRunSourceType } from "@/lib/ai/logs/ai-run-log-types";
 import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
 import { MockProvider } from "@/lib/ai/providers/mock-provider";
 import { OpenAIProvider } from "@/lib/ai/providers/openai-provider";
+import {
+  recordProviderSuccess,
+  recordProviderFailure,
+  getOrderedProvidersForFallback,
+  pickBestProvider,
+  type HealthAiProvider,
+} from "@/lib/ai/provider-health";
 
 export type TaskWeight = "light" | "standard" | "heavy";
 
@@ -164,53 +171,80 @@ async function callAiWithLogging<TOutput>(
 async function callAiWithoutLogging<TOutput>(
   options: AiCallOptions<TOutput>,
 ): Promise<AiCallResult<TOutput>> {
-  try {
-    const provider = getProviderForCall(options.provider);
-    const result = await provider.generateObject({
-      taskType: options.taskType ?? "eval",
-      schema: options.outputSchema,
-      schemaName: options.schemaName ?? "AiCallOutput",
-      promptVersion: options.promptVersion,
-      temperature: options.temperature,
-      maxOutputTokens: options.maxTokens,
-      messages: [
-        ...(options.system
-          ? [{ role: "system" as const, content: options.system }]
-          : []),
-        { role: "user" as const, content: options.prompt },
-      ],
-    });
+  const providerName =
+    options.provider ?? (getConfiguredAIProvider() as AiProvider);
+  const candidates = getProviderCandidates(options.provider);
 
-    return {
-      ok: true,
-      data: result.data,
-      usage: {
-        promptTokens: result.usage.inputTokens ?? 0,
-        completionTokens: result.usage.outputTokens ?? 0,
-        totalTokens: result.usage.totalTokens ?? 0,
-      },
-      model:
-        result.meta.model ||
-        options.model ||
-        defaultModelByWeight[options.weight],
-    };
-  } catch (error) {
-    const message =
-      error instanceof AIProviderError
-        ? `${error.code}: ${error.message}`
-        : error instanceof Error
-          ? error.message
-          : String(error);
+  let lastError: unknown;
+  for (const candidate of candidates) {
+    try {
+      const provider = instantiateProvider(candidate);
+      const start = performance.now();
+      const result = await provider.generateObject({
+        taskType: options.taskType ?? "eval",
+        schema: options.outputSchema,
+        schemaName: options.schemaName ?? "AiCallOutput",
+        promptVersion: options.promptVersion,
+        temperature: options.temperature,
+        maxOutputTokens: options.maxTokens,
+        messages: [
+          ...(options.system
+            ? [{ role: "system" as const, content: options.system }]
+            : []),
+          { role: "user" as const, content: options.prompt },
+        ],
+      });
+      const latencyMs = Math.round(performance.now() - start);
+      recordProviderSuccess(candidate, latencyMs);
 
-    return {
-      ok: false,
-      error: `AI provider call failed: ${message}`,
-      model: options.model ?? defaultModelByWeight[options.weight],
-    };
+      return {
+        ok: true,
+        data: result.data,
+        usage: {
+          promptTokens: result.usage.inputTokens ?? 0,
+          completionTokens: result.usage.outputTokens ?? 0,
+          totalTokens: result.usage.totalTokens ?? 0,
+        },
+        model:
+          result.meta.model ||
+          options.model ||
+          defaultModelByWeight[options.weight],
+      };
+    } catch (error) {
+      lastError = error;
+      recordProviderFailure(candidate);
+    }
   }
+
+  const message =
+    lastError instanceof AIProviderError
+      ? `${lastError.code}: ${lastError.message}`
+      : lastError instanceof Error
+        ? lastError.message
+        : String(lastError);
+
+  return {
+    ok: false,
+    error: `AI provider call failed: ${message}`,
+    model: options.model ?? defaultModelByWeight[options.weight],
+  };
 }
 
 function getProviderForCall(provider?: AiProvider): AIProvider {
+  if (provider) {
+    return instantiateProvider(provider);
+  }
+  const best = pickBestProvider(["openai", "gemini", "mock"]);
+  if (!best) {
+    throw new AIProviderError(
+      "AI_PROVIDER_REQUEST_FAILED",
+      "All providers are unavailable (circuit open or not configured).",
+    );
+  }
+  return instantiateProvider(best);
+}
+
+function instantiateProvider(provider: AiProvider): AIProvider {
   switch (provider) {
     case "mock":
       return new MockProvider();
@@ -218,7 +252,21 @@ function getProviderForCall(provider?: AiProvider): AIProvider {
       return new OpenAIProvider();
     case "gemini":
       return new GeminiProvider();
-    default:
-      return getAIProvider();
+    default: {
+      const configured = getConfiguredAIProvider();
+      return instantiateProvider(configured as AiProvider);
+    }
   }
+}
+
+function getProviderCandidates(
+  preferred?: AiProvider,
+): HealthAiProvider[] {
+  const all: HealthAiProvider[] = ["openai", "gemini", "mock"];
+  if (!preferred) return all;
+  // Put preferred first, then others
+  return [
+    preferred,
+    ...all.filter((p) => p !== preferred),
+  ];
 }
