@@ -1,14 +1,14 @@
 import "server-only";
 
 import type { User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 export async function ensureAppUser(user: User) {
   if (process.env.MOCK_AUTH === "true") {
     return { id: user.id, email: user.email ?? null };
   }
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from("app_users")

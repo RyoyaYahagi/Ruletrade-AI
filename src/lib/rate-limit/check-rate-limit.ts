@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import {
   RATE_LIMIT_CONFIGS,
@@ -15,7 +15,7 @@ export async function checkRateLimit(params: {
   const config = RATE_LIMIT_CONFIGS[params.key];
   const { periodStart, periodEnd } = getRateLimitPeriod(config.window);
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from("rate_limit_counters")

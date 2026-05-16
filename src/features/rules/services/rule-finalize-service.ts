@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import { createRuleVersion } from "@/features/rules/services/rule-session-service";
 
@@ -9,7 +9,7 @@ export async function finalizeRuleSession(params: {
   sessionId: string;
   force: boolean;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
     .select("id, completion_score, quality_gate_status, rule_json")

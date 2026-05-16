@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
 const MOCK_AUTH_USER_ID = process.env.MOCK_AUTH_USER_ID ?? "mock-user-id";
@@ -21,7 +21,7 @@ export async function getCurrentUser() {
   let supabase;
 
   try {
-    supabase = await createClient();
+    supabase = await createServerClient();
   } catch (err) {
     console.error("Failed to create supabase client:", err);
     return null;

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 
@@ -11,7 +11,7 @@ export async function applyAnswerToRuleJson(params: {
   answerJson: unknown;
   answerText?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
     .select("id, rule_json, question_count")

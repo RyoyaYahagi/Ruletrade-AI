@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import {
   RATE_LIMIT_CONFIGS,
   type RateLimitKey,
@@ -16,7 +16,7 @@ export async function incrementRateLimit(params: {
   const { periodStart, periodEnd } = getRateLimitPeriod(config.window);
   const incrementBy = params.incrementBy ?? 1;
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase.rpc("increment_rate_limit_counter", {
     p_user_id: params.userId,

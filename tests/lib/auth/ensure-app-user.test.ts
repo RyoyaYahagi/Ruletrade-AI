@@ -2,10 +2,10 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 
 vi.mock("@/lib/db/supabase-server", () => ({
-  createClient: vi.fn(),
+  createServerClient: vi.fn(),
 }));
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 const mockSingle = vi.fn();
 const mockSelect = vi.fn(() => ({ single: mockSingle }));
@@ -15,7 +15,7 @@ const mockFrom = vi.fn(() => ({ upsert: mockUpsert }));
 describe("ensureAppUser", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createClient).mockResolvedValue({
+    vi.mocked(createServerClient).mockResolvedValue({
       from: mockFrom,
     } as any);
   });
@@ -29,7 +29,7 @@ describe("ensureAppUser", () => {
     const user = { id: "mock-id", email: "mock@example.com" };
     const result = await ensureAppUser(user as any);
     expect(result).toEqual({ id: "mock-id", email: "mock@example.com" });
-    expect(createClient).not.toHaveBeenCalled();
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 
   it("upserts app_user and returns data on success", async () => {
