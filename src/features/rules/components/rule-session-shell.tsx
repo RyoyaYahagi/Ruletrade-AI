@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRuleSession } from "@/features/rules/hooks/use-rule-session";
 import { QuestionCard } from "@/features/rules/components/question-card";
 import { RuleDraftView } from "@/features/rules/components/rule-draft-view";
@@ -95,7 +96,13 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
     <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
       <section className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">
+          <Link
+            href="/dashboard"
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            ← ダッシュボードへ戻る
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold">
             {session.ticker}
             {session.company_name ? ` / ${session.company_name}` : ""}
           </h1>

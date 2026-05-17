@@ -13,6 +13,8 @@ import {
   getOpenAIModel,
   getGeminiModel,
 } from "@/lib/ai/model-config";
+import { getCodexModel } from "@/lib/ai/providers/codex-provider";
+import { getCodexAppServerModel } from "@/lib/ai/providers/codex-app-server-provider";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
@@ -23,6 +25,8 @@ function getConfiguredModelForLog(): string {
   const provider = getConfiguredAIProvider();
   if (provider === "openai") return getOpenAIModel();
   if (provider === "gemini") return getGeminiModel();
+  if (provider === "codex") return getCodexModel();
+  if (provider === "codex-app-server") return getCodexAppServerModel();
   return "mock-model";
 }
 
@@ -98,7 +102,7 @@ export async function runRuleReview(params: {
   }
 
   const ai = getAIProvider();
-  const { RuleReviewSchema } =
+  const { RuleReviewAIOutputSchema } =
     await import("@/schemas/rules/rule-review-schema");
 
   const aiResult = await withAiRunLogging({
@@ -118,7 +122,7 @@ export async function runRuleReview(params: {
     run: () =>
       ai.generateObject({
         taskType: "rule_review",
-        schema: RuleReviewSchema,
+        schema: RuleReviewAIOutputSchema,
         schemaName: "RuleReview",
         promptVersion: "rule-reviewer-v1",
         messages: [

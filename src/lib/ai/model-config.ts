@@ -1,11 +1,22 @@
 import "server-only";
 
-export type AIProviderKey = "mock" | "openai" | "gemini";
+export type AIProviderKey =
+  | "mock"
+  | "openai"
+  | "gemini"
+  | "codex"
+  | "codex-app-server";
 
 export function getConfiguredAIProvider(): AIProviderKey {
   const provider = process.env.AI_PROVIDER;
 
-  if (provider === "openai" || provider === "gemini" || provider === "mock") {
+  if (
+    provider === "openai" ||
+    provider === "gemini" ||
+    provider === "codex" ||
+    provider === "codex-app-server" ||
+    provider === "mock"
+  ) {
     return provider;
   }
 

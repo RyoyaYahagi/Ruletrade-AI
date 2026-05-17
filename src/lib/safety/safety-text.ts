@@ -1,6 +1,6 @@
-import type { RuleReviewOutput } from "@/schemas/rules/rule-review-schema";
+import type { RuleReviewAIOutput } from "@/schemas/rules/rule-review-schema";
 
-export function buildRuleReviewSafetyText(review: RuleReviewOutput) {
+export function buildRuleReviewSafetyText(review: RuleReviewAIOutput) {
   const parts: string[] = [];
 
   parts.push(review.summary);

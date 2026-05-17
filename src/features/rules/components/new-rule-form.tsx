@@ -36,6 +36,11 @@ export function NewRuleForm() {
 
       const json = await response.json();
 
+      if (response.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+
       if (!response.ok || !json.ok) {
         setErrorMessage(
           json.error?.message ?? "ルール作成セッションの作成に失敗しました。",

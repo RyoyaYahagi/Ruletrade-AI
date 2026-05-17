@@ -1,11 +1,12 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createAdminClient } from "@/lib/db/supabase-admin";
+import { AppError } from "@/lib/errors/app-error";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
 import type { SaveAiRunLogInput } from "@/lib/ai/logs/ai-run-log-types";
 
 export async function saveAiRunLog(input: SaveAiRunLogInput) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("ai_run_logs")
@@ -29,7 +30,13 @@ export async function saveAiRunLog(input: SaveAiRunLogInput) {
     .single();
 
   if (error || !data) {
-    throw error;
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "AIログの保存に失敗しました。",
+      500,
+      error,
+      false,
+    );
   }
 
   return {

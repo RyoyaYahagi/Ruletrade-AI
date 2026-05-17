@@ -3,6 +3,17 @@ import Link from "next/link";
 
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { listRuleSessions } from "@/features/rules/services/rule-session-service";
+
+const STATUS_LABEL: Record<string, string> = {
+  in_progress: "進行中",
+  needs_more_info: "情報不足",
+  quality_gate_passed: "レビュー完了",
+  paused: "一時停止",
+  finalized: "確定済み",
+  archived: "アーカイブ",
+  draft: "下書き",
+};
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -10,6 +21,8 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const { sessions } = await listRuleSessions({ userId: user.id });
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-5 py-8 sm:px-8">
@@ -38,6 +51,38 @@ export default async function DashboardPage() {
           銘柄コードを入力して、AIが質問しながら買い方・損切り・利確・最大投資比率を整理します。
         </p>
       </section>
+
+      {sessions.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-base font-medium">作成中のルール</h2>
+          <ul className="space-y-2">
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <Link
+                  href={`/rules/${session.id}`}
+                  className="flex items-center justify-between rounded-lg border bg-background p-4 hover:bg-muted/50"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {session.ticker}
+                      {session.company_name ? ` / ${session.company_name}` : ""}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {STATUS_LABEL[session.status] ?? session.status}
+                      {session.completion_score !== null
+                        ? ` · 完成度 ${session.completion_score}%`
+                        : ""}
+                    </p>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    続きを見る →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }
