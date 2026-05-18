@@ -5,6 +5,55 @@ The product should make users more deliberate, not more impulsive. AI should
 accelerate drafting and critique while keeping risk, uncertainty, and approval
 visible.
 
+## Why Users Define and Record Investment Rules
+
+### Background
+
+Rising prices, low interest rates, concerns about retirement funds, and a lack
+of financial education have increased the need for individuals to think about
+building assets for their future.
+
+However, Ruletrade-AI does not uniformly encourage everyone to invest.
+Investing carries risks, including the potential loss of principal, and the same
+approach does not suit every person.
+
+What Ruletrade-AI aims to support is not inducing users to invest, but rather
+helping those who are considering investment to define, record, and review rules
+that match their own situation, risk tolerance, and goals—without relying solely
+on emotion or intuition.
+
+### User Value
+
+- **Reduce emotional decisions.**
+  Clarifying investment rules makes it easier to avoid impulsive buy/sell
+  decisions driven by short-term market movements or news.
+
+- **Find peace with the process, even when outcomes are unfavorable.**
+  When results go against expectations, having a recorded decision process
+  makes it easier to accept the outcome and learn from it.
+
+- **Stay the course with long-term investing.**
+  A clear rule provides an anchor that helps users continue investing without
+  being swayed by temporary price swings or headlines.
+
+- **Accumulate experience beyond intuition.**
+  Recording investment decisions transforms vague gut feelings into reviewable
+  data, making experience concrete and reusable.
+
+- **Build reproducible judgment.**
+  Reviewing past rules and their outcomes helps users develop more consistent
+  and reproducible investment decisions over time.
+
+- **Clarify personal investment philosophy.**
+  Risk tolerance, investment horizon, preferred markets, and patterns to avoid
+  become explicit, making future decisions more aligned with the user's own
+  values.
+
+- **Preserve user agency with AI assistance.**
+  AI can draft, review, explain, and evaluate rules. The user remains the one
+  who inspects, approves, or improves them. Ruletrade-AI never treats user
+  approval as implicit.
+
 ## Product Promise
 
 Ruletrade-AI is a workspace for creating, reviewing, and improving investment
