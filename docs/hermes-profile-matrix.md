@@ -12,17 +12,18 @@ review, and low-risk utility work stay separate.
 
 Recommended model ownership:
 
-- orchestrator: GPT-5.5 low, with Kimi K2.6 as fallback when GPT-5.5 low is constrained
+- orchestrator: Kimi K2.6 through OpenCode Go, with GPT-5.5 low as an escalation reviewer
 - planner: Kimi K2.6
 - implementer lead: Kimi K2.6
 - final reviewer: GPT-5.5 low
 - lightweight worker: GPT-5.4 mini via GitHub Copilot provider
 - Kimi/OpenCode worker: Kimi K2.6 via OpenCode Go plan
+- low-cost coding worker: DeepSeek v4 Flash through OpenCode Go
 - medium independent worker: DeepSeek v4 Pro or equivalent
 
 ## Recommended profile families
 
-### 1. `rt-orchestrator-gpt54m`
+### 1. `rt-orchestrator-kimi26`
 
 Purpose:
 
@@ -45,8 +46,11 @@ Notes:
 
 - This profile should stay focused on orchestration rather than implementation.
 - It should not be used as the final review authority.
-- Model intent: GPT-5.5 low.
-- If GPT-5.5 low is constrained, fall back to Kimi K2.6.
+- Model intent: Kimi K2.6.
+- Provider rule: OpenCode Go plan.
+- It may delegate simple implementation slices to `rt-worker-opencode-deepseek-v4flash`
+  when cost savings matter and the task has narrow file ownership.
+- Escalate difficult design or final review questions to `rt-finalcheck-gpt55low`.
 
 ### 2. `rt-planner-kimi26`
 
@@ -164,6 +168,35 @@ Notes:
 
 - Use when the task is non-trivial but does not need the full Kimi lead.
 
+### 8. `rt-worker-opencode-deepseek-v4flash`
+
+Purpose:
+
+- low-cost straightforward code implementation
+- small mechanical refactors
+- focused test additions
+- bounded fixups after Kimi has already produced the task shape
+
+Recommended tools:
+
+- file
+- terminal
+- skills
+
+Provider rule:
+
+- OpenCode Go plan
+
+Notes:
+
+- Model intent: DeepSeek v4 Flash.
+- Use this from a Kimi K2.6 orchestrator or implementer when the task is
+  simple, has clear acceptance criteria, and can be reviewed afterward.
+- Avoid assigning architecture decisions, safety-sensitive review logic, final
+  verification, or broad cross-cutting edits to this profile.
+- When using `delegate_task`, pass this profile explicitly rather than relying
+  on the current session model.
+
 ## Profile design rules
 
 1. Every profile should have one primary responsibility.
@@ -176,7 +209,7 @@ Notes:
 
 If you want the smallest useful setup, create these first:
 
-- `rt-orchestrator-gpt54m`
+- `rt-orchestrator-kimi26`
 - `rt-planner-kimi26`
 - `rt-implementer-kimi26`
 - `rt-finalcheck-gpt55low`
@@ -185,6 +218,7 @@ Then add these when the workflow needs parallelism:
 
 - `rt-worker-copilot-gpt54mini`
 - `rt-worker-opencode-kimi26`
+- `rt-worker-opencode-deepseek-v4flash`
 - `rt-worker-deepseek-v4pro`
 
 ## Setup note
