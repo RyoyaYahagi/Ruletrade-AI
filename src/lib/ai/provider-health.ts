@@ -1,6 +1,6 @@
 import "server-only";
 
-type HealthAiProvider = "mock" | "openai" | "gemini";
+export type HealthAiProvider = "mock" | "openai" | "gemini";
 
 export type ProviderHealth = {
   provider: HealthAiProvider;
