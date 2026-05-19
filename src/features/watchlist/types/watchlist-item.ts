@@ -1,0 +1,26 @@
+export type DbWatchlistItem = {
+  id: string;
+  watchlist_id: string;
+  user_id: string;
+  ticker: string;
+  company_name: string | null;
+  market: string | null;
+  currency: string;
+  status: string;
+  priority: string;
+  interest_reason: string | null;
+  target_price_min: number | null;
+  target_price_max: number | null;
+  planned_tranches: number | null;
+  target_multiple: number | null;
+  max_position_percent: number | null;
+  stop_loss_note: string | null;
+  take_profit_note: string | null;
+  earnings_note: string | null;
+  research_notes: string | null;
+  tags: string[] | null;
+  rule_session_id: string | null;
+  last_reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
