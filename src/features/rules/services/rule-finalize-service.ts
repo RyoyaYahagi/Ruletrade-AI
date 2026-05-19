@@ -59,5 +59,23 @@ export async function finalizeRuleSession(params: {
     createdBy: "user",
   });
 
+  // Create a notification for the user to review their finalized rule
+  try {
+    const { createNotification } = await import(
+      "@/features/notifications/services/notification-service"
+    );
+    await createNotification({
+      userId: params.userId,
+      user_id: params.userId,
+      type: "review_reminder",
+      title: "投資ルールが完成しました",
+      body: "作成した投資ルールを見直し、定期的に確認しましょう。",
+      action_url: `/rules/${params.sessionId}`,
+      is_read: false,
+    });
+  } catch {
+    // Notification creation is best-effort; don't fail finalize if it errors
+  }
+
   return { sessionId: params.sessionId, status: "finalized" };
 }
