@@ -61,9 +61,8 @@ export async function finalizeRuleSession(params: {
 
   // Create a notification for the user to review their finalized rule
   try {
-    const { createNotification } = await import(
-      "@/features/notifications/services/notification-service"
-    );
+    const { createNotification } =
+      await import("@/features/notifications/services/notification-service");
     await createNotification({
       userId: params.userId,
       user_id: params.userId,

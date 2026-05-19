@@ -39,13 +39,15 @@ export function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    fetchUnreadCount();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true);
       fetchNotifications().finally(() => setLoading(false));
     }
@@ -90,10 +92,7 @@ export function NotificationBell() {
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-10 z-50 w-80 rounded-lg border bg-white shadow-lg">
             <div className="border-b px-4 py-3">
               <h3 className="text-sm font-semibold">通知</h3>
@@ -112,9 +111,7 @@ export function NotificationBell() {
                   {notifications.map((n) => (
                     <li
                       key={n.id}
-                      className={`px-4 py-3 ${
-                        !n.is_read ? "bg-blue-50" : ""
-                      }`}
+                      className={`px-4 py-3 ${!n.is_read ? "bg-blue-50" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
