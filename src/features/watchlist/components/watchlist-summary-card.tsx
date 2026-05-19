@@ -43,7 +43,9 @@ export function WatchlistSummaryCard() {
         </div>
         <div>
           <p className="text-xs text-muted-foreground">説明</p>
-          <p className="mt-1 font-medium">{data.watchlist.description || "未設定"}</p>
+          <p className="mt-1 font-medium">
+            {data.watchlist.description || "未設定"}
+          </p>
         </div>
       </div>
     </section>

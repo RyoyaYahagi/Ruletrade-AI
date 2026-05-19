@@ -66,12 +66,15 @@ export function WatchlistItemTable() {
               <tr key={item.id} className="border-b">
                 <td className="py-2">
                   <div className="font-medium">{item.ticker}</div>
-                  <div className="text-xs text-muted-foreground">{item.company_name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.company_name}
+                  </div>
                 </td>
                 <td className="py-2">{item.status}</td>
                 <td className="py-2">{item.priority}</td>
                 <td className="py-2 text-right">
-                  {item.target_price_min != null && item.target_price_max != null
+                  {item.target_price_min != null &&
+                  item.target_price_max != null
                     ? `${item.target_price_min} - ${item.target_price_max}`
                     : "—"}
                 </td>

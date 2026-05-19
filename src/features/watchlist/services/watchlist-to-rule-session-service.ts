@@ -18,11 +18,7 @@ export async function createRuleSessionFromWatchlistItem(params: {
     .single();
 
   if (error || !item) {
-    throw new AppError(
-      "NOT_FOUND",
-      "Watchlist itemが見つかりません。",
-      404,
-    );
+    throw new AppError("NOT_FOUND", "Watchlist itemが見つかりません。", 404);
   }
 
   const result = await createRuleSession({

@@ -37,7 +37,7 @@ export function WatchlistReviewPanel({
 
       if (!response.ok || !json.ok) {
         setErrorMessage(
-          json.error?.message ?? "Watchlistレビューに失敗しました。"
+          json.error?.message ?? "Watchlistレビューに失敗しました。",
         );
         return;
       }
@@ -57,7 +57,8 @@ export function WatchlistReviewPanel({
         <div>
           <h2 className="text-lg font-semibold">AI Watchlistレビュー</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            購入候補の抜け漏れ、未設定ルール、Rule Session化できる候補を確認します。
+            購入候補の抜け漏れ、未設定ルール、Rule
+            Session化できる候補を確認します。
           </p>
         </div>
 
@@ -72,14 +73,18 @@ export function WatchlistReviewPanel({
       </div>
 
       {errorMessage ? (
-        <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
+        <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {errorMessage}
+        </p>
       ) : null}
 
       {review ? (
         <div className="mt-6 space-y-4">
           <div className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs text-muted-foreground">準備度スコア</p>
-            <p className="mt-1 text-2xl font-bold">{review.readinessScore}/100</p>
+            <p className="mt-1 text-2xl font-bold">
+              {review.readinessScore}/100
+            </p>
           </div>
 
           <div>
@@ -92,10 +97,15 @@ export function WatchlistReviewPanel({
               <div key={check.checkKey} className="rounded-md border p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{check.label}</p>
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">{check.status}</span>
+                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
+                    {check.status}
+                  </span>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{check.reason}</p>
-                {check.relatedTickers != null && check.relatedTickers.length > 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {check.reason}
+                </p>
+                {check.relatedTickers != null &&
+                check.relatedTickers.length > 0 ? (
                   <p className="mt-2 text-xs text-muted-foreground">
                     関連銘柄: {check.relatedTickers.join(", ")}
                   </p>

@@ -40,28 +40,43 @@ export async function PATCH(
   try {
     const user = await requireUser();
     const { itemId } = await params;
-    const input = await validateJsonRequest(request, WatchlistItemSchema.partial());
+    const input = await validateJsonRequest(
+      request,
+      WatchlistItemSchema.partial(),
+    );
     const supabase = await createServerClient();
 
     const updateData: Record<string, unknown> = {};
     if (input.ticker !== undefined) updateData.ticker = input.ticker;
-    if (input.companyName !== undefined) updateData.company_name = input.companyName;
+    if (input.companyName !== undefined)
+      updateData.company_name = input.companyName;
     if (input.market !== undefined) updateData.market = input.market;
     if (input.currency !== undefined) updateData.currency = input.currency;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.priority !== undefined) updateData.priority = input.priority;
-    if (input.interestReason !== undefined) updateData.interest_reason = input.interestReason;
-    if (input.targetPriceMin !== undefined) updateData.target_price_min = input.targetPriceMin;
-    if (input.targetPriceMax !== undefined) updateData.target_price_max = input.targetPriceMax;
-    if (input.plannedTranches !== undefined) updateData.planned_tranches = input.plannedTranches;
-    if (input.targetMultiple !== undefined) updateData.target_multiple = input.targetMultiple;
-    if (input.maxPositionPercent !== undefined) updateData.max_position_percent = input.maxPositionPercent;
-    if (input.stopLossNote !== undefined) updateData.stop_loss_note = input.stopLossNote;
-    if (input.takeProfitNote !== undefined) updateData.take_profit_note = input.takeProfitNote;
-    if (input.earningsNote !== undefined) updateData.earnings_note = input.earningsNote;
-    if (input.researchNotes !== undefined) updateData.research_notes = input.researchNotes;
+    if (input.interestReason !== undefined)
+      updateData.interest_reason = input.interestReason;
+    if (input.targetPriceMin !== undefined)
+      updateData.target_price_min = input.targetPriceMin;
+    if (input.targetPriceMax !== undefined)
+      updateData.target_price_max = input.targetPriceMax;
+    if (input.plannedTranches !== undefined)
+      updateData.planned_tranches = input.plannedTranches;
+    if (input.targetMultiple !== undefined)
+      updateData.target_multiple = input.targetMultiple;
+    if (input.maxPositionPercent !== undefined)
+      updateData.max_position_percent = input.maxPositionPercent;
+    if (input.stopLossNote !== undefined)
+      updateData.stop_loss_note = input.stopLossNote;
+    if (input.takeProfitNote !== undefined)
+      updateData.take_profit_note = input.takeProfitNote;
+    if (input.earningsNote !== undefined)
+      updateData.earnings_note = input.earningsNote;
+    if (input.researchNotes !== undefined)
+      updateData.research_notes = input.researchNotes;
     if (input.tags !== undefined) updateData.tags = input.tags;
-    if (input.ruleSessionId !== undefined) updateData.rule_session_id = input.ruleSessionId;
+    if (input.ruleSessionId !== undefined)
+      updateData.rule_session_id = input.ruleSessionId;
 
     const { data, error } = await supabase
       .from("watchlist_items")
