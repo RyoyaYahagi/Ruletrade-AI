@@ -41,9 +41,13 @@ export function WatchlistItemForm() {
           interestReason: interestReason || undefined,
           targetPriceMin: targetPriceMin ? Number(targetPriceMin) : undefined,
           targetPriceMax: targetPriceMax ? Number(targetPriceMax) : undefined,
-          plannedTranches: plannedTranches ? Number(plannedTranches) : undefined,
+          plannedTranches: plannedTranches
+            ? Number(plannedTranches)
+            : undefined,
           targetMultiple: targetMultiple ? Number(targetMultiple) : undefined,
-          maxPositionPercent: maxPositionPercent ? Number(maxPositionPercent) : undefined,
+          maxPositionPercent: maxPositionPercent
+            ? Number(maxPositionPercent)
+            : undefined,
           stopLossNote: stopLossNote || undefined,
           takeProfitNote: takeProfitNote || undefined,
           earningsNote: earningsNote || undefined,
@@ -53,7 +57,9 @@ export function WatchlistItemForm() {
 
       const json = await response.json();
       if (!response.ok || !json.ok) {
-        setErrorMessage(json.error?.message ?? "Watchlist itemの追加に失敗しました。");
+        setErrorMessage(
+          json.error?.message ?? "Watchlist itemの追加に失敗しました。",
+        );
         return;
       }
 
@@ -218,7 +224,9 @@ export function WatchlistItemForm() {
         />
       </div>
       {errorMessage ? (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
+        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {errorMessage}
+        </p>
       ) : null}
       <button
         type="submit"

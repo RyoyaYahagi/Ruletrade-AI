@@ -304,14 +304,9 @@ function instantiateProvider(provider: AiProvider): AIProvider {
   }
 }
 
-function getProviderCandidates(
-  preferred?: AiProvider,
-): HealthAiProvider[] {
+function getProviderCandidates(preferred?: AiProvider): HealthAiProvider[] {
   const all: HealthAiProvider[] = ["openai", "gemini", "mock"];
   if (!preferred) return all;
   // Put preferred first, then others
-  return [
-    preferred,
-    ...all.filter((p) => p !== preferred),
-  ];
+  return [preferred, ...all.filter((p) => p !== preferred)];
 }

@@ -10,11 +10,7 @@ export const WatchlistItemStatusSchema = z.enum([
   "archived",
 ]);
 
-export const WatchlistItemPrioritySchema = z.enum([
-  "low",
-  "medium",
-  "high",
-]);
+export const WatchlistItemPrioritySchema = z.enum(["low", "medium", "high"]);
 
 export const WatchlistItemSchema = z.object({
   ticker: z.string().min(1).max(32),

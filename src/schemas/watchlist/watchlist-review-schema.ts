@@ -23,7 +23,7 @@ export const WatchlistReviewSchema = z.object({
         questionKey: z.string(),
         questionText: z.string(),
         relatedTickers: z.array(z.string()).default([]),
-      })
+      }),
     )
     .default([]),
   suggestedRuleSessionTargets: z
@@ -31,7 +31,7 @@ export const WatchlistReviewSchema = z.object({
       z.object({
         ticker: z.string(),
         reason: z.string(),
-      })
+      }),
     )
     .default([]),
   safety: SafetyCheckSchema,
