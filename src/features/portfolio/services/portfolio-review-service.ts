@@ -2,6 +2,8 @@ import "server-only";
 
 import { createServerClient } from "@/lib/db/supabase-server";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getConfiguredAIProvider } from "@/lib/ai/model-config";
+import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
 import { PortfolioReviewSchema } from "@/schemas/portfolio/portfolio-review-schema";
 import { calculatePortfolioSummary } from "@/features/portfolio/services/portfolio-aggregation-service";
 import {
@@ -58,21 +60,49 @@ export async function runPortfolioReview(params: {
 
   const ai = getAIProvider();
 
-  const aiResult = await ai.generateObject({
+  const aiResult = await withAiRunLogging({
+    userId: params.userId,
+    requestId: params.requestId,
     taskType: "portfolio_review",
-    schema: PortfolioReviewSchema,
-    schemaName: "PortfolioReview",
+    sourceType: "portfolio",
+    sourceId: portfolio.id,
+    provider: getConfiguredAIProvider(),
+    model: "portfolio-review-model",
     promptVersion: PORTFOLIO_REVIEW_PROMPT_VERSION,
-    messages: [
-      {
-        role: "system",
-        content: prompt.system,
-      },
-      {
-        role: "user",
-        content: prompt.user,
-      },
-    ],
+    inputJson: { portfolio, positions: positions ?? [], summary },
+    run: async () => {
+      const result = await ai.generateObject({
+        taskType: "portfolio_review",
+        schema: PortfolioReviewSchema,
+        schemaName: "PortfolioReview",
+        promptVersion: PORTFOLIO_REVIEW_PROMPT_VERSION,
+        messages: [
+          {
+            role: "system",
+            content: prompt.system,
+          },
+          {
+            role: "user",
+            content: prompt.user,
+          },
+        ],
+      });
+
+      return {
+        data: result.data,
+        meta: {
+          provider: result.meta.provider,
+          model: result.meta.model,
+          latencyMs: result.meta.latencyMs,
+          promptVersion: result.meta.promptVersion,
+        },
+        usage: {
+          inputTokens: result.usage.inputTokens,
+          outputTokens: result.usage.outputTokens,
+          estimatedCostUsd: result.usage.estimatedCostUsd,
+        },
+      };
+    },
   });
 
   const review = aiResult.data;
@@ -97,6 +127,7 @@ export async function runPortfolioReview(params: {
     .insert({
       user_id: params.userId,
       portfolio_id: portfolio.id,
+      ai_run_log_id: aiResult.aiRunLogId,
       provider: aiResult.meta.provider,
       model: aiResult.meta.model,
       prompt_version:
@@ -171,5 +202,6 @@ export async function runPortfolioReview(params: {
     qualityChecks: review.qualityChecks,
     followUpQuestions: review.followUpQuestions,
     suggestedRuleSessionTargets: review.suggestedRuleSessionTargets,
+    estimatedCostUsd: aiResult.estimatedCostUsd,
   };
 }
