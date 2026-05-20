@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,10 @@ export default async function DashboardPage() {
             AIと一緒に、買う前の投資ルールを整理します。
           </p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <LogoutButton />
+        </div>
       </div>
 
       <section className="rounded-lg border bg-background p-5">
