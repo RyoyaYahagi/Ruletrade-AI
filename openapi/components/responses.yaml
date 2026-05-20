@@ -1,0 +1,34 @@
+Unauthorized:
+  description: User is not authenticated.
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/ApiError"
+
+Forbidden:
+  description: User is not allowed to access the resource.
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/ApiError"
+
+NotFound:
+  description: Resource was not found.
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/ApiError"
+
+ValidationError:
+  description: Request validation failed.
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/ApiError"
+
+InternalError:
+  description: Internal server error.
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/ApiError"

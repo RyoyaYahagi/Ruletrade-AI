@@ -1,0 +1,22 @@
+SessionId:
+  name: sessionId
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+
+DocumentId:
+  name: documentId
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+
+Cursor:
+  name: cursor
+  in: query
+  required: false
+  schema:
+    type: string

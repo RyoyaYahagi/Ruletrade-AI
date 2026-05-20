@@ -16,6 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "openapi:lint": "redocly lint ruletrade@v1",
+    "openapi:types": "openapi-typescript openapi/openapi.yaml -o src/generated/openapi-types.ts",
+    "openapi:check": "npm run openapi:lint && npm run openapi:types",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:rls": "psql -f supabase/migrations/20260524000000_security_review.sql",
@@ -34,6 +37,7 @@
     "pdf-parse": "^1.1.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "openapi-fetch": "^0.13.0",
     "shadcn": "^4.7.0",
     "stripe": "^22.1.1",
     "tailwind-merge": "^3.6.0",
@@ -55,6 +59,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
+    "@redocly/cli": "^1.0.0",
+    "openapi-typescript": "^7.0.0",
     "vitest": "^4.0.14"
   }
 }
