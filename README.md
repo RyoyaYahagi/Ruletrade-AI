@@ -327,3 +327,20 @@ Server-only modules that read secrets or privileged credentials must include
 `import "server-only";`. Browser code must never import provider gateways,
 service-role Supabase clients, Stripe secret clients, or other privileged
 runtime modules directly.
+
+## AI Agent Development
+
+This repository includes instructions for AI coding agents.
+
+See:
+
+- `AGENTS.md`
+- `.github/copilot-instructions.md`
+- `.github/instructions/`
+- `.github/prompts/`
+- `docs/agents.md`
+
+AI agents should only work on small, scoped tasks.
+
+All agent PRs require human review and CI checks.
+
