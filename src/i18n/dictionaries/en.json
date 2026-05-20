@@ -1,0 +1,37 @@
+{
+  "common": {
+    "appName": "Ruletrade-AI",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "open": "Open",
+    "retry": "Retry",
+    "required": "Required",
+    "error": "Error",
+    "success": "Success"
+  },
+  "legal": {
+    "notInvestmentAdvice": "Not investment advice",
+    "finalDecision": "You are responsible for your own final investment decisions.",
+    "aiDisclaimer": "AI output is only a helper for organizing your investment rules."
+  },
+  "rules": {
+    "newRule": "Create new rule",
+    "aiReview": "AI review",
+    "answerSaved": "Your answer has been saved.",
+    "reviewStarted": "AI review has started.",
+    "reviewCompleted": "AI review has completed.",
+    "reviewFailed": "AI review failed."
+  },
+  "documents": {
+    "upload": "Upload document",
+    "extract": "Extract text",
+    "index": "RAG index",
+    "summarize": "AI summary",
+    "uploadCompleted": "Document upload completed.",
+    "extractCompleted": "Text extraction completed."
+  }
+}
