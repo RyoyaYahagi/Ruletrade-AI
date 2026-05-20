@@ -1,0 +1,70 @@
+paths:
+  /api/watchlist/items:
+    get:
+      tags:
+        - Watchlist
+      summary: List watchlist items
+      operationId: listWatchlistItems
+      responses:
+        "200":
+          description: Watchlist items.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - items
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: "../components/schemas.yaml#/WatchlistItem"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+
+    post:
+      tags:
+        - Watchlist
+      summary: Add watchlist item
+      operationId: addWatchlistItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ticker
+              properties:
+                ticker:
+                  type: string
+                companyName:
+                  type: string
+                memo:
+                  type: string
+      responses:
+        "201":
+          description: Watchlist item created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - item
+                        properties:
+                          item:
+                            $ref: "../components/schemas.yaml#/WatchlistItem"
+        "400":
+          $ref: "../components/responses.yaml#/ValidationError"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"

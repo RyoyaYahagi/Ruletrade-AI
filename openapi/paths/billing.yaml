@@ -1,0 +1,28 @@
+paths:
+  /api/billing/plans:
+    get:
+      tags:
+        - Billing
+      summary: List billing plans
+      operationId: listBillingPlans
+      responses:
+        "200":
+          description: Billing plans.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - plans
+                        properties:
+                          plans:
+                            type: array
+                            items:
+                              $ref: "../components/schemas.yaml#/BillingPlan"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"

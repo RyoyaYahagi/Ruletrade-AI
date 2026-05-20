@@ -1,0 +1,192 @@
+ApiSuccess:
+  type: object
+  required:
+    - ok
+    - data
+  properties:
+    ok:
+      type: boolean
+      const: true
+    data:
+      description: Response payload.
+
+ApiError:
+  type: object
+  required:
+    - ok
+    - error
+  properties:
+    ok:
+      type: boolean
+      const: false
+    error:
+      type: object
+      required:
+        - code
+        - message
+        - requestId
+      properties:
+        code:
+          $ref: "#/ApiErrorCode"
+        message:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+
+ApiErrorCode:
+  type: string
+  enum:
+    - UNAUTHORIZED
+    - FORBIDDEN
+    - NOT_FOUND
+    - VALIDATION_ERROR
+    - RATE_LIMIT_EXCEEDED
+    - COST_LIMIT_EXCEEDED
+    - USAGE_LIMIT_EXCEEDED
+    - RESOURCE_LIMIT_EXCEEDED
+    - AI_OUTPUT_INVALID
+    - SAFETY_BLOCKED
+    - COMPLIANCE_BLOCKED
+    - PROCESSING_FAILED
+    - WEBHOOK_VERIFICATION_FAILED
+    - INTERNAL_ERROR
+
+RuleSession:
+  type: object
+  required:
+    - id
+    - userId
+    - status
+    - createdAt
+  properties:
+    id:
+      type: string
+      format: uuid
+    userId:
+      type: string
+      format: uuid
+    ticker:
+      type: ["string", "null"]
+    companyName:
+      type: ["string", "null"]
+    status:
+      type: string
+      enum:
+        - draft
+        - in_progress
+        - review_ready
+        - reviewed
+        - finalized
+        - archived
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+CreateRuleSessionRequest:
+  type: object
+  properties:
+    ticker:
+      type: string
+      maxLength: 20
+    companyName:
+      type: string
+      maxLength: 200
+    initialMemo:
+      type: string
+      maxLength: 5000
+
+RuleReview:
+  type: object
+  required:
+    - id
+    - sessionId
+    - summary
+    - safetyPassed
+    - compliancePassed
+  properties:
+    id:
+      type: string
+      format: uuid
+    sessionId:
+      type: string
+      format: uuid
+    summary:
+      type: string
+    safetyPassed:
+      type: boolean
+    compliancePassed:
+      type: boolean
+    createdAt:
+      type: string
+      format: date-time
+
+PrivacySettings:
+  type: object
+  required:
+    - aiMemoryEnabled
+    - aiLoggingEnabled
+    - allowRagIndexing
+    - allowDocumentIndexing
+  properties:
+    aiMemoryEnabled:
+      type: boolean
+    aiLoggingEnabled:
+      type: boolean
+    aiPayloadLoggingEnabled:
+      type: boolean
+    allowRagIndexing:
+      type: boolean
+    allowDocumentIndexing:
+      type: boolean
+    dataRetentionDays:
+      type: ["integer", "null"]
+      minimum: 0
+
+BillingPlan:
+  type: object
+  required:
+    - id
+    - name
+    - key
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    key:
+      type: string
+      enum:
+        - free
+        - plus
+        - pro
+
+WatchlistItem:
+  type: object
+  required:
+    - id
+    - userId
+    - ticker
+    - createdAt
+  properties:
+    id:
+      type: string
+      format: uuid
+    userId:
+      type: string
+      format: uuid
+    ticker:
+      type: string
+    companyName:
+      type: ["string", "null"]
+    memo:
+      type: ["string", "null"]
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
