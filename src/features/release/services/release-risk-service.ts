@@ -48,9 +48,7 @@ export type UpdateRiskAssessmentStatusInput = {
  * Inserts a row in `release_risk_assessments` with the provided details.
  * `status` defaults to `"open"` if not supplied. Returns the created record.
  */
-export async function createRiskAssessment(
-  input: CreateRiskAssessmentInput,
-) {
+export async function createRiskAssessment(input: CreateRiskAssessmentInput) {
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -85,9 +83,7 @@ export async function createRiskAssessment(
  * Results are ordered by `risk_level` severity descending
  * (critical → high → medium → low), then by `created_at` ascending.
  */
-export async function listRiskAssessmentsByReleasePlan(
-  releasePlanId: string,
-) {
+export async function listRiskAssessmentsByReleasePlan(releasePlanId: string) {
   const supabase = await createServerClient();
 
   // Define risk-level ordering via a CASE expression

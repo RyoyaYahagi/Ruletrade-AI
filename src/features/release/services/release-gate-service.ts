@@ -74,8 +74,7 @@ export async function evaluateReleaseGates(
 
   // ── 3. Changelog entries gate ──────────────────────────────────
 
-  const requireChangelog =
-    process.env.RELEASE_REQUIRE_CHANGELOG !== "false"; // default true
+  const requireChangelog = process.env.RELEASE_REQUIRE_CHANGELOG !== "false"; // default true
 
   if (requireChangelog) {
     const { count: changelogCount, error: countErr } = await supabase

@@ -185,8 +185,10 @@ export async function updateRoadmapItem(
   if (input.summary !== undefined) payload.summary = input.summary;
   if (input.theme !== undefined) payload.theme = input.theme;
   if (input.initiative !== undefined) payload.initiative = input.initiative;
-  if (input.public_status !== undefined) payload.public_status = input.public_status;
-  if (input.internal_status !== undefined) payload.internal_status = input.internal_status;
+  if (input.public_status !== undefined)
+    payload.public_status = input.public_status;
+  if (input.internal_status !== undefined)
+    payload.internal_status = input.internal_status;
   if (input.priority !== undefined) payload.priority = input.priority;
   if (input.target_milestone_key !== undefined)
     payload.target_milestone_key = input.target_milestone_key;

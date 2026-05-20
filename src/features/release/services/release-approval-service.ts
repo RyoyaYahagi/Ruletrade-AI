@@ -50,9 +50,7 @@ export type UpdateApprovalStatusInput = {
  * (`"approved"` or `"rejected"`), it is automatically set to the current ISO
  * timestamp.
  */
-export async function createReleaseApproval(
-  input: CreateReleaseApprovalInput,
-) {
+export async function createReleaseApproval(input: CreateReleaseApprovalInput) {
   const supabase = await createServerClient();
 
   // Auto-set decided_at when transitioning to a terminal status

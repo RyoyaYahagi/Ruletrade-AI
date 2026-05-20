@@ -18,10 +18,11 @@ import { z } from "zod";
  * Extended schema for PATCH that includes checklistId and itemKey
  * to identify which checklist item to update.
  */
-const UpdateChecklistItemStatusBodySchema = UpdateChecklistItemStatusRequestSchema.extend({
-  checklistId: z.string().uuid(),
-  itemKey: z.string().min(1),
-});
+const UpdateChecklistItemStatusBodySchema =
+  UpdateChecklistItemStatusRequestSchema.extend({
+    checklistId: z.string().uuid(),
+    itemKey: z.string().min(1),
+  });
 
 export const dynamic = "force-dynamic";
 

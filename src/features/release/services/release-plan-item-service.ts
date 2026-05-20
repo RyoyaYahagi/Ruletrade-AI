@@ -40,9 +40,7 @@ export type UpdateReleasePlanItemStatusInput = {
 /**
  * Create a new release plan item.
  */
-export async function createReleasePlanItem(
-  input: CreateReleasePlanItemInput,
-) {
+export async function createReleasePlanItem(input: CreateReleasePlanItemInput) {
   const supabase = await createServerClient();
 
   const { data, error } = await supabase

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const requestId = crypto.randomUUID();
   try {
-    const { data: items } = await listRoadmapItems({ isPublic: true });
+    const { data: items } = await listRoadmapItems({ is_public: true });
     return apiSuccess({ items });
   } catch (error) {
     return toErrorResponse(error, {

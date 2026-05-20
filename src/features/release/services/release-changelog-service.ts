@@ -111,7 +111,9 @@ export async function createReleaseChangelogEntry(
 
   if (error) throw error;
   if (!data) {
-    throw new Error("Failed to create release changelog entry: no data returned.");
+    throw new Error(
+      "Failed to create release changelog entry: no data returned.",
+    );
   }
 
   return { data: data as ReleaseChangelogEntry };

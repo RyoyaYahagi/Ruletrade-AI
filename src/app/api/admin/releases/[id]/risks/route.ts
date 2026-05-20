@@ -40,10 +40,16 @@ export async function POST(
     const admin = await requireAdminPermission("admin.releases.update");
     adminUserId = admin.user.id;
     const { id } = await params;
-    const input = await validateJsonRequest(request, CreateRiskAssessmentRequestSchema);
+    const input = await validateJsonRequest(
+      request,
+      CreateRiskAssessmentRequestSchema,
+    );
+    const { releasePlanId: _, riskArea, riskLevel, ...rest } = input;
     const { data } = await createRiskAssessment({
-      ...input,
-      releasePlanId: id,
+      ...rest,
+      risk_area: riskArea,
+      risk_level: riskLevel,
+      release_plan_id: id,
     });
     await logAdminAudit({
       adminUserId: admin.user.id,

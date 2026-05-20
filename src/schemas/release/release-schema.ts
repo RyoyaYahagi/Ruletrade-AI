@@ -84,13 +84,7 @@ export const MilestoneStatusSchema = z.enum([
   "cancelled",
 ]);
 
-export const PrioritySchema = z.enum([
-  "p0",
-  "p1",
-  "p2",
-  "p3",
-  "p4",
-]);
+export const PrioritySchema = z.enum(["p0", "p1", "p2", "p3", "p4"]);
 
 export const CreateReleasePlanRequestSchema = z.object({
   releaseKey: z.string().min(1).max(200),
@@ -158,19 +152,44 @@ export const CreateReleaseChecklistRequestSchema = z.object({
 });
 
 export const UpdateChecklistItemStatusRequestSchema = z.object({
-  status: z.enum(["unchecked", "passed", "failed", "blocked", "not_applicable"]),
+  status: z.enum([
+    "unchecked",
+    "passed",
+    "failed",
+    "blocked",
+    "not_applicable",
+  ]),
   notes: z.string().max(5000).optional(),
 });
 
 export const CreateReleaseApprovalRequestSchema = z.object({
   releasePlanId: z.string().uuid(),
-  approvalType: z.enum(["owner", "technical", "security", "privacy", "billing", "release_manager"]),
+  approvalType: z.enum([
+    "owner",
+    "technical",
+    "security",
+    "privacy",
+    "billing",
+    "release_manager",
+  ]),
   comment: z.string().max(5000).optional(),
 });
 
 export const CreateRiskAssessmentRequestSchema = z.object({
   releasePlanId: z.string().uuid(),
-  riskArea: z.enum(["db", "rls", "ai_safety", "privacy", "security", "billing", "performance", "observability", "support", "rollback", "other"]),
+  riskArea: z.enum([
+    "db",
+    "rls",
+    "ai_safety",
+    "privacy",
+    "security",
+    "billing",
+    "performance",
+    "observability",
+    "support",
+    "rollback",
+    "other",
+  ]),
   riskLevel: ReleaseRiskLevelSchema,
   description: z.string().min(1).max(5000),
   mitigation: z.string().max(5000).optional(),
