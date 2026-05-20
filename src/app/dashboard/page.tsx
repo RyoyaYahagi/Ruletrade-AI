@@ -40,6 +40,22 @@ export default async function DashboardPage() {
           銘柄コードを入力して、AIが質問しながら買い方・損切り・利確・最大投資比率を整理します。
         </p>
       </section>
+
+      <section className="rounded-lg border bg-background p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-medium">Ruletrade-AI の考え方</h2>
+          <Link
+            href="/philosophy"
+            className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
+          >
+            詳しく読む
+          </Link>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          なぜ投資ルールを明確にし、記録しながら投資するのか。Ruletrade-AI
+          のプロダクト哲学をご紹介します。
+        </p>
+      </section>
     </main>
   );
 }
