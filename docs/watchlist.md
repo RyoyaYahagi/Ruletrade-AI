@@ -51,87 +51,87 @@ src/app/watchlist/
 
 ### watchlists
 
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | uuid | PK |
-| user_id | uuid | FK → users |
-| name | text | Watchlist名 |
-| base_currency | text | 基準通貨 (JPY/USD等) |
-| description | text? | 説明 |
-| created_at | timestamptz | - |
-| updated_at | timestamptz | - |
+| カラム        | 型          | 説明                 |
+| ------------- | ----------- | -------------------- |
+| id            | uuid        | PK                   |
+| user_id       | uuid        | FK → users           |
+| name          | text        | Watchlist名          |
+| base_currency | text        | 基準通貨 (JPY/USD等) |
+| description   | text?       | 説明                 |
+| created_at    | timestamptz | -                    |
+| updated_at    | timestamptz | -                    |
 
 ### watchlist_items
 
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | uuid | PK |
-| watchlist_id | uuid | FK → watchlists |
-| user_id | uuid | FK → users |
-| ticker | text | 銘柄コード |
-| company_name | text? | 銘柄名 |
-| market | text? | 市場 (TSE/NYSE等) |
-| currency | text | 通貨 |
-| status | text | 状態 (watching/rule_designing/ready/paused/archived) |
-| priority | text | 優先度 (low/medium/high) |
-| interest_reason | text? | 気になる理由 |
-| target_price_min | numeric? | 買付価格下限 |
-| target_price_max | numeric? | 買付価格上限 |
-| planned_tranches | int? | 分割回数 |
-| target_multiple | numeric? | 目標倍率 |
-| max_position_percent | numeric? | 最大投資比率 (%) |
-| stop_loss_note | text? | 損切り条件メモ |
-| take_profit_note | text? | 利確条件メモ |
-| earnings_note | text? | 決算メモ |
-| research_notes | text? | 調査メモ |
-| tags | text[] | タグ |
-| rule_session_id | uuid? | FK → rule_design_sessions |
-| last_reviewed_at | timestamptz? | 最終AIレビュー日時 |
-| created_at | timestamptz | - |
-| updated_at | timestamptz | - |
+| カラム               | 型           | 説明                                                 |
+| -------------------- | ------------ | ---------------------------------------------------- |
+| id                   | uuid         | PK                                                   |
+| watchlist_id         | uuid         | FK → watchlists                                      |
+| user_id              | uuid         | FK → users                                           |
+| ticker               | text         | 銘柄コード                                           |
+| company_name         | text?        | 銘柄名                                               |
+| market               | text?        | 市場 (TSE/NYSE等)                                    |
+| currency             | text         | 通貨                                                 |
+| status               | text         | 状態 (watching/rule_designing/ready/paused/archived) |
+| priority             | text         | 優先度 (low/medium/high)                             |
+| interest_reason      | text?        | 気になる理由                                         |
+| target_price_min     | numeric?     | 買付価格下限                                         |
+| target_price_max     | numeric?     | 買付価格上限                                         |
+| planned_tranches     | int?         | 分割回数                                             |
+| target_multiple      | numeric?     | 目標倍率                                             |
+| max_position_percent | numeric?     | 最大投資比率 (%)                                     |
+| stop_loss_note       | text?        | 損切り条件メモ                                       |
+| take_profit_note     | text?        | 利確条件メモ                                         |
+| earnings_note        | text?        | 決算メモ                                             |
+| research_notes       | text?        | 調査メモ                                             |
+| tags                 | text[]       | タグ                                                 |
+| rule_session_id      | uuid?        | FK → rule_design_sessions                            |
+| last_reviewed_at     | timestamptz? | 最終AIレビュー日時                                   |
+| created_at           | timestamptz  | -                                                    |
+| updated_at           | timestamptz  | -                                                    |
 
 ### watchlist_reviews
 
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | uuid | PK |
-| user_id | uuid | FK → users |
-| watchlist_id | uuid | FK → watchlists |
-| item_id | uuid? | FK → watchlist_items (null=全体レビュー) |
-| review_scope | text | "watchlist" または "item" |
-| review_json | jsonb | レビュー結果全体 |
-| summary | text? | サマリー (safety_pass時のみ) |
-| readiness_score | int? | 準備度スコア (safety_pass時のみ) |
-| needs_more_info | boolean | 追加情報必要か |
-| can_create_rule_session | boolean | Rule Session化可能か |
-| safety_passed | boolean | セーフティチェック通過 |
-| prompt_version | text | 使用プロンプトバージョン |
-| provider | text | AIプロバイダ |
-| model | text | AIモデル |
-| input_tokens | int? | 入力トークン数 |
-| output_tokens | int? | 出力トークン数 |
-| estimated_cost_usd | numeric? | 推定コスト |
-| latency_ms | int | レイテンシ |
-| error_message | text? | エラー時メッセージ |
-| created_at | timestamptz | - |
+| カラム                  | 型          | 説明                                     |
+| ----------------------- | ----------- | ---------------------------------------- |
+| id                      | uuid        | PK                                       |
+| user_id                 | uuid        | FK → users                               |
+| watchlist_id            | uuid        | FK → watchlists                          |
+| item_id                 | uuid?       | FK → watchlist_items (null=全体レビュー) |
+| review_scope            | text        | "watchlist" または "item"                |
+| review_json             | jsonb       | レビュー結果全体                         |
+| summary                 | text?       | サマリー (safety_pass時のみ)             |
+| readiness_score         | int?        | 準備度スコア (safety_pass時のみ)         |
+| needs_more_info         | boolean     | 追加情報必要か                           |
+| can_create_rule_session | boolean     | Rule Session化可能か                     |
+| safety_passed           | boolean     | セーフティチェック通過                   |
+| prompt_version          | text        | 使用プロンプトバージョン                 |
+| provider                | text        | AIプロバイダ                             |
+| model                   | text        | AIモデル                                 |
+| input_tokens            | int?        | 入力トークン数                           |
+| output_tokens           | int?        | 出力トークン数                           |
+| estimated_cost_usd      | numeric?    | 推定コスト                               |
+| latency_ms              | int         | レイテンシ                               |
+| error_message           | text?       | エラー時メッセージ                       |
+| created_at              | timestamptz | -                                        |
 
 ### watchlist_quality_checks
 
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | uuid | PK |
-| user_id | uuid | FK → users |
-| watchlist_id | uuid | FK → watchlists |
-| item_id | uuid? | FK → watchlist_items |
-| review_id | uuid | FK → watchlist_reviews |
-| check_key | text | チェック識別子 |
-| label | text | 表示ラベル |
-| status | text | pass / warning / fail |
-| severity | text | low / medium / high |
-| reason | text | 理由 |
-| related_tickers | text[] | 関連銘柄 |
-| suggested_question | text? | 確認質問 |
-| created_at | timestamptz | - |
+| カラム             | 型          | 説明                   |
+| ------------------ | ----------- | ---------------------- |
+| id                 | uuid        | PK                     |
+| user_id            | uuid        | FK → users             |
+| watchlist_id       | uuid        | FK → watchlists        |
+| item_id            | uuid?       | FK → watchlist_items   |
+| review_id          | uuid        | FK → watchlist_reviews |
+| check_key          | text        | チェック識別子         |
+| label              | text        | 表示ラベル             |
+| status             | text        | pass / warning / fail  |
+| severity           | text        | low / medium / high    |
+| reason             | text        | 理由                   |
+| related_tickers    | text[]      | 関連銘柄               |
+| suggested_question | text?       | 確認質問               |
+| created_at         | timestamptz | -                      |
 
 ## API
 
@@ -140,6 +140,7 @@ src/app/watchlist/
 現在のユーザーのメインWatchlistを取得。
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -154,6 +155,7 @@ src/app/watchlist/
 Watchlistに登録されたアイテム一覧を取得（archived除く）。
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -184,6 +186,7 @@ Watchlistに登録されたアイテム一覧を取得（archived除く）。
 アイテムからRule Sessionを作成。
 
 **Response:**
+
 ```json
 {
   "ok": true,

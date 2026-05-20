@@ -56,11 +56,8 @@ export function WatchlistQualityChecksList({
               <p className="text-sm font-medium">{check.label}</p>
               <StatusBadge status={check.status} />
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {check.reason}
-            </p>
-            {check.relatedTickers != null &&
-            check.relatedTickers.length > 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">{check.reason}</p>
+            {check.relatedTickers != null && check.relatedTickers.length > 0 ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 関連銘柄: {check.relatedTickers.join(", ")}
               </p>

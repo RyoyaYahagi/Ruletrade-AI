@@ -28,9 +28,9 @@ import { createRuleSession } from "@/features/rules/services/rule-session-servic
 
 // -- select chain: select() → eq() → eq() → single()
 const mockSingle = vi.fn();
-const mockEqSelectB = vi.fn(() => ({ single: mockSingle }));         // 2nd .eq() returns { single: … }
-const mockEqSelectA = vi.fn(() => ({ eq: mockEqSelectB }));          // 1st .eq() returns { eq: … }
-const mockSelect = vi.fn(() => ({ eq: mockEqSelectA }));             // .select("*") returns { eq: … }
+const mockEqSelectB = vi.fn(() => ({ single: mockSingle })); // 2nd .eq() returns { single: … }
+const mockEqSelectA = vi.fn(() => ({ eq: mockEqSelectB })); // 1st .eq() returns { eq: … }
+const mockSelect = vi.fn(() => ({ eq: mockEqSelectA })); // .select("*") returns { eq: … }
 
 // -- update chain: update() → eq() → eq()
 const mockEqUpdateC = vi.fn();
@@ -46,7 +46,9 @@ const mockSupabase = { from: mockFrom };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(createServerClient).mockResolvedValue(mockSupabase as unknown as never);
+  vi.mocked(createServerClient).mockResolvedValue(
+    mockSupabase as unknown as never,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -137,7 +139,7 @@ describe("createRuleSessionFromWatchlistItem", () => {
       },
     });
     expect(mockEqUpdateB).toHaveBeenNthCalledWith(1, "id", "session-1"); // rule_design_sessions .eq("id", sessionId)
-    expect(mockEqUpdateC).toHaveBeenNthCalledWith(1, "user_id", "user-1");    // rule_design_sessions .eq("user_id", userId)
+    expect(mockEqUpdateC).toHaveBeenNthCalledWith(1, "user_id", "user-1"); // rule_design_sessions .eq("user_id", userId)
 
     // 3) watchlist_items updated with status + rule_session_id
     expect(mockFrom).toHaveBeenNthCalledWith(3, "watchlist_items");
@@ -145,8 +147,8 @@ describe("createRuleSessionFromWatchlistItem", () => {
       status: "rule_designing",
       rule_session_id: "session-1",
     });
-    expect(mockEqUpdateB).toHaveBeenNthCalledWith(2, "id", "item-1");   // watchlist_items .eq("id", itemId)
-    expect(mockEqUpdateC).toHaveBeenNthCalledWith(2, "user_id", "user-1");    // watchlist_items .eq("user_id", userId)
+    expect(mockEqUpdateB).toHaveBeenNthCalledWith(2, "id", "item-1"); // watchlist_items .eq("id", itemId)
+    expect(mockEqUpdateC).toHaveBeenNthCalledWith(2, "user_id", "user-1"); // watchlist_items .eq("user_id", userId)
   });
 
   // ── item が見つからない ──────────────────────────────────────────────────

@@ -30,9 +30,7 @@ export function useWatchlist() {
         const json = await response.json();
 
         if (!response.ok || !json.ok) {
-          setError(
-            json.error?.message ?? "Watchlistの取得に失敗しました。",
-          );
+          setError(json.error?.message ?? "Watchlistの取得に失敗しました。");
           return;
         }
 

@@ -32,9 +32,7 @@ export function useRunWatchlistReview() {
       const json = await response.json();
 
       if (!response.ok || !json.ok) {
-        setError(
-          json.error?.message ?? "Watchlistレビューに失敗しました。",
-        );
+        setError(json.error?.message ?? "Watchlistレビューに失敗しました。");
         return;
       }
 
