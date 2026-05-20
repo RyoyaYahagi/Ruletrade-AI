@@ -24,9 +24,7 @@ export function useCreateRuleSessionFromWatchlist() {
       const json = await response.json();
 
       if (!response.ok || !json.ok) {
-        setError(
-          json.error?.message ?? "Rule Sessionの作成に失敗しました。",
-        );
+        setError(json.error?.message ?? "Rule Sessionの作成に失敗しました。");
         return;
       }
 

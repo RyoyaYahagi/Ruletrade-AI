@@ -123,9 +123,9 @@ describe("listWatchlistItems", () => {
       error: new Error("DB error"),
     };
 
-    await expect(
-      listWatchlistItems({ userId: "user-1" }),
-    ).rejects.toThrow(AppError);
+    await expect(listWatchlistItems({ userId: "user-1" })).rejects.toThrow(
+      AppError,
+    );
     await expect(
       listWatchlistItems({ userId: "user-1" }),
     ).rejects.toMatchObject({
@@ -208,7 +208,12 @@ describe("createWatchlistItem", () => {
 
   it("throws AppError when insert fails", async () => {
     mockMaybeSingle.mockResolvedValue({
-      data: { id: "watchlist-1", user_id: "user-1", name: "Main Watchlist", base_currency: "JPY" },
+      data: {
+        id: "watchlist-1",
+        user_id: "user-1",
+        name: "Main Watchlist",
+        base_currency: "JPY",
+      },
       error: null,
     });
     mockSingle.mockResolvedValue({
@@ -238,7 +243,12 @@ describe("createWatchlistItem", () => {
 
   it("preserves provided optional fields", async () => {
     mockMaybeSingle.mockResolvedValue({
-      data: { id: "watchlist-1", user_id: "user-1", name: "Main Watchlist", base_currency: "JPY" },
+      data: {
+        id: "watchlist-1",
+        user_id: "user-1",
+        name: "Main Watchlist",
+        base_currency: "JPY",
+      },
       error: null,
     });
     mockSingle.mockResolvedValue({
@@ -489,7 +499,12 @@ describe("updateWatchlistItem", () => {
       error: null,
     });
     mockUpdateSingle.mockResolvedValue({
-      data: { id: "item-1", ticker: "AAPL", status: "watching", priority: "high" },
+      data: {
+        id: "item-1",
+        ticker: "AAPL",
+        status: "watching",
+        priority: "high",
+      },
       error: null,
     });
 

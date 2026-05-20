@@ -195,7 +195,11 @@ beforeEach(() => {
 
   vi.mocked(buildWatchlistReviewPrompt).mockReturnValue({
     system: "You are an AI that assists with investment rule design.",
-    user: JSON.stringify({ watchlist: mockWatchlist, items: mockItems, scope: "watchlist" }),
+    user: JSON.stringify({
+      watchlist: mockWatchlist,
+      items: mockItems,
+      scope: "watchlist",
+    }),
   });
 
   vi.mocked(runSafetyCheck).mockReturnValue({
@@ -236,7 +240,10 @@ describe("runWatchlistReview", () => {
   describe("single item review", () => {
     it("reviews a specific watchlist item when itemId is provided", async () => {
       const itemId = "item-1";
-      mockWatchlistSingle.mockResolvedValue({ data: mockWatchlist, error: null });
+      mockWatchlistSingle.mockResolvedValue({
+        data: mockWatchlist,
+        error: null,
+      });
       mockItemsOrder.mockResolvedValue({ data: [mockItems[0]], error: null });
       mockReviewSingle.mockResolvedValue({
         data: { id: "review-1" },
@@ -264,7 +271,10 @@ describe("runWatchlistReview", () => {
   // 3. Safety passed: 正常にreview保存 + quality_checks保存
   describe("safety passed", () => {
     it("saves review and quality checks, returns full result", async () => {
-      mockWatchlistSingle.mockResolvedValue({ data: mockWatchlist, error: null });
+      mockWatchlistSingle.mockResolvedValue({
+        data: mockWatchlist,
+        error: null,
+      });
       mockItemsOrder.mockResolvedValue({ data: mockItems, error: null });
       mockReviewSingle.mockResolvedValue({
         data: { id: "review-success" },
@@ -332,7 +342,10 @@ describe("runWatchlistReview", () => {
   // 4. Safety failed: SAFETY_FAILED error, review saved with safety_passed=false
   describe("safety failed", () => {
     it("saves review with safety_passed=false and throws SAFETY_FAILED", async () => {
-      mockWatchlistSingle.mockResolvedValue({ data: mockWatchlist, error: null });
+      mockWatchlistSingle.mockResolvedValue({
+        data: mockWatchlist,
+        error: null,
+      });
       mockItemsOrder.mockResolvedValue({ data: mockItems, error: null });
       mockReviewSingle.mockResolvedValue({
         data: { id: "review-failed" },
@@ -382,7 +395,10 @@ describe("runWatchlistReview", () => {
   // 5. Items が空: VALIDATION_ERROR
   describe("items empty", () => {
     it("throws VALIDATION_ERROR when no watchlist items exist", async () => {
-      mockWatchlistSingle.mockResolvedValue({ data: mockWatchlist, error: null });
+      mockWatchlistSingle.mockResolvedValue({
+        data: mockWatchlist,
+        error: null,
+      });
       mockItemsOrder.mockResolvedValue({ data: [], error: null });
 
       await expect(runWatchlistReview({ userId })).rejects.toThrow(AppError);

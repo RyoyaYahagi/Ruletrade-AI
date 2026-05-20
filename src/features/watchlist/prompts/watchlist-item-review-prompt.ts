@@ -1,8 +1,7 @@
-export const WATCHLIST_ITEM_REVIEW_PROMPT_VERSION = "watchlist-item-reviewer-v1";
+export const WATCHLIST_ITEM_REVIEW_PROMPT_VERSION =
+  "watchlist-item-reviewer-v1";
 
-export function buildWatchlistItemReviewPrompt(input: {
-  item: unknown;
-}) {
+export function buildWatchlistItemReviewPrompt(input: { item: unknown }) {
   return {
     system: `
 あなたは投資ルール設計を支援するAIです。

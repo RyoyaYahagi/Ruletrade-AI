@@ -6,11 +6,7 @@ import { WatchlistItemDetail } from "@/features/watchlist/components/watchlist-i
 import { CreateRuleSessionFromWatchlistButton } from "@/features/watchlist/components/create-rule-session-from-watchlist-button";
 import type { DbWatchlistItem } from "@/features/watchlist/types/watchlist-item";
 
-export function WatchlistItemDetailPage({
-  itemId,
-}: {
-  itemId: string;
-}) {
+export function WatchlistItemDetailPage({ itemId }: { itemId: string }) {
   const [item, setItem] = useState<DbWatchlistItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -72,10 +68,7 @@ export function WatchlistItemDetailPage({
   return (
     <main className="mx-auto max-w-3xl p-6">
       <div className="mb-6">
-        <Link
-          href="/watchlist"
-          className="text-sm text-blue-600 underline"
-        >
+        <Link href="/watchlist" className="text-sm text-blue-600 underline">
           &larr; Watchlistに戻る
         </Link>
       </div>

@@ -41,11 +41,7 @@ function TagsDisplay({ tags }: { tags: string[] | null | undefined }) {
   );
 }
 
-export function WatchlistItemDetail({
-  item,
-}: {
-  item: DbWatchlistItem;
-}) {
+export function WatchlistItemDetail({ item }: { item: DbWatchlistItem }) {
   return (
     <section className="rounded-lg border p-6">
       <div className="mb-6">
@@ -66,17 +62,13 @@ export function WatchlistItemDetail({
         <DetailRow
           label="買付価格 下限"
           value={
-            item.target_price_min != null
-              ? `${item.target_price_min}`
-              : null
+            item.target_price_min != null ? `${item.target_price_min}` : null
           }
         />
         <DetailRow
           label="買付価格 上限"
           value={
-            item.target_price_max != null
-              ? `${item.target_price_max}`
-              : null
+            item.target_price_max != null ? `${item.target_price_max}` : null
           }
         />
         <DetailRow label="分割回数" value={item.planned_tranches} />
