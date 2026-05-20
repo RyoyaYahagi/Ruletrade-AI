@@ -17,6 +17,7 @@ export type AITaskType =
   | "safety_check"
   | "compliance_check"
   | "eval_judge"
+  | "document_rag_review"
   | "embedding";
 
 export type AIAgentName =
