@@ -1,27 +1,42 @@
 # Roadmap
 
-Ruletrade-AI is developed in milestones.
+Ruletrade-AI manages work through:
 
-## v0.1 Foundation
+- themes
+- initiatives
+- milestones
+- issues
+- release plans
 
-Auth, DB, RLS, basic API, local development.
+## Principles
 
-## v0.2 Rule Creation MVP
+- Roadmap is direction, not a promise.
+- Internal roadmap can include risks and blockers.
+- Public roadmap must not expose security or privacy-sensitive details.
+- Release phase determines what can ship.
 
-Rule sessions, questions, answers, rule completion.
+## Hierarchy
 
-## v0.3 AI Review / Safety MVP
+### Level 1: Theme
 
-AI provider gateway, mock AI, safety check, compliance gate, logs, cost limits.
+Large strategic directions (e.g., Rule Creation, AI Safety, RAG Memory, Document Intelligence, Privacy / Trust, Beta Launch, Monetization, Mobile / PWA, Operations).
 
-## v0.4 Memory / RAG MVP
+### Level 2: Initiative
 
-RAG over past rules and documents with user-scoped retrieval.
+Cross-issue groupings (e.g., Closed Beta Readiness, Privacy Delete Complete Flow, AI Review Safety Gate, Document RAG MVP, Admin Operations MVP, Public Marketing MVP).
 
-## v0.5 Product Expansion MVP
+### Level 3: Milestone
 
-Watchlist, portfolio, notifications, billing limits, analytics, accessibility.
+Shippable units (e.g., M0 Internal Alpha, M1 Private Beta, M2 Expanded Beta, M3 Release Candidate, M4 Public Landing, M5 Open Beta).
 
-## v1.0 Closed Beta
+### Level 4: Issue
 
-Production readiness, legal, privacy, security, testing, deployment.
+Implementation units tracked in GitHub Issues.
+
+## Public Roadmap
+
+Public roadmap items are stored in `product_roadmap_items` and exposed via `/api/roadmap`.
+
+Only items with `is_public = true` are visible to unauthenticated users.
+
+Internal status, risk level, and release blockers are never exposed publicly.

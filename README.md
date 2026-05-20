@@ -360,3 +360,21 @@ See:
 
 - `docs/closed-beta.md`
 - `docs/launch-readiness.md`
+
+## Roadmap / Release Management
+
+Ruletrade-AI includes a lightweight release management process:
+
+- GitHub Projects for planning
+- GitHub Milestones for beta phases
+- release plans
+- release checklists
+- changelog entries
+- release approvals
+- rollback strategies
+- public roadmap / changelog
+
+See:
+
+- `docs/roadmap.md`
+- `docs/release-management.md`
