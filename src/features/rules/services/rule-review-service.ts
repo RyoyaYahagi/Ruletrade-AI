@@ -8,6 +8,7 @@ import { buildRuleReviewSafetyText } from "@/lib/safety/safety-text";
 import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
 import { updateAiRunLog } from "@/lib/ai/logs/update-ai-run-log";
 import { logAiRunEvent } from "@/lib/ai/logs/log-ai-run-event";
+import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
 import {
   getConfiguredAIProvider,
   getOpenAIModel,
@@ -101,6 +102,28 @@ export async function runRuleReview(params: {
   const { RuleReviewSchema } =
     await import("@/schemas/rules/rule-review-schema");
 
+  const ragQueryText = JSON.stringify({
+    task: "rule_review",
+    ticker: session.ticker,
+    companyName: session.company_name,
+    rule: session.rule_json,
+  });
+
+  const ragContext = await retrieveRagContext({
+    userId: params.userId,
+    taskType: "rule_review",
+    queryText: ragQueryText,
+    sourceTypes: [
+      "investor_profile",
+      "rule_session",
+      "rule_review",
+      "watchlist_item",
+      "portfolio_position",
+    ],
+    matchThreshold: 0.72,
+    matchCount: 8,
+  });
+
   const aiResult = await withAiRunLogging({
     userId: params.userId,
     taskType: "rule_review",
@@ -114,6 +137,7 @@ export async function runRuleReview(params: {
       ticker: session.ticker,
       companyName: session.company_name,
       rule: session.rule_json,
+      ragContext: ragContext.contextText,
     },
     run: () =>
       ai.generateObject({
@@ -125,14 +149,17 @@ export async function runRuleReview(params: {
           {
             role: "system",
             content:
-              "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。",
+              "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
           },
           {
             role: "user",
             content: JSON.stringify({
-              ticker: session.ticker,
-              companyName: session.company_name,
-              rule: session.rule_json,
+              currentRuleSession: {
+                ticker: session.ticker,
+                companyName: session.company_name,
+                rule: session.rule_json,
+              },
+              ragContext: ragContext.contextText,
             }),
           },
         ],
