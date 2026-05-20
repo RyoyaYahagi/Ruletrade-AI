@@ -8,6 +8,24 @@ Ruletrade-AI does not provide investment advice.
 
 AI output is used to identify missing rule-design elements, clarify assumptions, and generate follow-up questions. It is checked before display. Outputs that look like buy/sell recommendations, price predictions, or profit guarantees are blocked.
 
+## Roadmap
+
+Ruletrade-AI is built in milestones:
+
+- v0.1 Foundation
+- v0.2 Rule Creation MVP
+- v0.3 AI Review / Safety MVP
+- v0.4 Memory / RAG MVP
+- v0.5 Product Expansion MVP
+- v1.0 Closed Beta
+
+See:
+
+- docs/roadmap.md
+- docs/release.md
+- CHANGELOG.md
+- LEARNING_LOG.md
+
 ## Development
 
 ### Requirements
