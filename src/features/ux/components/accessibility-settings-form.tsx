@@ -48,7 +48,7 @@ export function AccessibilitySettingsForm() {
           </span>
           <input
             type="checkbox"
-            checked={preferences.reduced_motion}
+            checked={Boolean(preferences.reduced_motion)}
             onChange={(event) =>
               void update({ reducedMotion: event.target.checked })
             }
@@ -63,7 +63,7 @@ export function AccessibilitySettingsForm() {
           </span>
           <input
             type="checkbox"
-            checked={preferences.high_contrast}
+            checked={Boolean(preferences.high_contrast)}
             onChange={(event) =>
               void update({ highContrast: event.target.checked })
             }
@@ -78,7 +78,7 @@ export function AccessibilitySettingsForm() {
           </span>
           <input
             type="checkbox"
-            checked={preferences.larger_text}
+            checked={Boolean(preferences.larger_text)}
             onChange={(event) =>
               void update({ largerText: event.target.checked })
             }
