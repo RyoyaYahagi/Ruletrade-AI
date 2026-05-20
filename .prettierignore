@@ -1,0 +1,8 @@
+# Supabase migrations
+supabase/migrations/
+
+# Auto-generated OpenAPI types
+src/generated/openapi-types.ts
+
+# Lock files
+package-lock.json
