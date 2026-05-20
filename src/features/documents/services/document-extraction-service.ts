@@ -1,7 +1,6 @@
 import "server-only";
 
 import { createHash } from "crypto";
-import pdf from "pdf-parse";
 import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 
@@ -129,6 +128,7 @@ async function extractTextByMimeType(params: {
   buffer: Buffer;
 }) {
   if (params.mimeType === "application/pdf") {
+    const { default: pdf } = await import("pdf-parse");
     const result = await pdf(params.buffer);
     return result.text as string;
   }

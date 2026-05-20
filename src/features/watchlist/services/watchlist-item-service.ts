@@ -160,23 +160,35 @@ export async function updateWatchlistItem(params: {
 
   const updateData: Record<string, unknown> = {};
   if (params.ticker !== undefined) updateData.ticker = params.ticker;
-  if (params.companyName !== undefined) updateData.company_name = params.companyName;
+  if (params.companyName !== undefined)
+    updateData.company_name = params.companyName;
   if (params.market !== undefined) updateData.market = params.market;
   if (params.currency !== undefined) updateData.currency = params.currency;
   if (params.status !== undefined) updateData.status = params.status;
   if (params.priority !== undefined) updateData.priority = params.priority;
-  if (params.interestReason !== undefined) updateData.interest_reason = params.interestReason;
-  if (params.targetPriceMin !== undefined) updateData.target_price_min = params.targetPriceMin;
-  if (params.targetPriceMax !== undefined) updateData.target_price_max = params.targetPriceMax;
-  if (params.plannedTranches !== undefined) updateData.planned_tranches = params.plannedTranches;
-  if (params.targetMultiple !== undefined) updateData.target_multiple = params.targetMultiple;
-  if (params.maxPositionPercent !== undefined) updateData.max_position_percent = params.maxPositionPercent;
-  if (params.stopLossNote !== undefined) updateData.stop_loss_note = params.stopLossNote;
-  if (params.takeProfitNote !== undefined) updateData.take_profit_note = params.takeProfitNote;
-  if (params.earningsNote !== undefined) updateData.earnings_note = params.earningsNote;
-  if (params.researchNotes !== undefined) updateData.research_notes = params.researchNotes;
+  if (params.interestReason !== undefined)
+    updateData.interest_reason = params.interestReason;
+  if (params.targetPriceMin !== undefined)
+    updateData.target_price_min = params.targetPriceMin;
+  if (params.targetPriceMax !== undefined)
+    updateData.target_price_max = params.targetPriceMax;
+  if (params.plannedTranches !== undefined)
+    updateData.planned_tranches = params.plannedTranches;
+  if (params.targetMultiple !== undefined)
+    updateData.target_multiple = params.targetMultiple;
+  if (params.maxPositionPercent !== undefined)
+    updateData.max_position_percent = params.maxPositionPercent;
+  if (params.stopLossNote !== undefined)
+    updateData.stop_loss_note = params.stopLossNote;
+  if (params.takeProfitNote !== undefined)
+    updateData.take_profit_note = params.takeProfitNote;
+  if (params.earningsNote !== undefined)
+    updateData.earnings_note = params.earningsNote;
+  if (params.researchNotes !== undefined)
+    updateData.research_notes = params.researchNotes;
   if (params.tags !== undefined) updateData.tags = params.tags;
-  if (params.ruleSessionId !== undefined) updateData.rule_session_id = params.ruleSessionId;
+  if (params.ruleSessionId !== undefined)
+    updateData.rule_session_id = params.ruleSessionId;
 
   const { data: updated, error: updateError } = await supabase
     .from("watchlist_items")

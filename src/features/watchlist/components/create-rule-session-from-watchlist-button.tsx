@@ -25,8 +25,7 @@ export function CreateRuleSessionFromWatchlistButton({
 
       if (!response.ok || !json.ok) {
         setErrorMessage(
-          json.error?.message ??
-            "Rule Sessionの作成に失敗しました。",
+          json.error?.message ?? "Rule Sessionの作成に失敗しました。",
         );
         return;
       }
