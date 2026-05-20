@@ -1,50 +1,108 @@
 # Security
 
-Ruletrade-AI stores investment profiles, rule drafts, answers, AI reviews, and
-quality checks as user-owned data. Authentication is not the only boundary:
-Supabase Row Level Security is enabled for user-owned rule creation tables.
+## 基本方針
 
-## Row Level Security
+- 認証は Supabase Auth に寄せる
+- DB アクセスは RLS でユーザーごとに分離する
+- Client から userId を信用しない
+- Server 側で requireUser() を必ず通す
+- AI Provider API Key を Client に出さない
+- AI 出力をそのまま信用しない
+- AI 出力は Zod Schema と Safety Check を通す
+- RAG 検索は必ず user_id で絞る
+- 投資助言・売買推奨は禁止する
+- 重要操作は Audit Log に残す
 
-The rule creation tables use policies scoped to the `authenticated` role:
+## Threat Model（簡易版）
 
-- `app_users`
-- `investor_profiles`
-- `rule_design_sessions`
-- `rule_versions`
-- `rule_questions`
-- `rule_answers`
-- `rule_reviews`
-- `rule_quality_checks`
+### Assets
 
-Users can only read and write rows they own. For `app_users`, ownership is
-`id = auth.uid()`. For the other rule creation tables, ownership is
-`user_id = auth.uid()`.
+- ユーザー認証情報
+- 投資ルール・保有銘柄・購入候補
+- アップロード資料
+- RAG embeddings
+- AI レビュー結果
+- AI 実行ログ
+- 環境変数・API Key
 
-Insert policies use `with check` so a user cannot create a row for another
-user. Update policies use both `using` and `with check` so a user cannot update
-another user's row or change an owned row to another owner.
+### Trust Boundaries
 
-Rule creation tables allow delete for development and MVP workflow cleanup,
-except `app_users` and `investor_profiles`. Account and profile deletion should
-go through an explicit account lifecycle flow.
+1. Browser ↔ Next.js Server（HTTPS）
+2. Next.js Server ↔ Supabase（Service Role / Anon Key）
+3. Next.js Server ↔ AI Provider（API Key）
+4. Supabase Auth ↔ DB（RLS）
+5. Supabase Storage（Bucket Policy）
 
-## API Ownership Checks
+### Top Threats
 
-RLS is the database-level backstop. API routes and server actions should still
-use `requireUser` and resource ownership checks for important operations so the
-app can return intentional errors, write audit logs, and avoid relying on RLS
-alone for user experience.
+| #   | Threat                    | Mitigation                            |
+| --- | ------------------------- | ------------------------------------- |
+| 1   | Broken Access Control     | RLS + requireUser() + owner check     |
+| 2   | Prompt Injection          | Safety Check + output validation      |
+| 3   | RAG Context Injection     | user_id filter + similarity threshold |
+| 4   | Sensitive Data Disclosure | no secrets in NEXT*PUBLIC*            |
+| 5   | Secret Leakage            | server-only + no client bundle        |
+| 6   | AI Output Over-reliance   | Safety Check + no buy/sell advice     |
+| 7   | Cost Abuse                | Rate Limit + Cost Limit               |
+| 8   | Improper Error Handling   | sanitized error responses             |
+| 9   | File Upload Abuse         | size limit + MIME check               |
+| 10  | IDOR                      | user_id check on every query          |
 
-Service-role access bypasses RLS. Modules that use service-role credentials must
-stay server-only, must not be imported from browser code, and should perform
-explicit authorization before touching user-owned resources.
+## Security Checklist
 
-## Manual Verification
+### Auth
 
-Use `tests/safety/rule_creation_rls_checks.sql` to inspect enabled RLS,
-policies, and policy indexes.
+- [ ] requireUser() on all private routes
+- [ ] No userId from client params without verification
+- [ ] Session expiration handled
 
-Behavioral RLS checks require two real authenticated users. Supabase SQL editor
-queries may run with elevated privileges, so confirm row isolation through the
-app or a Supabase client using anon/authenticated tokens.
+### DB
+
+- [ ] RLS enabled on all user tables
+- [ ] Policies restrict to own data only
+- [ ] Service Role Key only in server-only files
+
+### API
+
+- [ ] Input validated with Zod
+- [ ] Output sanitized
+- [ ] Error messages don't leak internals
+- [ ] Rate limit enabled
+
+### AI
+
+- [ ] Safety Check on all outputs
+- [ ] No system prompt leakage
+- [ ] Cost limit configured
+- [ ] Mock provider in preview
+
+### RAG
+
+- [ ] user_id filter on match_rag_chunks
+- [ ] similarity threshold enforced
+- [ ] Document hash verified
+
+### Storage
+
+- [ ] Bucket not public
+- [ ] Policies restrict to own prefix
+- [ ] File size limit enforced
+- [ ] MIME type validated
+
+### Secrets
+
+- [ ] No NEXT*PUBLIC* on secrets
+- [ ] .env.local not committed
+- [ ] CI uses dummy values
+
+## Production Security Checklist
+
+- [ ] All RLS policies reviewed
+- [ ] All API routes have auth
+- [ ] AI_PROVIDER is not mock
+- [ ] Rate limit enabled
+- [ ] Cost limit enabled
+- [ ] CRON_SECRET configured
+- [ ] No console.log with secrets
+- [ ] Error response sanitized
+- [ ] Build passes with no new warnings
