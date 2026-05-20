@@ -17,6 +17,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:rls": "psql -f supabase/migrations/20260524000000_security_review.sql",
     "test:eval": "tsx scripts/run-evals.ts",
     "db:types": "npx supabase gen types typescript --local --schema public > src/types/database.ts"
   },
