@@ -13,7 +13,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.read");
     const { searchParams } = new URL(request.url);
     const result = await listEngineeringExceptions({
       status: searchParams.get("status") ?? undefined,
@@ -21,26 +21,41 @@ export async function GET(request: Request) {
         ? Number(searchParams.get("limit"))
         : undefined,
     });
-    return apiSuccess(result);
+    return apiSuccess(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.update");
     const body = await validateJsonRequest(
       request,
-      CreateEngineeringExceptionRequestSchema,
+      CreateEngineeringExceptionRequestSchema
     );
-    const result = await createEngineeringException(body);
-    await logAdminAudit({
-      action: "engineering_exception_created",
-      details: { exceptionKey: body.exceptionKey, title: body.title },
+    const result = await createEngineeringException({
+      exception_key: body.exceptionKey,
+      title: body.title,
+      description: body.description,
+      exception_type: body.exceptionType,
+      risk_level: body.riskLevel,
+      requested_by: admin.user.id,
+      expires_at: body.expiresAt,
+      mitigation: body.mitigation,
+      follow_up_debt_key: body.followUpDebtKey,
+      related_issue_key: body.relatedIssueKey,
+      metadata: body.metadata,
     });
-    return apiCreated(result);
+    await logAdminAudit({
+      adminUserId: admin.user.id,
+      actionKey: "engineering_exception_created",
+      targetType: "engineering_exception",
+      targetId: result.data?.id,
+      metadata: { exceptionKey: body.exceptionKey, title: body.title },
+    });
+    return apiCreated(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }

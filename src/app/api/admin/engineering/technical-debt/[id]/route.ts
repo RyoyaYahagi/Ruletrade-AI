@@ -21,25 +21,29 @@ const UpdateTechnicalDebtStatusSchema = z.object({
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.update");
     const { id } = await params;
     const body = await validateJsonRequest(
       request,
-      UpdateTechnicalDebtStatusSchema,
+      UpdateTechnicalDebtStatusSchema
     );
     const result = await updateTechnicalDebtStatus({
       debtItemId: id,
       status: body.status,
+      actorUserId: admin.user.id,
     });
     await logAdminAudit({
-      action: "technical_debt_status_changed",
-      details: { debtItemId: id, status: body.status },
+      adminUserId: admin.user.id,
+      actionKey: "technical_debt_status_changed",
+      targetType: "technical_debt",
+      targetId: id,
+      metadata: { status: body.status },
     });
-    return apiSuccess(result);
+    return apiSuccess(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }

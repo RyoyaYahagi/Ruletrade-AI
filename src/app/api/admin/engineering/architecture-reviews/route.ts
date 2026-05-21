@@ -13,7 +13,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.read");
     const { searchParams } = new URL(request.url);
     const result = await listArchitectureReviewRequests({
       status: searchParams.get("status") ?? undefined,
@@ -22,26 +22,38 @@ export async function GET(request: Request) {
         ? Number(searchParams.get("limit"))
         : undefined,
     });
-    return apiSuccess(result);
+    return apiSuccess(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.update");
     const body = await validateJsonRequest(
       request,
-      CreateArchitectureReviewRequestSchema,
+      CreateArchitectureReviewRequestSchema
     );
-    const result = await createArchitectureReviewRequest(body);
-    await logAdminAudit({
-      action: "architecture_review_requested",
-      details: { requestKey: body.requestKey, title: body.title },
+    const result = await createArchitectureReviewRequest({
+      request_key: body.requestKey,
+      title: body.title,
+      description: body.description,
+      review_area: body.reviewArea,
+      risk_level: body.riskLevel,
+      requires_adr: body.requiresAdr,
+      requested_by: admin.user.id,
+      metadata: {},
     });
-    return apiCreated(result);
+    await logAdminAudit({
+      adminUserId: admin.user.id,
+      actionKey: "architecture_review_requested",
+      targetType: "architecture_review",
+      targetId: result.data?.id,
+      metadata: { requestKey: body.requestKey, title: body.title },
+    });
+    return apiCreated(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }

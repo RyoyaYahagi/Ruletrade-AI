@@ -13,7 +13,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.read");
     const { searchParams } = new URL(request.url);
     const result = await listDependencyReviewItems({
       reviewStatus: searchParams.get("reviewStatus") ?? undefined,
@@ -22,26 +22,44 @@ export async function GET(request: Request) {
         ? Number(searchParams.get("limit"))
         : undefined,
     });
-    return apiSuccess(result);
+    return apiSuccess(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    await requireAdminPermission(request);
+    const admin = await requireAdminPermission("admin.engineering.update");
     const body = await validateJsonRequest(
       request,
-      CreateDependencyReviewRequestSchema,
+      CreateDependencyReviewRequestSchema
     );
-    const result = await createDependencyReviewItem(body);
-    await logAdminAudit({
-      action: "dependency_review_created",
-      details: { dependencyName: body.dependencyName },
+    const result = await createDependencyReviewItem({
+      dependency_name: body.dependencyName,
+      package_manager: body.packageManager,
+      requested_version: body.requestedVersion ?? "",
+      resolved_version: body.resolvedVersion,
+      usage_reason: body.usageReason,
+      alternatives_considered: body.alternativesConsidered,
+      license_name: body.licenseName,
+      source_url: body.sourceUrl,
+      security_score: body.securityScore ? Number(body.securityScore) : null,
+      known_vulnerability_count: body.knownVulnerabilityCount,
+      is_runtime_dependency: body.isRuntimeDependency,
+      is_client_bundle_dependency: body.isClientBundleDependency,
+      requested_by: admin.user.id,
+      metadata: {},
     });
-    return apiCreated(result);
+    await logAdminAudit({
+      adminUserId: admin.user.id,
+      actionKey: "dependency_review_created",
+      targetType: "dependency_review",
+      targetId: result.data?.id,
+      metadata: { dependencyName: body.dependencyName },
+    });
+    return apiCreated(result.data);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { requestId: crypto.randomUUID() });
   }
 }
