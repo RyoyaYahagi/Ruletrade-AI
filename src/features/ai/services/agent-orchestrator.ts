@@ -175,7 +175,9 @@ export async function routeStepToAgent(params: {
     explanation_writer: "rule_explanation",
   };
 
-  const modelConfig = resolveAIModelConfig(taskTypeMap[params.agentRole]);
+  const modelConfig = resolveAIModelConfig(
+    taskTypeMap[params.agentRole] as import("@/features/ai/config/ai-task-types").AITaskType
+  );
 
   // In a real implementation, this would enqueue the task
   // For now, return the model config for the agent to use
