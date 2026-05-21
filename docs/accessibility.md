@@ -1,29 +1,38 @@
 # Accessibility
 
-## WCAG 2.2 AA 目標
+## Target
 
-Ruletrade-AI は WCAG 2.2 AA を意識して開発します。
+WCAG 2.2 Level AA
 
-## 基本方針
+## Keyboard Navigation
 
-- すべての主要操作はキーボードで可能
-- フォーカス表示は明示的に可視化
-- エラーは赤色だけでなくテキストでも伝える
-- 非同期ステート変更は aria-live で通知
-- ローディングはスピナーではなくアニメーション
-- ボタンは 44x44dp 以上
+- All interactive elements are focusable
+- Tab order follows visual order
+- Escape key closes modals and dialogs
+- Enter/Space activates buttons and links
 
-## コンポーネント
+## Focus Management
 
-- `LiveRegion` — aria-live 通知
-- `EmptyState` — 空表示
-- `LoadingState` — ローディング表示
-- `ErrorState` — エラー表示
+- Visible focus indicators on all elements
+- Focus trap in modals
+- Focus restored after modal close
+- Skip links for main content
 
-## チェックリスト
+## Screen Reader
 
-- [ ] Tab キーで全操作可能
-- [ ] フォーカスリングが見える
-- [ ] エラーメッセージが読み上がる
-- [ ] ローディング状況が通知される
-- [ ] ボタンサイズが適正
+- Semantic HTML elements
+- ARIA labels where visual text is insufficient
+- Descriptive alt text for images
+- Status announcements for dynamic content
+
+## Color Contrast
+
+- Minimum 4.5:1 for normal text
+- Minimum 3:1 for large text
+- Never rely on color alone for information
+
+## Reduced Motion
+
+- Respect `prefers-reduced-motion`
+- Disable animations when user prefers reduced motion
+- Keep functional transitions subtle
