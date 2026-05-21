@@ -1,39 +1,67 @@
-## 概要
+## Summary
 
-<!-- 何を変更したか -->
+What changed?
 
-## 関連Issue
+## Related Issue
 
 Closes #
 
-## 変更内容
+## Change Area
 
-- [ ] 実装
-- [ ] テスト
-- [ ] ドキュメント
-- [ ] migration
-- [ ] UI
+- [ ] UI only
+- [ ] API
+- [ ] DB migration
+- [ ] RLS
+- [ ] AI / Prompt / Safety
+- [ ] RAG / Documents
+- [ ] Privacy / Deletion
+- [ ] Security / Auth / Secrets
+- [ ] Billing / Stripe
+- [ ] Admin / Operations
+- [ ] Email / Support
+- [ ] Docs
 
-## 確認したこと
+## Risk
 
-- [ ] `npm run typecheck`
-- [ ] `npm run lint`
-- [ ] `npm run test`
-- [ ] 必要なら `npm run test:e2e`
-- [ ] 必要なら `supabase test db`
+- [ ] Low
+- [ ] Medium
+- [ ] High
+- [ ] Critical
 
-## Security / Privacy / Legal確認
+## ADR / Architecture
 
-- [ ] 他人のデータにアクセスできない
-- [ ] secretをClientに出していない
-- [ ] AI出力はSafety / Complianceを通る
-- [ ] Privacy削除に影響がない
-- [ ] 売買推奨表現を追加していない
+- [ ] ADR not needed
+- [ ] ADR added or updated
+- [ ] Architecture review requested
 
-## スクリーンショット
+ADR:
 
-<!-- UI変更がある場合 -->
+## Security / Privacy Checklist
 
-## メモ
+- [ ] No secrets in client bundle
+- [ ] No Service Role usage in client code
+- [ ] RLS impact reviewed
+- [ ] Private user content is not logged
+- [ ] AI prompt/output is not persisted unexpectedly
+- [ ] Email/support/analytics do not include private investment content
 
-<!-- レビューしてほしい点・不安な点 -->
+## Testing
+
+- [ ] Unit
+- [ ] API
+- [ ] DB / RLS
+- [ ] E2E
+- [ ] Manual QA
+
+Evidence:
+
+## Rollback
+
+Can this be rolled back safely?
+
+- [ ] Yes, app-only rollback is enough
+- [ ] Needs DB forward-fix
+- [ ] Needs feature flag rollback
+- [ ] Rollback is risky
+
+Notes:
