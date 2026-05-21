@@ -101,13 +101,21 @@ export function calculateProviderScores(
 
     const latency = getAverageLatency(health);
     const errorRate = getErrorRate(health);
+    const successRate = 1 - errorRate;
 
-    // Base weights by reliability; tune with latency penalty and error rate
-    const latencyPenalty = Math.min(latency / 5000, 1); // cap at 1
-    const errorPenalty = Math.min(errorRate * 2, 1); // errors weigh heavily
-    const score = Math.max(0.01, 1 - latencyPenalty - errorPenalty);
+    // Latency penalty: higher latency = lower score
+    const latencyPenalty = Math.min(latency / 5000, 0.8);
+    // Error penalty: weigh errors heavily
+    const errorPenalty = Math.min(errorRate * 3, 0.9);
+    // Base score from success rate
+    let score = Math.max(0.01, successRate - latencyPenalty - errorPenalty);
 
-    return { provider, score, isAvailable: true };
+    // Deprioritize mock provider unless it's the only option
+    if (provider === "mock" && candidates.length > 1) {
+      score *= 0.1;
+    }
+
+    return { provider, score: Math.max(0.01, score), isAvailable: true };
   });
 }
 
