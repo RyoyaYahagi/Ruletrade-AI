@@ -1,51 +1,50 @@
 # Launch Readiness
 
-Before each launch phase, complete the launch readiness checklist.
+## Exit Criteria
 
-## Go criteria
+### Closed Beta
 
-- RLS tests pass
-- Safety / Compliance tests pass
-- Privacy delete tests pass
-- Observability works
-- Admin Console works
-- Backup / rollback runbooks exist
-- Feedback flow works
-- Stop switches work
+- [ ] Core features functional (rules, AI review, RAG)
+- [ ] Auth and billing working
+- [ ] Admin console operational
+- [ ] No critical bugs
+- [ ] Monitoring in place
+- [ ] Support channel ready
 
-## No-Go criteria
+### Release Candidate
 
-- Cross-user data access risk
-- Service role key exposure risk
-- AI buy/sell recommendation displayed
-- Privacy delete failure
-- Billing / webhook instability
-- Admin access control failure
+- [ ] All closed beta feedback addressed
+- [ ] Performance targets met
+- [ ] Security audit passed
+- [ ] Legal documents reviewed
+- [ ] Data deletion tested
+- [ ] Rollback tested
 
-## Checklist categories
+### Public Launch
 
-- product
-- auth
-- db / rls
-- ai_safety
-- rag
-- privacy
-- security
-- legal
-- billing
-- observability
-- performance
-- backup
-- admin
-- docs
-- support
+- [ ] Release candidate stable for 1 week
+- [ ] Marketing ready
+- [ ] On-call rotation established
+- [ ] Incident response tested
+- [ ] Capacity plan validated
 
-## Reviews
+## Go / No-Go Decision
 
-Launch readiness reviews are recorded in `launch_readiness_reviews` with status:
+| Criteria | Status |
+|----------|--------|
+| No critical open issues | |
+| All P0 tech debt resolved | |
+| Monitoring dashboards live | |
+| On-call ready | |
+| Rollback tested | |
+| Legal sign-off | |
+| Marketing ready | |
 
-- draft
-- in_review
-- go
-- no_go
-- blocked
+## Known Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| AI output quality | High | Human review loop, safety checks |
+| Load spike | High | Rate limits, auto-scaling |
+| Data breach | Critical | RLS, encryption, audit logs |
+| Stripe issues | Medium | Sandbox testing, webhook resilience |
