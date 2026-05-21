@@ -67,7 +67,11 @@ export const CreateTradingRuleRequestSchema = z.object({
   assumptions: z.array(TradingRuleAssumptionSchema).default([]),
   evidence: z.array(TradingRuleEvidenceSchema).default([]),
   warnings: z.array(TradingRuleWarningSchema).default([]),
-  approvalRequirements: TradingRuleApprovalRequirementSchema.default({}),
+  approvalRequirements: TradingRuleApprovalRequirementSchema.default({
+    requiresHumanReview: false,
+    requiresComplianceCheck: false,
+    requiresRiskAssessment: false,
+  }),
   naturalLanguageSummary: z.string().max(5000).optional(),
 });
 
