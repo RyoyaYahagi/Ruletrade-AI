@@ -6,30 +6,34 @@ approval so investment rules remain inspectable before a user adopts them.
 
 ## Product Principles
 
-1. Split rule generation from rule review.
+1. **AI assists; users decide.**
+   - AI may draft, review, and flag, but users approve, reject, or revise every rule.
+   - No AI output is treated as a final recommendation or investment advice.
+
+2. Split rule generation from rule review.
    - A generator drafts the strategy.
    - A risk reviewer checks contradictions, missing exits, position sizing, and
      overfitting risk.
    - A backtest evaluator records measurable evidence before approval.
 
-2. Store rules as structured data.
+3. Store rules as structured data.
    - Keep entry, exit, risk limits, assumptions, evidence, warnings, and status
      as separate fields.
    - Natural-language explanations should be derived from the structured rule,
      not used as the source of truth.
 
-3. Make human approval explicit.
+4. Make human approval explicit.
    - AI may draft, review, and flag.
    - Users approve, reject, or request revision before a rule becomes active.
    - Product states should include draft, in review, blocked, approved, and
      rejected.
 
-4. Build shared memory for user investment philosophy.
+5. Build shared memory for user investment philosophy.
    - Store risk tolerance, preferred markets, time horizon, rejected patterns,
      and recurring constraints.
    - Feed that memory into future generation and review steps.
 
-5. Monitor quiet failures.
+6. Monitor quiet failures.
    - Check for internally inconsistent rules, future data leakage, missing stop
      conditions, short evaluation windows, and mismatches between explanation
      and executable logic.
