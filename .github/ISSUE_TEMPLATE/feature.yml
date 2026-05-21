@@ -1,77 +1,11 @@
-name: Feature Issue
-description: 新機能・改善Issue
-title: "[Area] "
-labels: ["type:feature"]
+name: Feature
+description: Propose a new feature
+title: "[Feature] "
+labels: [type:feature]
 body:
   - type: textarea
-    id: purpose
+    id: summary
     attributes:
-      label: 目的
-      description: このIssueで達成したいこと
-    validations:
-      required: true
-
-  - type: textarea
-    id: background
-    attributes:
-      label: 背景
-      description: なぜ必要か
-    validations:
-      required: true
-
-  - type: textarea
-    id: scope
-    attributes:
-      label: Scope
-      description: このIssueでやること
-      value: |
-        - [ ]
-        - [ ]
-        - [ ]
-    validations:
-      required: true
-
-  - type: textarea
-    id: non_scope
-    attributes:
-      label: Non-scope
-      description: このIssueではやらないこと
-      value: |
-        - [ ]
-        - [ ]
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      options:
-        - P0 - MVP Blocker
-        - P1 - Important
-        - P2 - Nice to have
-        - P3 - Later
-    validations:
-      required: true
-
-  - type: dropdown
-    id: risk
-    attributes:
-      label: Risk Level
-      options:
-        - low
-        - medium
-        - high
-        - critical
-    validations:
-      required: true
-
-  - type: textarea
-    id: done
-    attributes:
-      label: 完了条件
-      value: |
-        - [ ] 実装がある
-        - [ ] テストがある
-        - [ ] docsがある
-        - [ ] 手動確認済み
+      label: Summary
     validations:
       required: true
