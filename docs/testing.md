@@ -1,34 +1,50 @@
-# Testing
+# Testing & QA Guide
 
-## Test Structure
+## Test Strategy
 
-| Layer     | Tool             | Directory               |
-| --------- | ---------------- | ----------------------- |
-| Unit      | vitest           | `tests/`                |
-| E2E       | Playwright       | `tests/e2e/`            |
-| RLS       | SQL + Playwright | `tests/e2e/rls.spec.ts` |
-| AI Safety | vitest           | `tests/lib/safety/`     |
+| Level | Scope | When |
+|-------|-------|------|
+| Unit | Domain logic, validation, calculation | Every PR |
+| API | Route handlers, auth, error response | Every PR |
+| DB / RLS | Cross-user isolation, constraints | Every PR |
+| E2E | Critical user journeys | Release candidate |
+| Security / Privacy | Secret scan, RLS, data leak | Every PR + weekly |
 
-## Running Tests
+## Unit Test Rules
 
-```bash
-npm test              # Unit tests
-npm run test:e2e      # E2E tests
-npm run test:rls      # RLS review queries
-```
+- Domain logic must be pure and tested without UI/DB/API dependencies
+- Validation schemas must reject invalid inputs
+- Calculation (PnL, risk limits) must have boundary tests
+- AI provider gateway must be mockable
 
-## AI Safety Testing
+## API Test Rules
 
-Prohibited phrase detection is tested in `tests/lib/safety/prohibited-phrases.test.ts`.
+- Auth failure returns 401/403
+- Validation failure returns 400 with details
+- Server error returns 500 without leaking internals
+- Admin APIs require admin permission
 
-## RLS Testing
+## E2E Critical Paths
 
-Run Supabase review queries:
+1. Sign up → Log in → Dashboard
+2. Create trading rule → Run AI review → Save
+3. Upload document → RAG search → View result
+4. Create support ticket → Admin reply
+5. Billing upgrade → Stripe webhook → Entitlement check
 
-```bash
-psql -f supabase/migrations/20260524000000_security_review.sql
-```
+## Regression Checklist
 
-## CI
+Before release:
 
-GitHub Actions runs typecheck → lint → test → build.
+- [ ] All unit tests pass
+- [ ] All API tests pass
+- [ ] DB migrations run cleanly
+- [ ] RLS policies prevent cross-user access
+- [ ] AI safety checks pass
+- [ ] Build succeeds
+- [ ] No secrets in client bundle
+- [ ] No Service Role Key in client code
+
+## Bug Fix Rule
+
+Every bug fix must include a regression test.
