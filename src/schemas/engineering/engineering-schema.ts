@@ -129,15 +129,7 @@ export const CreateArchitectureReviewRequestSchema = z.object({
 
 export const CreateDependencyReviewRequestSchema = z.object({
   dependencyName: z.string().min(1).max(200),
-  packageManager: z.enum([
-    "npm",
-    "pnpm",
-    "bun",
-    "pip",
-    "cargo",
-    "go",
-    "other",
-  ]),
+  packageManager: z.enum(["npm", "pnpm", "bun", "pip", "cargo", "go", "other"]),
   requestedVersion: z.string().max(100).optional(),
   resolvedVersion: z.string().max(100).optional(),
   usageReason: z.string().min(1).max(5000),
