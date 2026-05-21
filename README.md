@@ -13,7 +13,6 @@ AI output is used to identify missing rule-design elements, clarify assumptions,
 ### Requirements
 
 - Node.js 20.9+
-- Docker
 - npm
 
 ### Setup
@@ -26,23 +25,30 @@ npm run dev
 
 Open `http://localhost:3000` and confirm that `Ruletrade-AI` is displayed.
 
+### SQLite MVP Database
+
+```bash
+npm run db:status
+npm run db:reset
+```
+
+The `mvp` branch defaults to SQLite and stores local data in
+`.data/ruletrade-mvp.sqlite`. The database file is created lazily on the first
+server-side database access, so Docker Desktop is not required for the MVP flow.
+
+Set `DB_PROVIDER=supabase` and `NEXT_PUBLIC_DB_PROVIDER=supabase` only when you
+intentionally want to use the Supabase-backed path.
+
 ### Supabase Local
+
+Supabase support remains available for later production-style work:
 
 ```bash
 npx supabase --help
-npm run db:start
-npm run db:status
-npm run db:stop
+npm run db:supabase:start
+npm run db:supabase:status
+npm run db:supabase:stop
 ```
-
-`npm run db:start` requires Docker Desktop to be running. The first Supabase CLI
-run may download the CLI through `npx` if it is not already available in your
-environment. If `npm run db:status` reports that the local Supabase container
-does not exist, start it with `npm run db:start`.
-
-Rule creation tables use Supabase Row Level Security to keep user-owned data
-isolated. See `docs/security.md` for the policy shape and
-`tests/safety/rule_creation_rls_checks.sql` for manual verification queries.
 
 ### Scripts
 
@@ -51,9 +57,8 @@ npm run dev
 npm run build
 npm run lint
 npm run typecheck
-npm run db:start
 npm run db:status
-npm run db:stop
+npm run db:reset
 ```
 
 ### First Run Check
@@ -95,7 +100,16 @@ Use Vercel Environment Variables, Supabase Edge Function Secrets, GitHub Actions
 
 ### Public Environment Variables
 
+The MVP branch defaults to SQLite:
+
+```env
+DB_PROVIDER=sqlite
+NEXT_PUBLIC_DB_PROVIDER=sqlite
+SQLITE_DATABASE_FILENAME=ruletrade-mvp.sqlite
+```
+
 Only values that may be exposed to the browser should use `NEXT_PUBLIC_`.
+Supabase values are required only when `DB_PROVIDER=supabase`.
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
@@ -130,7 +144,16 @@ Files that read secrets must stay server-only. Add `import "server-only";` to se
 
 ## Auth
 
-This project uses Supabase Auth with `@supabase/ssr`.
+The MVP branch uses a local SQLite-backed development user by default so the
+rule-creation flow can run without Supabase Auth or Docker.
+
+```env
+MOCK_AUTH_USER_ID=mvp-user-id
+MOCK_AUTH_EMAIL=mvp@example.local
+```
+
+When `DB_PROVIDER=supabase`, this project uses Supabase Auth with
+`@supabase/ssr`.
 
 Supabase clients are separated by runtime:
 
@@ -154,10 +177,8 @@ http://localhost:3000/auth/callback
 The initial protected route is `/dashboard`. The initial auth status API is
 `/api/me`.
 
-Local development also allows anonymous guest sign-in from `/login` so the MVP
-rule-creation flow can be tried without creating an email/password account.
-Guest users still go through Supabase Auth and the same user-owned data
-boundaries as regular users.
+Local SQLite mode treats login, signup, guest sign-in, and sign-out as
+development-only browser no-ops and relies on the server-side mock user above.
 
 ### AI Provider Configuration
 

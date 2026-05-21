@@ -5,6 +5,19 @@ import { AppError } from "@/lib/errors/app-error";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 import { createInitialQuestions } from "@/features/rules/services/rule-question-service";
 
+export type RuleSessionListItem = {
+  id: string;
+  ticker: string;
+  company_name: string | null;
+  status: string;
+  completion_score: number | null;
+  quality_gate_status: string | null;
+  question_count: number;
+  max_question_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function createRuleSession(params: {
   userId: string;
   ticker: string;
@@ -60,7 +73,7 @@ export async function listRuleSessions(params: { userId: string }) {
       error,
     );
   }
-  return { sessions: data ?? [] };
+  return { sessions: (data ?? []) as RuleSessionListItem[] };
 }
 
 export async function getRuleSessionDetail(params: {

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/db/supabase-admin";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function ensureAppUser(user: User) {
-  if (process.env.MOCK_AUTH === "true") {
+  if (process.env.MOCK_AUTH === "true" && process.env.DB_PROVIDER === "supabase") {
     return { id: user.id, email: user.email ?? null };
   }
 

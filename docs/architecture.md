@@ -194,13 +194,25 @@ Persist rules, evidence, warnings, approval events, and user investment memory
 as separate but linkable records. Avoid overwriting history that explains why a
 rule was approved, blocked, or rejected.
 
-When Supabase is introduced, keep service-role access on the server side only.
-Browser code may use public Supabase anon configuration, but must never access
-service-role credentials.
+The MVP branch uses SQLite by default through `src/lib/db/sqlite-client.ts`.
+SQLite is a local development persistence layer for the MVP flow; it must still
+preserve user ownership columns, rule versions, AI run logs, API error logs,
+rate-limit counters, cost counters, and quality checks. Because SQLite has no
+RLS backstop, server-side services must keep explicit `user_id` ownership
+filters on user-owned records.
+
+Supabase remains available behind `DB_PROVIDER=supabase`. When Supabase is
+used, keep service-role access on the server side only. Browser code may use
+public Supabase anon configuration, but must never access service-role
+credentials.
 
 ### Auth Layer
 
-Supabase clients are split by runtime:
+SQLite MVP mode uses a server-side development user from `MOCK_AUTH_USER_ID`
+and `MOCK_AUTH_EMAIL`. Browser login, signup, guest sign-in, and sign-out are
+development-only no-ops in that mode.
+
+When `DB_PROVIDER=supabase`, Supabase clients are split by runtime:
 
 - `src/lib/db/supabase-browser.ts` is for Client Components and uses only
   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.

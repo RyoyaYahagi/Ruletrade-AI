@@ -2,6 +2,17 @@ import "server-only";
 
 import { createClient } from "@/lib/db/supabase-server";
 
+type EvalRunResultRow = {
+  status: string;
+  true_positive?: number | null;
+  false_positive?: number | null;
+  false_negative?: number | null;
+  schema_valid?: boolean | null;
+  safety_passed?: boolean | null;
+  latency_ms?: number | null;
+  estimated_cost_usd?: number | null;
+};
+
 export async function createEvalRun(params: {
   runName?: string;
   taskType: string;
@@ -101,7 +112,7 @@ export async function completeEvalRun(params: { evalRunId: string }) {
     throw error;
   }
 
-  const rows = results ?? [];
+  const rows = (results ?? []) as EvalRunResultRow[];
 
   const totalCases = rows.length;
   const passedCases = rows.filter((row) => row.status === "passed").length;

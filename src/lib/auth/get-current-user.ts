@@ -6,6 +6,17 @@ const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
 const MOCK_AUTH_USER_ID = process.env.MOCK_AUTH_USER_ID ?? "mock-user-id";
 
 export async function getCurrentUser() {
+  if (process.env.DB_PROVIDER !== "supabase") {
+    return {
+      id: process.env.MOCK_AUTH_USER_ID ?? "mvp-user-id",
+      email: process.env.MOCK_AUTH_EMAIL ?? "mvp@example.local",
+      app_metadata: { role: "admin" },
+      user_metadata: {},
+      aud: "authenticated",
+      created_at: new Date().toISOString(),
+    } as unknown as import("@supabase/supabase-js").User;
+  }
+
   // Development mock: return mock user without hitting Supabase
   if (MOCK_AUTH_EMAIL) {
     return {

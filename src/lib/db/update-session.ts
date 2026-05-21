@@ -8,6 +8,10 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  if (process.env.DB_PROVIDER !== "supabase") {
+    return supabaseResponse;
+  }
+
   const env = getOptionalPublicSupabaseEnv();
 
   if (!env) {
