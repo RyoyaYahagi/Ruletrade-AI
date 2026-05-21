@@ -378,3 +378,22 @@ See:
 
 - `docs/roadmap.md`
 - `docs/release-management.md`
+
+## Engineering Governance
+
+Ruletrade-AI uses lightweight engineering governance:
+
+- Architecture Decision Records
+- Pull Request template
+- CODEOWNERS
+- Issue Forms
+- Technical Debt Register
+- Engineering Exception Register
+- Dependency Review
+- Release Gates
+
+See:
+
+- `docs/adr.md`
+- `docs/engineering-standards.md`
+- `docs/technical-debt.md`
