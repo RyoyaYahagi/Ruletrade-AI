@@ -1,6 +1,8 @@
 import { createServerClient } from "@/lib/db/supabase-server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminEventsPage() {
   await requireAdmin();
 

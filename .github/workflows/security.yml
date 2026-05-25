@@ -1,12 +1,29 @@
 name: Security
 
 on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "supabase/migrations/**"
+      - "src/**"
+      - "scripts/security-checks/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "supabase/migrations/**"
+      - "src/**"
+      - "scripts/security-checks/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
   schedule:
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
 jobs:
   audit:
+    name: Dependency & Secret Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +43,25 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --debug --only-verified
+
+  migration-lint:
+    name: Migration Security Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run migration security linter
+        run: node scripts/security-checks/migration-lint.js
+
+  pattern-check:
+    name: Security Pattern Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run security pattern checker
+        run: node scripts/security-checks/pattern-check.js
