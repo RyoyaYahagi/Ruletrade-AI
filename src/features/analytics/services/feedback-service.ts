@@ -34,12 +34,16 @@ export async function createFeedback(params: {
   return { feedback: data };
 }
 
-export async function listFeedback(params: { status?: string }) {
+export async function listFeedback(params: { 
+  userId: string;
+  status?: string 
+}) {
   const supabase = await createServerClient();
 
   let query = supabase
     .from("feedback_items")
-    .select("*, feedback_votes(vote_type)");
+    .select("*, feedback_votes(vote_type)")
+    .eq("user_id", params.userId);
 
   if (params.status) {
     query = query.eq("status", params.status);
