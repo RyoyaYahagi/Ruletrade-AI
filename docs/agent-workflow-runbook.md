@@ -15,6 +15,8 @@ Use this runbook when implementing Ruletrade-AI issues through Hermes with:
 - plan-first execution
 - Kanban as the durable task board
 - role-specific Hermes profiles
+- explicit delegate target profiles when a task should run on a model different
+  from the current session model
 - Discord reporting for progress and blockers
 - per-issue execution records in `docs/issues/`
 - Hermes home roles in `docs/hermes-home-roles.md`
@@ -38,10 +40,11 @@ These are recommended profile families, not product-facing agent roles.
 
 ### Core leaders
 
-- `rt-orchestrator-gpt54m`
+- `rt-orchestrator-kimi26`
   - purpose: intake, decomposition, routing, status tracking, and completion
     decisions before final review
-  - model intent: GPT-5.4 medium
+  - model intent: Kimi K2.6
+  - provider rule: OpenCode Go plan
   - primary tools: kanban, file, terminal, session_search, skills
 
 - `rt-planner-kimi26`
@@ -78,6 +81,12 @@ These are recommended profile families, not product-facing agent roles.
   - purpose: independent medium-weight implementation, review, or analysis
   - model intent: DeepSeek v4 Pro or equivalent
 
+- `rt-worker-opencode-deepseek-v4flash`
+  - purpose: low-cost straightforward code implementation, small refactors,
+    focused tests, and bounded fixups
+  - model intent: DeepSeek v4 Flash
+  - provider rule: OpenCode Go plan
+
 ## Provider routing rules
 
 These rules apply to the engineering workflow only.
@@ -85,14 +94,20 @@ These rules apply to the engineering workflow only.
 1. GPT-5.4 mini work must use GitHub Copilot provider.
 2. Kimi and similar China-model workloads should be routed through the
    OpenCode Go plan.
-3. Orchestrator should use GPT-5.5 low, and if it is constrained it may fall
-   back to Kimi K2.6.
+3. Orchestrator should use Kimi K2.6 through OpenCode Go. GPT-5.5 low remains
+   the escalation and final-review profile, not the default implementation
+   commander.
 4. If any non-orchestrator model hits a provider, quota, or capability limit,
    report the limitation on Discord rather than silently falling back.
 5. Final verification should not be performed by the same profile that led
    implementation.
 6. Product runtime provider calls remain governed by the server-side provider
    boundary in `docs/architecture.md`.
+7. `delegate_task` calls must be routed by explicit target profile whenever the
+   desired worker model differs from the current session model.
+8. Simple implementation slices from a Kimi K2.6 session should prefer
+   `rt-worker-opencode-deepseek-v4flash` when the acceptance criteria are clear
+   and the expected savings justify a lower-capability worker.
 
 ## Kanban board model
 
@@ -182,7 +197,7 @@ Example command shapes:
 
 ```bash
 hermes kanban init
-hermes kanban create --title "Issue #92 orchestration" --assignee rt-orchestrator-gpt54m
+hermes kanban create --title "Issue #92 orchestration" --assignee rt-orchestrator-kimi26
 hermes kanban create --title "Plan issue #92" --assignee rt-planner-kimi26
 hermes kanban create --title "Implement routing config" --assignee rt-implementer-kimi26
 hermes kanban create --title "Add targeted tests" --assignee rt-worker-copilot-gpt54mini
@@ -200,7 +215,13 @@ Assignment guidance:
 - central workflow or high-context implementation -> `rt-implementer-kimi26`
 - small bounded coding/test tasks -> `rt-worker-copilot-gpt54mini`
 - Kimi/OpenCode Go specific work -> `rt-worker-opencode-kimi26`
+- simple low-cost OpenCode Go implementation -> `rt-worker-opencode-deepseek-v4flash`
 - independent medium analysis/implementation -> `rt-worker-deepseek-v4pro`
+
+For short synchronous subtasks, use `delegate_task` only when the tool supports
+an explicit target profile or model override. A Kimi session delegating a simple
+implementation task should target `rt-worker-opencode-deepseek-v4flash`; it
+should not rely on the delegate inheriting the current Kimi model.
 
 ### 6. Handle blockers
 

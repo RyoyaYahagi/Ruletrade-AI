@@ -72,7 +72,7 @@ issue-level work.
 
 The workflow uses role-specific leader models.
 
-- Orchestrator: GPT-5.5 low
+- Orchestrator: Kimi K2.6 through OpenCode Go
 - Planning lead: Kimi K2.6
 - Implementation lead: Kimi K2.6
 - Final verification lead: GPT-5.5 low
@@ -85,6 +85,8 @@ Worker models are chosen by task complexity.
 
 - Lightweight coding or bounded review tasks may use GPT-5.4 mini.
 - When GPT-5.4 mini is used, the provider must be GitHub Copilot.
+- Simple low-cost implementation tasks may use DeepSeek v4 Flash through the
+  OpenCode Go plan when Kimi has already defined the task scope.
 - Medium-weight independent tasks may use DeepSeek v4 Pro or another suitable
   worker model.
 - Kimi and related China-model workloads are expected to run through the
@@ -100,6 +102,10 @@ For engineering workflow execution:
 - Hermes profiles should pin leader and worker providers/models.
 - Kimi and similar China-model tasks should be routed through an OpenCode-based
   worker path backed by the OpenCode Go plan.
+- `delegate_task` should accept an explicit target profile or model override
+  for short synchronous subtasks. When omitted, inheriting the current session
+  model is acceptable for compatibility, but cost-saving routes should pass the
+  intended worker profile explicitly.
 - GPT-5.4 mini worker tasks should use the GitHub Copilot provider.
 - Final review should remain isolated from implementation so that the reviewer
   can assess the issue outcome independently.
@@ -220,12 +226,13 @@ dependencies, blocker handling, and issue-level records.
 
 Recommended Hermes profile families:
 
-- `rt-orchestrator-gpt54m`
+- `rt-orchestrator-kimi26`
 - `rt-planner-kimi26`
 - `rt-implementer-kimi26`
 - `rt-finalcheck-gpt55low`
 - `rt-worker-copilot-gpt54mini`
 - `rt-worker-opencode-kimi26`
+- `rt-worker-opencode-deepseek-v4flash`
 - `rt-worker-deepseek-v4pro`
 
 Recommended next implementation steps:

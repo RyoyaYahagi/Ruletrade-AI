@@ -44,12 +44,13 @@ exist.
 
 Expected families:
 
-- `rt-orchestrator-gpt54m`
+- `rt-orchestrator-kimi26`
 - `rt-planner-kimi26`
 - `rt-implementer-kimi26`
 - `rt-finalcheck-gpt55low`
 - `rt-worker-copilot-gpt54mini`
 - `rt-worker-opencode-kimi26`
+- `rt-worker-opencode-deepseek-v4flash`
 - `rt-worker-deepseek-v4pro`
 
 If a profile does not exist, create or rename it before assigning work.
@@ -78,7 +79,7 @@ Suggested title pattern:
 
 Assignee:
 
-- `rt-orchestrator-gpt54m`
+- `rt-orchestrator-kimi26`
 
 Purpose:
 
@@ -119,6 +120,7 @@ Assignment guidance:
 - core implementation: `rt-implementer-kimi26`
 - small bounded edits/tests: `rt-worker-copilot-gpt54mini`
 - Kimi/OpenCode-specific work: `rt-worker-opencode-kimi26`
+- simple low-cost OpenCode implementation: `rt-worker-opencode-deepseek-v4flash`
 - independent analysis: `rt-worker-deepseek-v4pro`
 
 Only make tasks parallel when they do not overlap materially.
