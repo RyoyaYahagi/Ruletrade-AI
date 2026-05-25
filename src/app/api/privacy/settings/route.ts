@@ -26,7 +26,8 @@ export async function PATCH(request: Request) {
   try {
     const user = await requireUser();
     const body = await request.json();
-    const result = await updatePrivacySettings({ userId: user.id, ...body });
+    const { userId: _bodyUserId, ...safeBody } = body;
+    const result = await updatePrivacySettings({ userId: user.id, ...safeBody });
     return apiSuccess(result);
   } catch (error) {
     return toErrorResponse(error, {

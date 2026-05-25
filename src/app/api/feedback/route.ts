@@ -10,8 +10,8 @@ import {
 export async function GET() {
   const requestId = crypto.randomUUID();
   try {
-    await requireUser();
-    const result = await listFeedback({});
+    const user = await requireUser();
+    const result = await listFeedback({ userId: user.id });
     return apiSuccess(result);
   } catch (error) {
     return toErrorResponse(error, {
