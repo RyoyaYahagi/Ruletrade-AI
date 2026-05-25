@@ -38,10 +38,11 @@ export async function PATCH(request: Request) {
     userId = user.id;
 
     const body = await request.json();
+    const { userId: _bodyUserId, ...safeBody } = body;
 
     const result = await updateNotificationPreferences({
       userId: user.id,
-      ...body,
+      ...safeBody,
     });
 
     return apiSuccess(result);
