@@ -10,10 +10,10 @@ export function PortfolioPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
+    <main className="mx-auto max-w-6xl p-6" data-testid="portfolio-page">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Portfolio</h1>
+          <h1 className="text-2xl font-bold" data-testid="portfolio-title">Portfolio</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             保有銘柄の偏り、集中リスク、未設定ルールを確認します。
           </p>
@@ -22,12 +22,13 @@ export function PortfolioPage() {
         <a
           href="/portfolio/positions/new"
           className="rounded-md bg-black px-4 py-2 text-sm text-white"
+          data-testid="portfolio-add-position-link"
         >
           保有銘柄を追加
         </a>
       </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-6" data-testid="portfolio-content">
         <PortfolioSummaryCard key={`summary-${refreshKey}`} />
         <PortfolioAllocationCharts key={`charts-${refreshKey}`} />
         <PortfolioPositionTable key={`positions-${refreshKey}`} />

@@ -34,7 +34,7 @@ export function SupportForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" data-testid="support-form">
       <div>
         <label className="text-sm font-medium">メールアドレス</label>
         <input
@@ -43,6 +43,7 @@ export function SupportForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 block w-full rounded-md border px-3 py-2"
+          data-testid="support-email-input"
         />
       </div>
       <div>
@@ -51,6 +52,7 @@ export function SupportForm() {
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="mt-1 block w-full rounded-md border px-3 py-2"
+          data-testid="support-category-select"
         >
           <option value="general">一般</option>
           <option value="auth">認証</option>
@@ -68,6 +70,7 @@ export function SupportForm() {
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           className="mt-1 block w-full rounded-md border px-3 py-2"
+          data-testid="support-subject-input"
         />
       </div>
       <div>
@@ -78,17 +81,19 @@ export function SupportForm() {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           className="mt-1 block w-full rounded-md border px-3 py-2"
+          data-testid="support-body-textarea"
         />
       </div>
       <button
         type="submit"
         disabled={isSubmitting}
         className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+        data-testid="support-submit-button"
       >
         {isSubmitting ? "送信中..." : "送信"}
       </button>
       {message ? (
-        <p role="status" className="text-sm text-green-700">
+        <p role="status" className="text-sm text-green-700" data-testid="support-message">
           {message}
         </p>
       ) : null}
