@@ -18,6 +18,7 @@ import {
   pickBestProvider,
   type HealthAiProvider,
 } from "@/lib/ai/provider-health";
+import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 
 export type TaskWeight = "light" | "standard" | "heavy";
 
@@ -80,11 +81,23 @@ export async function callAi<TOutput>(
 ): Promise<AiCallResult<TOutput>> {
   const shouldLog = !!options.userId;
 
-  if (shouldLog) {
-    return callAiWithLogging(options);
+  const result = shouldLog
+    ? await callAiWithLogging(options)
+    : await callAiWithoutLogging(options);
+
+  if (result.ok) {
+    const safety = runSafetyCheck({ text: JSON.stringify(result.data) });
+    if (!safety.passed) {
+      return {
+        ok: false,
+        error: `AI output blocked by safety check: ${safety.violations.map((v) => v.phrase).join(", ")}`,
+        model: result.model,
+        aiRunLogId: result.aiRunLogId,
+      };
+    }
   }
 
-  return callAiWithoutLogging(options);
+  return result;
 }
 
 async function callAiWithLogging<TOutput>(

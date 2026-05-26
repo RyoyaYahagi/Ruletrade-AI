@@ -1,6 +1,8 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
+import { validateJsonRequest } from "@/lib/api/validate-request";
+import { PrivacySettingsSchema } from "@/schemas/privacy/privacy-settings-schema";
 import {
   getOrCreatePrivacySettings,
   updatePrivacySettings,
@@ -25,9 +27,8 @@ export async function PATCH(request: Request) {
   const requestId = crypto.randomUUID();
   try {
     const user = await requireUser();
-    const body = await request.json();
-    const { userId: _bodyUserId, ...safeBody } = body;
-    const result = await updatePrivacySettings({ userId: user.id, ...safeBody });
+    const input = await validateJsonRequest(request, PrivacySettingsSchema);
+    const result = await updatePrivacySettings({ userId: user.id, ...input });
     return apiSuccess(result);
   } catch (error) {
     return toErrorResponse(error, {
