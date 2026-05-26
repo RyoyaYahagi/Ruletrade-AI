@@ -2,6 +2,10 @@
 
 The database is organized around user-owned resources.
 
+The default local provider is SQLite (`DB_PROVIDER=sqlite`). Supabase remains
+available behind `DB_PROVIDER=supabase` and the Supabase-backed state is
+preserved in `backup/develop-supabase-20260523`.
+
 ## Core user tables
 
 - app_users

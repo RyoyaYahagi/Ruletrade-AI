@@ -11,7 +11,7 @@ export async function getOrCreateUiPreferences(params: { userId: string }) {
     .eq("user_id", params.userId)
     .single();
 
-  if (existingError && existingError.code !== "PGRST116") {
+  if (existingError && !["PGRST116", "SQLITE_NO_ROWS"].includes(existingError.code)) {
     throw existingError;
   }
 

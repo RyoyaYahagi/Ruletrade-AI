@@ -9,4 +9,5 @@
 - [0004-keep-ai-provider-server-side.md](./0004-keep-ai-provider-server-side.md)
 - [0005-do-not-store-raw-ai-prompt-output-in-logs.md](./0005-do-not-store-raw-ai-prompt-output-in-logs.md)
 - [0006-use-stop-switches-for-dangerous-beta-features.md](./0006-use-stop-switches-for-dangerous-beta-features.md)
+- [0007-sqlite-local-first-with-supabase-backup.md](./0007-sqlite-local-first-with-supabase-backup.md)
 - [index.md](./index.md)

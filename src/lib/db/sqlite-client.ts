@@ -285,7 +285,18 @@ class SqliteQueryBuilder {
   }
 
   private executeSelect() {
-    ensureTable(this.table);
+    const requiredColumns = [
+      ...this.filters.map((f) => f.column),
+      ...this.negativeFilters.map((f) => f.column),
+      ...this.rangeFilters.map((f) => f.column),
+      ...this.inFilters.map((f) => f.column),
+      ...this.nullFilters.map((f) => f.column),
+      ...this.orders.map((o) => o.column),
+      ...(this.selectedColumns.trim() === "*"
+        ? []
+        : this.selectedColumns.split(",").map((c) => c.trim())),
+    ];
+    ensureTableForColumns(this.table, requiredColumns);
     const sql = [
       `select ${selectSql(this.selectedColumns)} from ${quoteIdent(this.table)}`,
       this.whereSql(),
@@ -445,6 +456,24 @@ function ensureTable(table: string) {
       )`,
     )
     .run();
+}
+
+function ensureTableForColumns(table: string, columns: string[]) {
+  ensureTable(table);
+  const existingColumns = new Set(
+    getSqliteDatabase()
+      .prepare(`pragma table_info(${quoteIdent(table)})`)
+      .all()
+      .map((column) => (column as { name: string }).name),
+  );
+  for (const column of columns) {
+    if (existingColumns.has(column)) continue;
+    getSqliteDatabase()
+      .prepare(
+        `alter table ${quoteIdent(table)} add column ${quoteIdent(column)} text`,
+      )
+      .run();
+  }
 }
 
 function sqliteType(value: unknown) {
