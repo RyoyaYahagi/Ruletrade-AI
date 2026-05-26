@@ -18,6 +18,7 @@ export async function GET() {
     const result = await getOrCreateUiPreferences({ userId: user.id });
     return apiSuccess(result);
   } catch (error) {
+    console.error("[GET /api/ui/preferences] error:", error);
     return toErrorResponse(error, {
       requestId,
       userId,

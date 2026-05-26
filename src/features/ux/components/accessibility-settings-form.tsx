@@ -36,7 +36,7 @@ export function AccessibilitySettingsForm() {
   }
 
   return (
-    <section className="rounded-lg border p-6">
+    <section className="rounded-lg border p-6" data-testid="accessibility-settings-form">
       <h2 className="text-lg font-semibold">Accessibility</h2>
       <div className="mt-4 space-y-4">
         <label className="flex items-center justify-between gap-4">
@@ -48,6 +48,7 @@ export function AccessibilitySettingsForm() {
           </span>
           <input
             type="checkbox"
+            data-testid="accessibility-checkbox-reduced-motion"
             checked={Boolean(preferences.reduced_motion)}
             onChange={(event) =>
               void update({ reducedMotion: event.target.checked })
@@ -63,6 +64,7 @@ export function AccessibilitySettingsForm() {
           </span>
           <input
             type="checkbox"
+            data-testid="accessibility-checkbox-high-contrast"
             checked={Boolean(preferences.high_contrast)}
             onChange={(event) =>
               void update({ highContrast: event.target.checked })
@@ -78,6 +80,7 @@ export function AccessibilitySettingsForm() {
           </span>
           <input
             type="checkbox"
+            data-testid="accessibility-checkbox-larger-text"
             checked={Boolean(preferences.larger_text)}
             onChange={(event) =>
               void update({ largerText: event.target.checked })
@@ -86,7 +89,7 @@ export function AccessibilitySettingsForm() {
         </label>
       </div>
       {message ? (
-        <p role="status" className="mt-4 text-sm text-green-700">
+        <p role="status" className="mt-4 text-sm text-green-700" data-testid="accessibility-message">
           {message}
         </p>
       ) : null}

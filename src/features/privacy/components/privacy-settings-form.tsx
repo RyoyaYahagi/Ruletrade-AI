@@ -78,10 +78,10 @@ export function PrivacySettingsForm() {
   ];
 
   return (
-    <section className="rounded-lg border p-6">
+    <section className="rounded-lg border p-6" data-testid="privacy-settings-form">
       <h2 className="text-lg font-semibold">Privacy 設定</h2>
       {message ? (
-        <p className="mt-2 text-sm text-green-700">{message}</p>
+        <p className="mt-2 text-sm text-green-700" data-testid="privacy-message">{message}</p>
       ) : null}
       <div className="mt-4 space-y-4">
         {items.map((item) => (
@@ -94,6 +94,8 @@ export function PrivacySettingsForm() {
               type="button"
               onClick={() => void toggle(item.key)}
               disabled={saving}
+              data-testid={`privacy-toggle-${item.key}`}
+              aria-pressed={settings[item.key]}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings[item.key] ? "bg-black" : "bg-gray-200"}`}
             >
               <span

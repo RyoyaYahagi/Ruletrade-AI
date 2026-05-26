@@ -34,7 +34,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
       <label className="block text-sm font-medium">
         メールアドレス
         <Input
@@ -44,6 +44,7 @@ export function LoginForm() {
           autoComplete="email"
           onChange={(event) => setEmail(event.target.value)}
           required
+          data-testid="login-email-input"
         />
       </label>
 
@@ -56,16 +57,17 @@ export function LoginForm() {
           autoComplete="current-password"
           onChange={(event) => setPassword(event.target.value)}
           required
+          data-testid="login-password-input"
         />
       </label>
 
       {errorMessage ? (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p data-testid="login-error-message" className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errorMessage}
         </p>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full" disabled={isLoading} data-testid="login-submit-button">
         {isLoading ? "ログイン中..." : "ログイン"}
       </Button>
 

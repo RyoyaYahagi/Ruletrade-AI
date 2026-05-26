@@ -1,11 +1,20 @@
 import "server-only";
 
 import { createServerClient as _createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import { getPublicSupabaseEnv } from "@/lib/db/env";
+import { getDatabaseProvider } from "@/lib/db/provider";
+import { createSqliteClient } from "@/lib/db/sqlite-client";
 
-export async function createServerClient() {
+type AppSupabaseClient = SupabaseClient;
+
+export async function createServerClient(): Promise<AppSupabaseClient> {
+  if (getDatabaseProvider() === "sqlite") {
+    return createSqliteClient() as unknown as AppSupabaseClient;
+  }
+
   const cookieStore = await cookies();
   const { supabaseUrl, supabaseAnonKey } = getPublicSupabaseEnv();
 
