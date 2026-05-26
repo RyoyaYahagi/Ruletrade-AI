@@ -32,9 +32,11 @@ export async function GET() {
 
     return NextResponse.json({ data });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to fetch investment memory";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("GET /api/investment-memory failed:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch investment memory" },
+      { status: 500 },
+    );
   }
 }
 
@@ -79,9 +81,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to upsert investment memory";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("POST /api/investment-memory failed:", err);
+    return NextResponse.json(
+      { error: "Failed to upsert investment memory" },
+      { status: 500 },
+    );
   }
 }
 
@@ -101,8 +105,10 @@ export async function DELETE() {
     await deleteInvestmentMemory(user.id);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to delete investment memory";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("DELETE /api/investment-memory failed:", err);
+    return NextResponse.json(
+      { error: "Failed to delete investment memory" },
+      { status: 500 },
+    );
   }
 }

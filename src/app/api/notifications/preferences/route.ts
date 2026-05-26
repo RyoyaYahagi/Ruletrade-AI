@@ -1,6 +1,8 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
+import { validateJsonRequest } from "@/lib/api/validate-request";
+import { NotificationPreferencesSchema } from "@/schemas/notifications/notification-preferences-schema";
 import {
   getOrCreateNotificationPreferences,
   updateNotificationPreferences,
@@ -37,12 +39,10 @@ export async function PATCH(request: Request) {
     const user = await requireUser();
     userId = user.id;
 
-    const body = await request.json();
-    const { userId: _bodyUserId, ...safeBody } = body;
-
+    const input = await validateJsonRequest(request, NotificationPreferencesSchema);
     const result = await updateNotificationPreferences({
       userId: user.id,
-      ...safeBody,
+      ...input,
     });
 
     return apiSuccess(result);
