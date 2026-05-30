@@ -1,0 +1,62 @@
+import { describe, expect, it } from "vitest";
+import {
+  UserDocumentSchema,
+  DocumentTypeSchema,
+} from "@/schemas/documents/document-schema";
+
+describe("DocumentTypeSchema", () => {
+  it("有効な種別をパースできる", () => {
+    expect(DocumentTypeSchema.parse("research_note")).toBe("research_note");
+  });
+
+  it("無効な種別を拒否する", () => {
+    expect(() => DocumentTypeSchema.parse("invalid")).toThrow();
+  });
+});
+
+describe("UserDocumentSchema", () => {
+  it("有効な資料をパースできる", () => {
+    const result = UserDocumentSchema.parse({
+      title: "Test Document",
+      originalFilename: "test.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: 1024,
+      documentType: "earnings_material",
+    });
+    expect(result.title).toBe("Test Document");
+    expect(result.fileSizeBytes).toBe(1024);
+  });
+
+  it("空タイトルを拒否する", () => {
+    expect(() =>
+      UserDocumentSchema.parse({
+        title: "",
+        originalFilename: "test.pdf",
+        mimeType: "application/pdf",
+        fileSizeBytes: 1024,
+      }),
+    ).toThrow();
+  });
+
+  it("10MB超を拒否する", () => {
+    expect(() =>
+      UserDocumentSchema.parse({
+        title: "Test",
+        originalFilename: "test.pdf",
+        mimeType: "application/pdf",
+        fileSizeBytes: 10 * 1024 * 1024 + 1,
+      }),
+    ).toThrow();
+  });
+
+  it("不正なMIMEを拒否する", () => {
+    expect(() =>
+      UserDocumentSchema.parse({
+        title: "Test",
+        originalFilename: "test.exe",
+        mimeType: "application/octet-stream",
+        fileSizeBytes: 1024,
+      }),
+    ).toThrow();
+  });
+});

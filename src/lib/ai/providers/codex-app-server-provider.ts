@@ -331,6 +331,7 @@ export class CodexAppServerProvider implements AIProvider {
           model: this.model,
           taskType: params.taskType,
           promptVersion: params.promptVersion,
+          fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };
@@ -372,6 +373,7 @@ export class CodexAppServerProvider implements AIProvider {
           model: this.model,
           taskType: params.taskType,
           promptVersion: params.promptVersion,
+          fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };

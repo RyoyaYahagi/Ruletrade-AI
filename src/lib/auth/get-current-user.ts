@@ -1,17 +1,18 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
 const MOCK_AUTH_USER_ID = process.env.MOCK_AUTH_USER_ID ?? "mock-user-id";
 
 export async function getCurrentUser() {
   // Development mock: return mock user without hitting Supabase
-  if (MOCK_AUTH_EMAIL) {
+  // NEVER use in production — guard ensures this is safe
+  if (MOCK_AUTH_EMAIL && process.env.NODE_ENV !== "production") {
     return {
       id: MOCK_AUTH_USER_ID,
       email: MOCK_AUTH_EMAIL,
-      app_metadata: { role: "admin" },
+      app_metadata: { role: process.env.MOCK_AUTH_ROLE ?? "user" },
       user_metadata: {},
       aud: "authenticated",
       created_at: new Date().toISOString(),
@@ -21,7 +22,7 @@ export async function getCurrentUser() {
   let supabase;
 
   try {
-    supabase = await createClient();
+    supabase = await createServerClient();
   } catch (err) {
     console.error("Failed to create supabase client:", err);
     return null;

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { AppError } from "@/lib/errors/app-error";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
@@ -8,13 +8,12 @@ import { buildRuleReviewSafetyText } from "@/lib/safety/safety-text";
 import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
 import { updateAiRunLog } from "@/lib/ai/logs/update-ai-run-log";
 import { logAiRunEvent } from "@/lib/ai/logs/log-ai-run-event";
+import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
 import {
   getConfiguredAIProvider,
   getOpenAIModel,
   getGeminiModel,
 } from "@/lib/ai/model-config";
-import { getCodexModel } from "@/lib/ai/providers/codex-provider";
-import { getCodexAppServerModel } from "@/lib/ai/providers/codex-app-server-provider";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
@@ -25,8 +24,6 @@ function getConfiguredModelForLog(): string {
   const provider = getConfiguredAIProvider();
   if (provider === "openai") return getOpenAIModel();
   if (provider === "gemini") return getGeminiModel();
-  if (provider === "codex") return getCodexModel();
-  if (provider === "codex-app-server") return getCodexAppServerModel();
   return "mock-model";
 }
 
@@ -50,7 +47,7 @@ async function saveUnsafeRuleReview(params: {
   review: unknown;
   safety: unknown;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { error } = await supabase.from("rule_reviews").insert({
     user_id: params.userId,
@@ -86,7 +83,7 @@ export async function runRuleReview(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
     .select("*")
@@ -102,8 +99,30 @@ export async function runRuleReview(params: {
   }
 
   const ai = getAIProvider();
-  const { RuleReviewAIOutputSchema } =
+  const { RuleReviewSchema } =
     await import("@/schemas/rules/rule-review-schema");
+
+  const ragQueryText = JSON.stringify({
+    task: "rule_review",
+    ticker: session.ticker,
+    companyName: session.company_name,
+    rule: session.rule_json,
+  });
+
+  const ragContext = await retrieveRagContext({
+    userId: params.userId,
+    taskType: "rule_review",
+    queryText: ragQueryText,
+    sourceTypes: [
+      "investor_profile",
+      "rule_session",
+      "rule_review",
+      "watchlist_item",
+      "portfolio_position",
+    ],
+    matchThreshold: 0.72,
+    matchCount: 8,
+  });
 
   const aiResult = await withAiRunLogging({
     userId: params.userId,
@@ -118,25 +137,29 @@ export async function runRuleReview(params: {
       ticker: session.ticker,
       companyName: session.company_name,
       rule: session.rule_json,
+      ragContext: ragContext.contextText,
     },
     run: () =>
       ai.generateObject({
         taskType: "rule_review",
-        schema: RuleReviewAIOutputSchema,
+        schema: RuleReviewSchema,
         schemaName: "RuleReview",
         promptVersion: "rule-reviewer-v1",
         messages: [
           {
             role: "system",
             content:
-              "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。",
+              "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
           },
           {
             role: "user",
             content: JSON.stringify({
-              ticker: session.ticker,
-              companyName: session.company_name,
-              rule: session.rule_json,
+              currentRuleSession: {
+                ticker: session.ticker,
+                companyName: session.company_name,
+                rule: session.rule_json,
+              },
+              ragContext: ragContext.contextText,
             }),
           },
         ],

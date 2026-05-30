@@ -1,0 +1,43 @@
+name: OpenAPI
+
+on:
+  pull_request:
+    paths:
+      - "openapi/**"
+      - "src/app/api/**"
+      - "src/schemas/**"
+      - "src/lib/api/**"
+      - ".github/workflows/openapi.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  openapi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint OpenAPI
+        run: npm run openapi:lint
+
+      - name: Generate OpenAPI types
+        run: npm run openapi:types
+
+      - name: Check generated types are committed
+        run: |
+          if ! git diff --exit-code src/generated/openapi-types.ts; then
+            echo "Generated OpenAPI types are out of date."
+            exit 1
+          fi

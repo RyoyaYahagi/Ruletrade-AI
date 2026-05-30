@@ -1,0 +1,37 @@
+{
+  "common": {
+    "appName": "Ruletrade-AI",
+    "loading": "読み込み中...",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "open": "開く",
+    "retry": "再試行",
+    "required": "必須",
+    "error": "エラー",
+    "success": "成功"
+  },
+  "legal": {
+    "notInvestmentAdvice": "投資助言ではありません",
+    "finalDecision": "最終的な投資判断はユーザー自身で行ってください。",
+    "aiDisclaimer": "AI出力は投資ルールを整理するための補助情報です。"
+  },
+  "rules": {
+    "newRule": "新しいルールを作成",
+    "aiReview": "AIレビュー",
+    "answerSaved": "回答を保存しました。",
+    "reviewStarted": "AIレビューを開始しました。",
+    "reviewCompleted": "AIレビューが完了しました。",
+    "reviewFailed": "AIレビューに失敗しました。"
+  },
+  "documents": {
+    "upload": "資料をアップロード",
+    "extract": "本文抽出",
+    "index": "RAG index",
+    "summarize": "AI要約",
+    "uploadCompleted": "資料のアップロードが完了しました。",
+    "extractCompleted": "本文抽出が完了しました。"
+  }
+}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 export async function createEvalRun(params: {
   runName?: string;
@@ -10,7 +10,7 @@ export async function createEvalRun(params: {
   promptVersion: string;
   totalCases: number;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from("eval_runs")
@@ -58,7 +58,7 @@ export async function saveEvalRunResult(params: {
   errorCode?: string;
   errorMessage?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { error } = await supabase.from("eval_run_results").insert({
     eval_run_id: params.evalRunId,
@@ -90,7 +90,7 @@ export async function saveEvalRunResult(params: {
 }
 
 export async function completeEvalRun(params: { evalRunId: string }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data: results, error } = await supabase
     .from("eval_run_results")

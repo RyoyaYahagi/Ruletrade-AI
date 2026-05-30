@@ -1,0 +1,59 @@
+paths:
+  /api/privacy/settings:
+    get:
+      tags:
+        - Privacy
+      summary: Get privacy settings
+      operationId: getPrivacySettings
+      responses:
+        "200":
+          description: Privacy settings.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - settings
+                        properties:
+                          settings:
+                            $ref: "../components/schemas.yaml#/PrivacySettings"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+
+    patch:
+      tags:
+        - Privacy
+      summary: Update privacy settings
+      operationId: updatePrivacySettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/PrivacySettings"
+      responses:
+        "200":
+          description: Updated privacy settings.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - settings
+                        properties:
+                          settings:
+                            $ref: "../components/schemas.yaml#/PrivacySettings"
+        "400":
+          $ref: "../components/responses.yaml#/ValidationError"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"

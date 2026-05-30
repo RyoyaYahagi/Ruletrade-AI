@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { SafetyCheckSchema } from "@/schemas/safety/safety-check-schema";
 
-// AIが返すJSONのスキーマ（safety はプログラム側で付与するため含めない）
-export const RuleReviewAIOutputSchema = z.object({
+export const RuleReviewSchema = z.object({
   summary: z.string().min(1),
   completionScore: z.number().min(0).max(100),
   needsMoreInfo: z.boolean(),
@@ -32,14 +31,9 @@ export const RuleReviewAIOutputSchema = z.object({
     }),
   ),
   suggestedRuleUpdates: z.array(z.unknown()),
-});
-
-// safety を付与した完全なスキーマ
-export const RuleReviewSchema = RuleReviewAIOutputSchema.extend({
   safety: SafetyCheckSchema,
 });
 
 export const ruleReviewOutputSchema = RuleReviewSchema;
 
-export type RuleReviewAIOutput = z.infer<typeof RuleReviewAIOutputSchema>;
 export type RuleReviewOutput = z.infer<typeof RuleReviewSchema>;

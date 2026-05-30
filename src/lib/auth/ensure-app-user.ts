@@ -1,15 +1,14 @@
 import "server-only";
 
 import type { User } from "@supabase/supabase-js";
-import { createAdminClient } from "@/lib/db/supabase-admin";
-import { AppError } from "@/lib/errors/app-error";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 export async function ensureAppUser(user: User) {
   if (process.env.MOCK_AUTH === "true") {
     return { id: user.id, email: user.email ?? null };
   }
 
-  const supabase = createAdminClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from("app_users")
@@ -25,13 +24,8 @@ export async function ensureAppUser(user: User) {
     .select("id, email")
     .single();
 
-  if (error || !data) {
-    throw new AppError(
-      "INTERNAL_ERROR",
-      "ユーザー情報の初期化に失敗しました。",
-      500,
-      error,
-    );
+  if (error) {
+    throw error;
   }
 
   return data;

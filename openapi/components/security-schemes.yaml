@@ -1,0 +1,5 @@
+cookieAuth:
+  type: apiKey
+  in: cookie
+  name: sb-access-token
+  description: Supabase Auth session cookie.
