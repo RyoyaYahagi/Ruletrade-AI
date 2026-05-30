@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 import { createInitialQuestions } from "@/features/rules/services/rule-question-service";
@@ -13,7 +13,7 @@ export async function createRuleSession(params: {
   currency?: string;
   templateKey?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("rule_design_sessions")
     .insert({
@@ -44,7 +44,7 @@ export async function createRuleSession(params: {
 }
 
 export async function listRuleSessions(params: { userId: string }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("rule_design_sessions")
     .select(
@@ -67,7 +67,7 @@ export async function getRuleSessionDetail(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: session, error: sessionError } = await supabase
     .from("rule_design_sessions")
     .select("*")
@@ -124,7 +124,7 @@ export async function updateRuleSession(params: {
   status?: string;
   ruleJson?: unknown;
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data: currentSession, error: fetchError } = await supabase
     .from("rule_design_sessions")
@@ -207,7 +207,7 @@ export async function createRuleVersion(params: {
   changeReason: string;
   createdBy: "user" | "ai" | "system";
 }) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: latestVersion } = await supabase
     .from("rule_versions")
     .select("version_number")

@@ -1,0 +1,57 @@
+import { requireUser } from "@/lib/auth/require-user";
+import { apiSuccess } from "@/lib/api/api-response";
+import { toErrorResponse } from "@/lib/errors/to-error-response";
+import { validateJsonRequest } from "@/lib/api/validate-request";
+import { NotificationPreferencesSchema } from "@/schemas/notifications/notification-preferences-schema";
+import {
+  getOrCreateNotificationPreferences,
+  updateNotificationPreferences,
+} from "@/features/notifications/services/notification-preferences-service";
+
+export async function GET() {
+  const requestId = crypto.randomUUID();
+  let userId: string | null = null;
+
+  try {
+    const user = await requireUser();
+    userId = user.id;
+
+    const result = await getOrCreateNotificationPreferences({
+      userId: user.id,
+    });
+
+    return apiSuccess(result);
+  } catch (error) {
+    return toErrorResponse(error, {
+      requestId,
+      userId,
+      route: "/api/notifications/preferences",
+      method: "GET",
+    });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const requestId = crypto.randomUUID();
+  let userId: string | null = null;
+
+  try {
+    const user = await requireUser();
+    userId = user.id;
+
+    const input = await validateJsonRequest(request, NotificationPreferencesSchema);
+    const result = await updateNotificationPreferences({
+      userId: user.id,
+      ...input,
+    });
+
+    return apiSuccess(result);
+  } catch (error) {
+    return toErrorResponse(error, {
+      requestId,
+      userId,
+      route: "/api/notifications/preferences",
+      method: "PATCH",
+    });
+  }
+}

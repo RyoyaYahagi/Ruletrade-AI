@@ -7,8 +7,9 @@ import {
   GitBranch,
   ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -36,7 +37,7 @@ export function AgentWorkbench() {
   const ruleValidation = validateTradingRule(sampleRule);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen bg-background text-foreground" data-testid="dashboard-workbench">
       <section className="border-b bg-muted/30">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -56,10 +57,14 @@ export function AgentWorkbench() {
                 <GitBranch />
                 Review flow
               </Button>
-              <Button>
+              <Link
+                href="/rules/new"
+                className={buttonVariants()}
+                data-testid="dashboard-new-rule-button"
+              >
                 <ClipboardCheck />
                 New rule
-              </Button>
+              </Link>
             </div>
           </div>
 

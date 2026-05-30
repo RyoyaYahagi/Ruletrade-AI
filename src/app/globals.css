@@ -134,3 +134,72 @@
     @apply font-sans;
   }
 }
+
+
+@layer base {
+  :root {
+    --focus-ring: 2px solid currentColor;
+    --focus-ring-offset: 3px;
+  }
+
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  html {
+    scroll-padding-top: 80px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    z-index: 9999;
+    transform: translateY(-200%);
+    border-radius: 0.5rem;
+    background: white;
+    color: black;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 0 0 2px black;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  [data-high-contrast="true"] {
+    --focus-ring: 3px solid currentColor;
+  }
+
+  [data-larger-text="true"] {
+    font-size: 112.5%;
+  }
+}

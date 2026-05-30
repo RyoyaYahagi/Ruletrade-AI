@@ -36,11 +36,6 @@ export function NewRuleForm() {
 
       const json = await response.json();
 
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
       if (!response.ok || !json.ok) {
         setErrorMessage(
           json.error?.message ?? "ルール作成セッションの作成に失敗しました。",
@@ -58,7 +53,7 @@ export function NewRuleForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-lg border p-6">
+    <form onSubmit={handleSubmit} className="space-y-5 rounded-lg border p-6" data-testid="new-rule-form">
       <div>
         <label className="text-sm font-medium">銘柄コード</label>
         <input
@@ -67,6 +62,7 @@ export function NewRuleForm() {
           placeholder="例: 6758"
           className="mt-1 w-full rounded-md border px-3 py-2"
           required
+          data-testid="new-rule-ticker-input"
         />
       </div>
 
@@ -77,6 +73,7 @@ export function NewRuleForm() {
           onChange={(event) => setCompanyName(event.target.value)}
           placeholder="例: ソニーグループ"
           className="mt-1 w-full rounded-md border px-3 py-2"
+          data-testid="new-rule-company-name-input"
         />
       </div>
 
@@ -87,6 +84,7 @@ export function NewRuleForm() {
             value={market}
             onChange={(event) => setMarket(event.target.value)}
             className="mt-1 w-full rounded-md border px-3 py-2"
+            data-testid="new-rule-market-input"
           />
         </div>
 
@@ -96,6 +94,7 @@ export function NewRuleForm() {
             value={currency}
             onChange={(event) => setCurrency(event.target.value)}
             className="mt-1 w-full rounded-md border px-3 py-2"
+            data-testid="new-rule-currency-select"
           >
             <option value="JPY">JPY</option>
             <option value="USD">USD</option>
@@ -106,7 +105,7 @@ export function NewRuleForm() {
       </div>
 
       {errorMessage ? (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <p data-testid="new-rule-error-message" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {errorMessage}
         </p>
       ) : null}
@@ -115,6 +114,7 @@ export function NewRuleForm() {
         type="submit"
         disabled={isSubmitting || ticker.trim().length === 0}
         className="w-full rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+        data-testid="new-rule-submit-button"
       >
         {isSubmitting ? "作成中..." : "ルール作成を始める"}
       </button>

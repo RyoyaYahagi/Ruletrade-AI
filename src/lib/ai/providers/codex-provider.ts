@@ -79,6 +79,7 @@ export class CodexProvider implements AIProvider {
           model,
           taskType: params.taskType,
           promptVersion: params.promptVersion,
+          fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };
@@ -117,6 +118,7 @@ export class CodexProvider implements AIProvider {
           model,
           taskType: params.taskType,
           promptVersion: params.promptVersion,
+          fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };

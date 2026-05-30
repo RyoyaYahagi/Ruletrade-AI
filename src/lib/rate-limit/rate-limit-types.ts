@@ -3,7 +3,9 @@ export type RateLimitKey =
   | "ai_rule_review_daily"
   | "ai_question_generation_hourly"
   | "ai_question_generation_daily"
-  | "rule_session_create_daily";
+  | "rule_session_create_daily"
+  | "portfolio_review_hourly"
+  | "portfolio_review_daily";
 
 export type RateLimitConfig = {
   key: RateLimitKey;
@@ -36,6 +38,16 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitKey, RateLimitConfig> = {
   },
   rule_session_create_daily: {
     key: "rule_session_create_daily",
+    limit: 30,
+    window: "day",
+  },
+  portfolio_review_hourly: {
+    key: "portfolio_review_hourly",
+    limit: 10,
+    window: "hour",
+  },
+  portfolio_review_daily: {
+    key: "portfolio_review_daily",
     limit: 30,
     window: "day",
   },

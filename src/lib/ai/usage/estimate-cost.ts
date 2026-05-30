@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createServerClient } from "@/lib/db/supabase-server";
 
 export async function estimateAiCostUsd(params: {
   provider: string;
@@ -15,7 +15,7 @@ export async function estimateAiCostUsd(params: {
     return 0;
   }
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from("model_pricing_configs")
