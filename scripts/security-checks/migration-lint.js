@@ -186,6 +186,35 @@ function main() {
 
   console.log("\n📋 Migration Security Lint Report\n");
 
+  // 0. Supabase orders migrations by timestamp prefix. Duplicate prefixes make
+  // reset/apply order ambiguous and have repeatedly broken local database resets.
+  console.log("--- Migration Timestamp Check ---");
+  const timestampOccurrences = new Map();
+  for (const filePath of files) {
+    const fileName = path.basename(filePath);
+    const match = fileName.match(/^(\d{14})_/);
+    if (!match) {
+      log("error", `Migration "${fileName}" must start with a 14-digit timestamp prefix`);
+      violations++;
+      continue;
+    }
+    const timestamp = match[1];
+    if (!timestampOccurrences.has(timestamp)) {
+      timestampOccurrences.set(timestamp, []);
+    }
+    timestampOccurrences.get(timestamp).push(fileName);
+  }
+
+  for (const [timestamp, fileNames] of timestampOccurrences) {
+    if (fileNames.length > 1) {
+      log("error", `Migration timestamp "${timestamp}" is used by ${fileNames.length} files:`);
+      for (const fileName of fileNames) {
+        console.log(`   → ${fileName}`);
+      }
+      violations++;
+    }
+  }
+
   // 1. Check RLS coverage for required tables
   console.log("--- RLS Coverage Check ---");
   for (const table of RLS_REQUIRED_TABLES) {

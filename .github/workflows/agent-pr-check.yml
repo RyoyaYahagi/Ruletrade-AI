@@ -14,12 +14,13 @@ permissions:
 
 jobs:
   agent-safety-check:
-    if: contains(github.event.pull_request.labels.*.name, 'agent:safe') || contains(github.event.pull_request.labels.*.name, 'agent:review-carefully')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check forbidden files
         run: |
@@ -40,7 +41,7 @@ jobs:
 
       - name: Check dangerous strings
         run: |
-          if git grep -n "NEXT_PUBLIC_.*SECRET|NEXT_PUBLIC_.*SERVICE_ROLE|sk_live_|sk_test_" -- . ':!docs/**' ':!.env.example'; then
+          if git grep -n -E "NEXT_PUBLIC_.*SECRET|NEXT_PUBLIC_.*SERVICE_ROLE|sk_live_|sk_test_" -- . ':!docs/**' ':!.env.example'; then
             echo "Potential secret exposure detected"
             exit 1
           fi
