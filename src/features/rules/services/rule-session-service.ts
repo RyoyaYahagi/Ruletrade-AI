@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@/lib/db/supabase-server";
 import { AppError } from "@/lib/errors/app-error";
+import type { RuleSessionSummary } from "@/features/rules/model";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 import { createInitialQuestions } from "@/features/rules/services/rule-question-service";
 
@@ -60,7 +61,7 @@ export async function listRuleSessions(params: { userId: string }) {
       error,
     );
   }
-  return { sessions: data ?? [] };
+  return { sessions: (data ?? []) as RuleSessionSummary[] };
 }
 
 export async function getRuleSessionDetail(params: {
