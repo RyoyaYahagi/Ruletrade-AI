@@ -16,22 +16,15 @@ import {
   getGeminiModel,
 } from "@/lib/ai/model-config";
 import { zeroAIUsage } from "@/lib/ai/usage/token-usage";
+import {
+  selectNewReviewQuestions,
+  type ReviewNextQuestionCandidate,
+} from "@/features/rules/services/rule-review-question-selection";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
   return type;
 }
-
-type ReviewNextQuestion = {
-  questionKey: string;
-  questionText: string;
-  questionType: string;
-  options?: unknown;
-  helpText?: string;
-  priority: number;
-  isRequired: boolean;
-  mapsToRuleField?: string;
-};
 
 function getConfiguredModelForLog(): string {
   const provider = getConfiguredAIProvider();
@@ -101,8 +94,7 @@ function buildRuleReviewFallback(params: {
 
   return {
     data: {
-      summary:
-        `${params.companyName}（${params.ticker}）のルールは保存されています。AIプロバイダが一時的に混雑しているため、未決定項目を整理するための代替レビューを表示します。`,
+      summary: `${params.companyName}（${params.ticker}）のルールは保存されています。AIプロバイダが一時的に混雑しているため、未決定項目を整理するための代替レビューを表示します。`,
       completionScore: 50,
       needsMoreInfo: true,
       canFinalize: false,
@@ -135,7 +127,10 @@ function buildRuleReviewFallback(params: {
           questionType: "multi_choice" as const,
           options: [
             { value: "price_drop", label: "大きく下落したら検討" },
-            { value: "earnings_confirmed", label: "決算や業績を確認してから検討" },
+            {
+              value: "earnings_confirmed",
+              label: "決算や業績を確認してから検討",
+            },
             { value: "undecided", label: "まだ決めていない" },
             { value: "ask_ai", label: "候補を提案してほしい" },
           ],
@@ -465,11 +460,12 @@ export async function runRuleReview(params: {
     }
   }
 
-  const { data: existingQuestions, error: existingQuestionsError } = await supabase
-    .from("rule_questions")
-    .select("question_key, question_text, status")
-    .eq("session_id", params.sessionId)
-    .eq("user_id", params.userId);
+  const { data: existingQuestions, error: existingQuestionsError } =
+    await supabase
+      .from("rule_questions")
+      .select("question_key, question_text, status")
+      .eq("session_id", params.sessionId)
+      .eq("user_id", params.userId);
   if (existingQuestionsError) {
     throw new AppError(
       "INTERNAL_ERROR",
@@ -484,53 +480,32 @@ export async function runRuleReview(params: {
     question_text: string;
     status: string;
   }>;
-  const pendingQuestionCount = existingQuestionList.filter(
-    (question) => question.status === "pending",
-  ).length;
-  const answeredQuestionCount = Number(session.question_count ?? 0);
   const maxQuestionCount = Number(session.max_question_count ?? 12);
-  const remainingQuestionSlots =
-    pendingQuestionCount > 0
-      ? 0
-      : Math.max(0, maxQuestionCount - answeredQuestionCount);
-  const existingQuestionKeys = new Set(
-    existingQuestionList.map((question) => question.question_key),
-  );
-  const existingQuestionTexts = new Set(
-    existingQuestionList.map((question) => question.question_text),
-  );
-  const questionsToInsert = (review.nextQuestions as ReviewNextQuestion[])
-    .filter(
-      (question) =>
-        !existingQuestionKeys.has(question.questionKey) &&
-        !existingQuestionTexts.has(question.questionText),
-    )
-    .slice(0, remainingQuestionSlots);
+  const questionsToInsert = selectNewReviewQuestions({
+    nextQuestions: review.nextQuestions as ReviewNextQuestionCandidate[],
+    existingQuestions: existingQuestionList,
+    maxQuestionCount,
+  });
 
   if (questionsToInsert.length > 0) {
     const { error: questionsError } = await supabase
       .from("rule_questions")
       .insert(
-        questionsToInsert.map(
-          (
-            question,
-            index: number,
-          ) => ({
-            user_id: params.userId,
-            session_id: params.sessionId,
-            question_key: question.questionKey,
-            question_text: question.questionText,
-            question_type: mapQuestionType(question.questionType),
-            options: question.options ?? null,
-            help_text: question.helpText ?? null,
-            priority: question.priority,
-            is_required: question.isRequired,
-            maps_to_rule_field: question.mapsToRuleField ?? null,
-            source: "ai",
-            status: "pending",
-            display_order: 100 + index,
-          }),
-        ),
+        questionsToInsert.map((question, index: number) => ({
+          user_id: params.userId,
+          session_id: params.sessionId,
+          question_key: question.questionKey,
+          question_text: question.questionText,
+          question_type: mapQuestionType(question.questionType),
+          options: question.options ?? null,
+          help_text: question.helpText ?? null,
+          priority: question.priority,
+          is_required: question.isRequired,
+          maps_to_rule_field: question.mapsToRuleField ?? null,
+          source: "ai",
+          status: "pending",
+          display_order: 100 + index,
+        })),
       );
     if (questionsError) {
       throw new AppError(
