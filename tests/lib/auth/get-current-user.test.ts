@@ -4,6 +4,14 @@ vi.mock("@/lib/db/supabase-server", () => ({
   createServerClient: vi.fn(),
 }));
 
+const mockCookieGet = vi.fn();
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({
+    get: mockCookieGet,
+  })),
+}));
+
 import { createServerClient } from "@/lib/db/supabase-server";
 
 describe("getCurrentUser", () => {
@@ -12,6 +20,7 @@ describe("getCurrentUser", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    mockCookieGet.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -48,6 +57,22 @@ describe("getCurrentUser", () => {
     const { getCurrentUser } = await import("@/lib/auth/get-current-user");
     const user = await getCurrentUser();
     expect(user).toBeNull();
+  });
+
+  it("returns guest user when guest session cookie is set outside production", async () => {
+    delete process.env.MOCK_AUTH_EMAIL;
+    process.env.NODE_ENV = "development";
+    mockCookieGet.mockReturnValue({ value: "guest" });
+
+    const { getCurrentUser } = await import("@/lib/auth/get-current-user");
+    const user = await getCurrentUser();
+
+    expect(user).toMatchObject({
+      id: "guest-user",
+      email: "guest@ruletrade.local",
+      app_metadata: { role: "user", provider: "guest" },
+    });
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 
   it("returns user from supabase when authenticated", async () => {
