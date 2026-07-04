@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@/lib/db/supabase-server";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { AppError } from "@/lib/errors/app-error";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { buildRuleReviewSafetyText } from "@/lib/safety/safety-text";
@@ -14,6 +15,7 @@ import {
   getOpenAIModel,
   getGeminiModel,
 } from "@/lib/ai/model-config";
+import { zeroAIUsage } from "@/lib/ai/usage/token-usage";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
@@ -91,6 +93,101 @@ Rules:
 - Do not recommend buying, selling, timing, target returns, or price predictions.
 `.trim();
 
+function buildRuleReviewFallback(params: {
+  ticker: string;
+  companyName: string;
+}) {
+  const startedAt = Date.now();
+
+  return {
+    data: {
+      summary:
+        `${params.companyName}（${params.ticker}）のルールは保存されています。AIプロバイダが一時的に混雑しているため、未決定項目を整理するための代替レビューを表示します。`,
+      completionScore: 50,
+      needsMoreInfo: true,
+      canFinalize: false,
+      qualityChecks: [
+        {
+          checkKey: "entry_exit_specificity",
+          label: "エントリー・出口条件",
+          status: "warning" as const,
+          severity: "medium" as const,
+          reason:
+            "買い増しや撤退の条件は、あとで迷わない程度に具体化しておくと振り返りやすくなります。",
+          suggestedQuestion:
+            "どの条件を満たしたら買い増し・見直しを検討しますか？",
+        },
+        {
+          checkKey: "risk_management_specificity",
+          label: "リスク管理",
+          status: "warning" as const,
+          severity: "medium" as const,
+          reason:
+            "最大投資比率や見直し条件が曖昧だと、保有後の判断がぶれやすくなります。",
+          suggestedQuestion:
+            "この銘柄への投資額はポートフォリオ全体のどの程度までにしますか？",
+        },
+      ],
+      nextQuestions: [
+        {
+          questionKey: "fallback_entry_conditions",
+          questionText: "買い増しや新規購入を検討する条件はどれに近いですか？",
+          questionType: "multi_choice" as const,
+          options: [
+            { value: "price_drop", label: "大きく下落したら検討" },
+            { value: "earnings_confirmed", label: "決算や業績を確認してから検討" },
+            { value: "undecided", label: "まだ決めていない" },
+            { value: "ask_ai", label: "候補を提案してほしい" },
+          ],
+          priority: 4,
+          isRequired: true,
+          mapsToRuleField: "entryPlan.entryConditions",
+          source: "ai" as const,
+          status: "pending" as const,
+          displayOrder: 0,
+          helpText: "複数選択できます。未決定でも問題ありません。",
+        },
+        {
+          questionKey: "fallback_risk_management",
+          questionText: "リスク管理で決めておきたいことはどれですか？",
+          questionType: "multi_choice" as const,
+          options: [
+            { value: "max_position", label: "最大投資比率" },
+            { value: "review_condition", label: "見直し条件" },
+            { value: "loss_limit", label: "損失が出たときの対応" },
+            { value: "undecided", label: "まだ決めていない" },
+            { value: "ask_ai", label: "候補を提案してほしい" },
+          ],
+          priority: 3,
+          isRequired: true,
+          mapsToRuleField: "riskManagement",
+          source: "ai" as const,
+          status: "pending" as const,
+          displayOrder: 1,
+          helpText: "あとで具体化する項目を選ぶだけで大丈夫です。",
+        },
+      ],
+      suggestedRuleUpdates: [],
+      safety: {
+        passed: true,
+        riskLevel: "low" as const,
+        violations: [],
+        prohibitedPhrasesDetected: [],
+      },
+    },
+    rawText: "",
+    usage: zeroAIUsage,
+    meta: {
+      provider: "local_fallback",
+      model: "rule-review-fallback",
+      taskType: "rule_review",
+      promptVersion: "rule-reviewer-v1",
+      fallbackUsed: true,
+      latencyMs: Date.now() - startedAt,
+    },
+  };
+}
+
 async function saveUnsafeRuleReview(params: {
   userId: string;
   sessionId: string;
@@ -146,6 +243,7 @@ async function saveUnsafeRuleReview(params: {
 export async function runRuleReview(params: {
   userId: string;
   sessionId: string;
+  requestId?: string;
 }) {
   const supabase = await createServerClient();
   const { data: session, error: sessionError } = await supabase
@@ -175,6 +273,7 @@ export async function runRuleReview(params: {
 
   const ragContext = await retrieveRagContext({
     userId: params.userId,
+    requestId: params.requestId,
     taskType: "rule_review",
     queryText: ragQueryText,
     sourceTypes: [
@@ -203,33 +302,45 @@ export async function runRuleReview(params: {
       rule: session.rule_json,
       ragContext: ragContext.contextText,
     },
-    run: () =>
-      ai.generateObject({
-        taskType: "rule_review",
-        schema: RuleReviewSchema,
-        schemaName: "RuleReview",
-        promptVersion: "rule-reviewer-v1",
-        messages: [
-          {
-            role: "system",
-            content: [
-              "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
-              RULE_REVIEW_JSON_FORMAT,
-            ].join("\n\n"),
-          },
-          {
-            role: "user",
-            content: JSON.stringify({
-              currentRuleSession: {
-                ticker: session.ticker,
-                companyName: session.company_name,
-                rule: session.rule_json,
-              },
-              ragContext: ragContext.contextText,
-            }),
-          },
-        ],
-      }),
+    run: async () => {
+      try {
+        return await ai.generateObject({
+          taskType: "rule_review",
+          schema: RuleReviewSchema,
+          schemaName: "RuleReview",
+          promptVersion: "rule-reviewer-v1",
+          messages: [
+            {
+              role: "system",
+              content: [
+                "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
+                RULE_REVIEW_JSON_FORMAT,
+              ].join("\n\n"),
+            },
+            {
+              role: "user",
+              content: JSON.stringify({
+                currentRuleSession: {
+                  ticker: session.ticker,
+                  companyName: session.company_name,
+                  rule: session.rule_json,
+                },
+                ragContext: ragContext.contextText,
+              }),
+            },
+          ],
+        });
+      } catch (error) {
+        if (error instanceof AIProviderError && error.retryable) {
+          return buildRuleReviewFallback({
+            ticker: session.ticker,
+            companyName: session.company_name,
+          });
+        }
+
+        throw error;
+      }
+    },
   });
 
   const review = aiResult.data;

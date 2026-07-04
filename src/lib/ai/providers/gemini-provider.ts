@@ -26,6 +26,9 @@ type GeminiGenerateContentResponse = {
   };
 };
 
+const GEMINI_MAX_ATTEMPTS = 3;
+const GEMINI_RETRY_DELAYS_MS = [500, 1500] as const;
+
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
 
@@ -132,27 +135,47 @@ export class GeminiProvider implements AIProvider {
 
     const controller = new AbortController();
 
-    const response = await withTimeout(
-      fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": this.apiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: options.prompt }] }],
-          generationConfig: {
-            temperature: options.temperature,
-            maxOutputTokens: options.maxOutputTokens,
-            responseMimeType: options.responseMimeType,
-            responseSchema: options.responseSchema,
+    let response: Response | undefined;
+
+    for (let attempt = 0; attempt < GEMINI_MAX_ATTEMPTS; attempt += 1) {
+      response = await withTimeout(
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": this.apiKey,
           },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: options.prompt }] }],
+            generationConfig: {
+              temperature: options.temperature,
+              maxOutputTokens: options.maxOutputTokens,
+              responseMimeType: options.responseMimeType,
+              responseSchema: options.responseSchema,
+            },
+          }),
+          signal: controller.signal,
         }),
-        signal: controller.signal,
-      }),
-      getAITimeoutMs(),
-      controller,
-    );
+        getAITimeoutMs(),
+        controller,
+      );
+
+      if (
+        !isRetryableGeminiStatus(response.status) ||
+        attempt === GEMINI_MAX_ATTEMPTS - 1
+      ) {
+        break;
+      }
+
+      await delay(GEMINI_RETRY_DELAYS_MS[attempt] ?? 0);
+    }
+
+    if (!response) {
+      throw new AIProviderError(
+        "AI_PROVIDER_REQUEST_FAILED",
+        "Gemini API request failed.",
+      );
+    }
 
     if (!response.ok) {
       throw new AIProviderError(
@@ -167,6 +190,14 @@ export class GeminiProvider implements AIProvider {
 
     return (await response.json()) as GeminiGenerateContentResponse;
   }
+}
+
+function isRetryableGeminiStatus(status: number): boolean {
+  return status === 429 || status === 503;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toGeminiPrompt(
