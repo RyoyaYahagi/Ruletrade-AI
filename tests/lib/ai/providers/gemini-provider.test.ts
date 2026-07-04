@@ -110,7 +110,21 @@ describe("GeminiProvider", () => {
         properties: {
           summary: { type: "STRING" },
           qualityChecks: expect.any(Object),
-          nextQuestions: expect.any(Object),
+          nextQuestions: {
+            items: {
+              properties: {
+                options: {
+                  type: "ARRAY",
+                  items: {
+                    properties: {
+                      value: { type: "STRING" },
+                      label: { type: "STRING" },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       });
       expect(JSON.stringify(body.generationConfig.responseSchema)).not.toContain(

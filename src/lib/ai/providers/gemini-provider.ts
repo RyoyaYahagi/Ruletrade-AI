@@ -240,6 +240,17 @@ function getGeminiResponseSchema(schemaName: string): unknown {
               type: "STRING",
               enum: ["free_text", "single_choice", "multi_choice"],
             },
+            options: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                required: ["value", "label"],
+                properties: {
+                  value: { type: "STRING" },
+                  label: { type: "STRING" },
+                },
+              },
+            },
             priority: { type: "INTEGER" },
             isRequired: { type: "BOOLEAN" },
             mapsToRuleField: { type: "STRING" },

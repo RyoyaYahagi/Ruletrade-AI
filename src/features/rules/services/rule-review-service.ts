@@ -60,7 +60,10 @@ The JSON object must have exactly this shape:
     {
       "questionKey": "string",
       "questionText": "string",
-      "questionType": "free_text | single_choice | multi_choice",
+      "questionType": "multi_choice | single_choice | free_text",
+      "options": [
+        { "value": "string", "label": "string" }
+      ],
       "priority": 1,
       "isRequired": true,
       "mapsToRuleField": "string, optional",
@@ -82,6 +85,9 @@ Rules:
 - completionScore must be a number from 0 to 100.
 - canFinalize must be false when important information is missing.
 - nextQuestions can be [] when no more information is needed.
+- Prefer multi_choice when more than one option could fit the user's thinking. Use single_choice only when choices are mutually exclusive. Avoid free_text unless choices would be misleading.
+- For every single_choice or multi_choice question, include 3 to 5 options.
+- Include an option such as "まだ決めていない" or "候補を提案してほしい" when the user may not know the answer yet.
 - Do not recommend buying, selling, timing, target returns, or price predictions.
 `.trim();
 

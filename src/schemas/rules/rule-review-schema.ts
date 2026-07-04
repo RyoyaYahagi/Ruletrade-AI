@@ -21,6 +21,14 @@ export const RuleReviewSchema = z.object({
       questionKey: z.string().min(1),
       questionText: z.string().min(1),
       questionType: z.enum(["free_text", "single_choice", "multi_choice"]),
+      options: z
+        .array(
+          z.object({
+            value: z.string().min(1),
+            label: z.string().min(1),
+          }),
+        )
+        .optional(),
       priority: z.number().int().min(1).max(5),
       isRequired: z.boolean(),
       mapsToRuleField: z.string().min(1).optional(),
