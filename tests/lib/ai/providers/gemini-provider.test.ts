@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
+import { RuleReviewSchema } from "@/schemas/rules/rule-review-schema";
 
 const mockFetch = vi.fn();
 
@@ -70,6 +71,51 @@ describe("GeminiProvider", () => {
       expect(result.usage.inputTokens).toBe(10);
       expect(result.usage.outputTokens).toBe(5);
       expect(result.meta.provider).toBe("gemini");
+    });
+
+    it("RuleReview uses Gemini responseSchema", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createSuccessResponse(
+          JSON.stringify({
+            summary: "追加確認が必要です。",
+            completionScore: 35,
+            needsMoreInfo: true,
+            canFinalize: false,
+            qualityChecks: [],
+            nextQuestions: [],
+            suggestedRuleUpdates: [],
+            safety: {
+              passed: true,
+              riskLevel: "low",
+              violations: [],
+              prohibitedPhrasesDetected: [],
+            },
+          }),
+        ),
+      );
+
+      const provider = new GeminiProvider();
+      await provider.generateObject({
+        taskType: "rule_review",
+        schema: RuleReviewSchema,
+        schemaName: "RuleReview",
+        messages: [{ role: "user", content: "test" }],
+      });
+
+      const lastCall = mockFetch.mock.calls.at(-1);
+      const body = JSON.parse(String(lastCall?.[1]?.body));
+      expect(body.generationConfig.responseMimeType).toBe("application/json");
+      expect(body.generationConfig.responseSchema).toMatchObject({
+        type: "OBJECT",
+        properties: {
+          summary: { type: "STRING" },
+          qualityChecks: expect.any(Object),
+          nextQuestions: expect.any(Object),
+        },
+      });
+      expect(JSON.stringify(body.generationConfig.responseSchema)).not.toContain(
+        "$ref",
+      );
     });
 
     it("HTTPエラー (429) で AI_PROVIDER_RATE_LIMITED を投げる", async () => {

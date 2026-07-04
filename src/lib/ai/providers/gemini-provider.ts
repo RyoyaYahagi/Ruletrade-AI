@@ -54,6 +54,7 @@ export class GeminiProvider implements AIProvider {
         temperature: params.temperature ?? 0.2,
         maxOutputTokens: params.maxOutputTokens,
         responseMimeType: "application/json",
+        responseSchema: getGeminiResponseSchema(params.schemaName),
       });
       const rawText = getGeminiText(response);
       const parsedJson = parseJson(rawText);
@@ -122,6 +123,7 @@ export class GeminiProvider implements AIProvider {
       temperature: number;
       maxOutputTokens?: number;
       responseMimeType?: "application/json";
+      responseSchema?: unknown;
     },
   ): Promise<GeminiGenerateContentResponse> {
     const url = new URL(
@@ -143,6 +145,7 @@ export class GeminiProvider implements AIProvider {
             temperature: options.temperature,
             maxOutputTokens: options.maxOutputTokens,
             responseMimeType: options.responseMimeType,
+            responseSchema: options.responseSchema,
           },
         }),
         signal: controller.signal,
@@ -179,6 +182,122 @@ function toGeminiPrompt(
   }
 
   return `${prompt}\n\nReturn only valid JSON matching the ${schemaName} schema.`;
+}
+
+function getGeminiResponseSchema(schemaName: string): unknown {
+  if (schemaName !== "RuleReview") return undefined;
+
+  return {
+    type: "OBJECT",
+    required: [
+      "summary",
+      "completionScore",
+      "needsMoreInfo",
+      "canFinalize",
+      "qualityChecks",
+      "nextQuestions",
+      "suggestedRuleUpdates",
+      "safety",
+    ],
+    properties: {
+      summary: { type: "STRING" },
+      completionScore: { type: "NUMBER" },
+      needsMoreInfo: { type: "BOOLEAN" },
+      canFinalize: { type: "BOOLEAN" },
+      qualityChecks: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          required: ["checkKey", "label", "status", "severity", "reason"],
+          properties: {
+            checkKey: { type: "STRING" },
+            label: { type: "STRING" },
+            status: { type: "STRING", enum: ["pass", "warning", "fail"] },
+            severity: { type: "STRING", enum: ["low", "medium", "high"] },
+            reason: { type: "STRING" },
+            suggestedQuestion: { type: "STRING" },
+          },
+        },
+      },
+      nextQuestions: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          required: [
+            "questionKey",
+            "questionText",
+            "questionType",
+            "priority",
+            "isRequired",
+            "source",
+            "status",
+            "displayOrder",
+          ],
+          properties: {
+            questionKey: { type: "STRING" },
+            questionText: { type: "STRING" },
+            questionType: {
+              type: "STRING",
+              enum: ["free_text", "single_choice", "multi_choice"],
+            },
+            priority: { type: "INTEGER" },
+            isRequired: { type: "BOOLEAN" },
+            mapsToRuleField: { type: "STRING" },
+            source: { type: "STRING", enum: ["ai", "system", "user"] },
+            status: {
+              type: "STRING",
+              enum: ["pending", "answered", "skipped"],
+            },
+            displayOrder: { type: "INTEGER" },
+            helpText: { type: "STRING" },
+          },
+        },
+      },
+      suggestedRuleUpdates: {
+        type: "ARRAY",
+        items: { type: "OBJECT" },
+      },
+      safety: {
+        type: "OBJECT",
+        required: ["passed", "riskLevel", "violations", "prohibitedPhrasesDetected"],
+        properties: {
+          passed: { type: "BOOLEAN" },
+          riskLevel: { type: "STRING", enum: ["low", "medium", "high"] },
+          violations: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              required: ["type", "reason"],
+              properties: {
+                type: {
+                  type: "STRING",
+                  enum: [
+                    "buy_recommendation",
+                    "sell_recommendation",
+                    "price_prediction",
+                    "profit_guarantee",
+                    "loss_avoidance_guarantee",
+                    "decision_delegation",
+                    "urgency_pressure",
+                    "fear_mongering",
+                    "privacy_risk",
+                    "other",
+                  ],
+                },
+                phrase: { type: "STRING" },
+                reason: { type: "STRING" },
+              },
+            },
+          },
+          prohibitedPhrasesDetected: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+          },
+          suggestedRewrite: { type: "STRING" },
+        },
+      },
+    },
+  };
 }
 
 function getGeminiText(response: GeminiGenerateContentResponse): string {

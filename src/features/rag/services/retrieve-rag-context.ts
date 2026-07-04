@@ -45,6 +45,13 @@ export async function retrieveRagContext(params: {
   });
 
   if (error) {
+    if (isUnsupportedLocalRpc(error)) {
+      return {
+        chunks: [],
+        contextText: "",
+      };
+    }
+
     throw error;
   }
 
@@ -82,6 +89,15 @@ export async function retrieveRagContext(params: {
     chunks,
     contextText,
   };
+}
+
+function isUnsupportedLocalRpc(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "SQLITE_UNSUPPORTED"
+  );
 }
 
 function buildContextText(params: {
