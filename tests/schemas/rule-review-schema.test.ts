@@ -48,6 +48,31 @@ describe("RuleReviewSchema", () => {
     ).toBe(true);
   });
 
+  it("accepts choice-based next questions", () => {
+    const result = RuleReviewSchema.safeParse({
+      ...validReview,
+      nextQuestions: [
+        {
+          questionKey: "entry_condition",
+          questionText: "どの条件なら買い増しを検討しますか？",
+          questionType: "single_choice",
+          options: [
+            { value: "discount", label: "割安感が出たら" },
+            { value: "undecided", label: "まだ決めていない" },
+            { value: "ask_ai", label: "候補を提案してほしい" },
+          ],
+          priority: 1,
+          isRequired: true,
+          source: "ai",
+          status: "pending",
+          displayOrder: 0,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("rejects completionScore over 100", () => {
     const result = RuleReviewSchema.safeParse({
       ...validReview,
