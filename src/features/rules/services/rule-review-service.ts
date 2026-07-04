@@ -20,6 +20,17 @@ function mapQuestionType(type: string): string {
   return type;
 }
 
+type ReviewNextQuestion = {
+  questionKey: string;
+  questionText: string;
+  questionType: string;
+  options?: unknown;
+  helpText?: string;
+  priority: number;
+  isRequired: boolean;
+  mapsToRuleField?: string;
+};
+
 function getConfiguredModelForLog(): string {
   const provider = getConfiguredAIProvider();
   if (provider === "openai") return getOpenAIModel();
@@ -337,22 +348,55 @@ export async function runRuleReview(params: {
     }
   }
 
-  if (review.nextQuestions.length > 0) {
+  const { data: existingQuestions, error: existingQuestionsError } = await supabase
+    .from("rule_questions")
+    .select("question_key, question_text, status")
+    .eq("session_id", params.sessionId)
+    .eq("user_id", params.userId);
+  if (existingQuestionsError) {
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "既存質問の確認に失敗しました。",
+      500,
+      existingQuestionsError,
+    );
+  }
+
+  const existingQuestionList = (existingQuestions ?? []) as Array<{
+    question_key: string;
+    question_text: string;
+    status: string;
+  }>;
+  const pendingQuestionCount = existingQuestionList.filter(
+    (question) => question.status === "pending",
+  ).length;
+  const answeredQuestionCount = Number(session.question_count ?? 0);
+  const maxQuestionCount = Number(session.max_question_count ?? 12);
+  const remainingQuestionSlots =
+    pendingQuestionCount > 0
+      ? 0
+      : Math.max(0, maxQuestionCount - answeredQuestionCount);
+  const existingQuestionKeys = new Set(
+    existingQuestionList.map((question) => question.question_key),
+  );
+  const existingQuestionTexts = new Set(
+    existingQuestionList.map((question) => question.question_text),
+  );
+  const questionsToInsert = (review.nextQuestions as ReviewNextQuestion[])
+    .filter(
+      (question) =>
+        !existingQuestionKeys.has(question.questionKey) &&
+        !existingQuestionTexts.has(question.questionText),
+    )
+    .slice(0, remainingQuestionSlots);
+
+  if (questionsToInsert.length > 0) {
     const { error: questionsError } = await supabase
       .from("rule_questions")
       .insert(
-        review.nextQuestions.map(
+        questionsToInsert.map(
           (
-            question: {
-              questionKey: string;
-              questionText: string;
-              questionType: string;
-              options?: unknown;
-              helpText?: string;
-              priority: number;
-              isRequired: boolean;
-              mapsToRuleField?: string;
-            },
+            question,
             index: number,
           ) => ({
             user_id: params.userId,
@@ -408,7 +452,7 @@ export async function runRuleReview(params: {
     completionScore: review.completionScore,
     needsMoreInfo: review.needsMoreInfo,
     canFinalize: review.canFinalize,
-    nextQuestions: review.nextQuestions,
+    nextQuestions: questionsToInsert,
     estimatedCostUsd: aiResult.usage?.estimatedCostUsd ?? 0,
   };
 }
