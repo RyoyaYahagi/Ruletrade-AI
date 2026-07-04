@@ -11,6 +11,8 @@ test.describe("Login Page", () => {
     await expect(page.getByTestId("login-password-input")).toBeVisible();
     await expect(page.getByTestId("login-submit-button")).toBeVisible();
     await expect(page.getByTestId("login-submit-button")).toContainText("ログイン");
+    await expect(page.getByTestId("guest-login-button")).toBeVisible();
+    await expect(page.getByTestId("guest-login-button")).toContainText("ゲストで試す");
   });
 
   test("shows validation error for empty submission", async ({ page }) => {

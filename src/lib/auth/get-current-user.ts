@@ -1,5 +1,12 @@
 import "server-only";
 
+import { cookies } from "next/headers";
+
+import {
+  createGuestUser,
+  GUEST_SESSION_COOKIE,
+  GUEST_SESSION_COOKIE_VALUE,
+} from "@/lib/auth/guest-session";
 import { createServerClient } from "@/lib/db/supabase-server";
 
 const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
@@ -17,6 +24,13 @@ export async function getCurrentUser() {
       aud: "authenticated",
       created_at: new Date().toISOString(),
     } as unknown as import("@supabase/supabase-js").User;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    const cookieStore = await cookies();
+    if (cookieStore.get(GUEST_SESSION_COOKIE)?.value === GUEST_SESSION_COOKIE_VALUE) {
+      return createGuestUser();
+    }
   }
 
   let supabase;

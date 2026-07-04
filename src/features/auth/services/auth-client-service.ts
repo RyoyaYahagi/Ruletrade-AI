@@ -11,6 +11,20 @@ export async function signInWithPassword(input: {
   return supabase.auth.signInWithPassword(input);
 }
 
+export async function signInAsGuest() {
+  const localGuestResponse = await fetch("/api/auth/guest", {
+    method: "POST",
+  });
+
+  if (localGuestResponse.ok) {
+    return { error: null };
+  }
+
+  const supabase = createBrowserClient();
+
+  return supabase.auth.signInAnonymously();
+}
+
 export async function signUpWithPassword(input: {
   email: string;
   password: string;
