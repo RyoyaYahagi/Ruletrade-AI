@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { saveRuleAnswer } from "@/features/rules/services/rule-answer-service";
-import { AppError } from "@/lib/errors/app-error";
 
 vi.mock("@/lib/db/supabase-server", () => ({
   createServerClient: vi.fn(),
@@ -19,7 +18,8 @@ const mockEqA = vi.fn(() => ({ eq: mockEqB }));
 const mockSelect = vi.fn(() => ({ eq: mockEqA }));
 const mockInsertSelect = vi.fn(() => ({ single: mockSingle }));
 const mockInsert = vi.fn(() => ({ select: mockInsertSelect }));
-const mockUpdateEq = vi.fn(() => ({ eq: vi.fn() }));
+const mockUpdateEqB = vi.fn();
+const mockUpdateEq = vi.fn(() => ({ eq: mockUpdateEqB }));
 const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }));
 const mockFrom = vi.fn(() => ({
   select: mockSelect,
@@ -30,6 +30,7 @@ const mockFrom = vi.fn(() => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockSingle.mockReset();
+  mockUpdateEqB.mockResolvedValue({ data: [], error: null });
   vi.mocked(createServerClient).mockResolvedValue({
     from: mockFrom,
   } as unknown);
@@ -85,6 +86,27 @@ describe("saveRuleAnswer", () => {
       saveRuleAnswer({
         userId: "user-1",
         sessionId: "session-1",
+        questionKey: "investment_thesis",
+        answerJson: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+      status: 500,
+    });
+  });
+
+  it("throws 500 when question status update fails", async () => {
+    mockSingle.mockResolvedValueOnce({ data: { id: "answer-3" }, error: null });
+    mockUpdateEqB.mockResolvedValueOnce({
+      data: null,
+      error: { message: "update failed" },
+    });
+
+    await expect(
+      saveRuleAnswer({
+        userId: "user-1",
+        sessionId: "session-1",
+        questionId: "question-1",
         questionKey: "investment_thesis",
         answerJson: null,
       }),

@@ -258,7 +258,10 @@ class SqliteQueryBuilder {
     const columns = Object.keys(payload);
     const params = { ...payload, ...this.filterParams() };
     const setSql = columns.map((column) => `${quoteIdent(column)} = @${column}`).join(", ");
-    const updateTimeSql = columns.includes("updated_at") ? "" : ", updated_at = datetime('now')";
+    const updateTimeSql =
+      columns.includes("updated_at") || !tableHasColumn(this.table, "updated_at")
+        ? ""
+        : ", updated_at = datetime('now')";
 
     getSqliteDatabase()
       .prepare(
@@ -474,6 +477,14 @@ function ensureTableForColumns(table: string, columns: string[]) {
       )
       .run();
   }
+}
+
+function tableHasColumn(table: string, column: string) {
+  ensureTable(table);
+  return getSqliteDatabase()
+    .prepare(`pragma table_info(${quoteIdent(table)})`)
+    .all()
+    .some((existingColumn) => (existingColumn as { name: string }).name === column);
 }
 
 function sqliteType(value: unknown) {
