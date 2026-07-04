@@ -14,6 +14,30 @@ export type ExistingRuleQuestion = {
   question_text: string;
 };
 
+export type ReviewQualityCheckQuestionCandidate = {
+  checkKey: string;
+  label: string;
+  severity: "low" | "medium" | "high" | string;
+  suggestedQuestion?: string;
+};
+
+export function buildQuestionsFromQualityChecks(
+  qualityChecks: ReviewQualityCheckQuestionCandidate[],
+): ReviewNextQuestionCandidate[] {
+  return qualityChecks
+    .filter((check) => check.suggestedQuestion?.trim())
+    .map((check) => ({
+      questionKey: `quality_check_${check.checkKey}`,
+      questionText: check.suggestedQuestion?.trim() ?? "",
+      questionType: "free_text",
+      helpText: `${check.label}について、あなたの判断基準を追記してください。`,
+      priority:
+        check.severity === "high" ? 5 : check.severity === "medium" ? 4 : 3,
+      isRequired: true,
+      mapsToRuleField: undefined,
+    }));
+}
+
 export function selectNewReviewQuestions(params: {
   nextQuestions: ReviewNextQuestionCandidate[];
   existingQuestions: ExistingRuleQuestion[];
@@ -30,11 +54,22 @@ export function selectNewReviewQuestions(params: {
     params.existingQuestions.map((question) => question.question_text),
   );
 
-  return params.nextQuestions
-    .filter(
-      (question) =>
-        !existingQuestionKeys.has(question.questionKey) &&
-        !existingQuestionTexts.has(question.questionText),
-    )
-    .slice(0, remainingQuestionSlots);
+  const selected: ReviewNextQuestionCandidate[] = [];
+
+  for (const question of params.nextQuestions) {
+    if (
+      existingQuestionKeys.has(question.questionKey) ||
+      existingQuestionTexts.has(question.questionText)
+    ) {
+      continue;
+    }
+
+    selected.push(question);
+    existingQuestionKeys.add(question.questionKey);
+    existingQuestionTexts.add(question.questionText);
+
+    if (selected.length >= remainingQuestionSlots) break;
+  }
+
+  return selected;
 }

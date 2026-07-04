@@ -17,6 +17,7 @@ import {
 } from "@/lib/ai/model-config";
 import { zeroAIUsage } from "@/lib/ai/usage/token-usage";
 import {
+  buildQuestionsFromQualityChecks,
   selectNewReviewQuestions,
   type ReviewNextQuestionCandidate,
 } from "@/features/rules/services/rule-review-question-selection";
@@ -481,8 +482,12 @@ export async function runRuleReview(params: {
     status: string;
   }>;
   const maxQuestionCount = Number(session.max_question_count ?? 12);
+  const reviewQuestionCandidates = [
+    ...(review.nextQuestions as ReviewNextQuestionCandidate[]),
+    ...buildQuestionsFromQualityChecks(review.qualityChecks),
+  ];
   const questionsToInsert = selectNewReviewQuestions({
-    nextQuestions: review.nextQuestions as ReviewNextQuestionCandidate[],
+    nextQuestions: reviewQuestionCandidates,
     existingQuestions: existingQuestionList,
     maxQuestionCount,
   });
