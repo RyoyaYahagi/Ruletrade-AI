@@ -8,6 +8,7 @@ const mockFetch = vi.fn();
 
 describe("GeminiProvider", () => {
   beforeEach(() => {
+    mockFetch.mockReset();
     vi.stubEnv("GEMINI_API_KEY", "test-api-key");
     global.fetch = mockFetch;
     vi.stubEnv("AI_TIMEOUT_MS", "30000");
@@ -39,6 +40,14 @@ describe("GeminiProvider", () => {
           ...usage,
         },
       }),
+      text: async () => text,
+    };
+  }
+
+  function createErrorResponse(status: number, text: string) {
+    return {
+      ok: false,
+      status,
       text: async () => text,
     };
   }
@@ -132,12 +141,25 @@ describe("GeminiProvider", () => {
       );
     });
 
-    it("HTTPエラー (429) で AI_PROVIDER_RATE_LIMITED を投げる", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 429,
-        text: async () => "rate limited",
+    it("一時的な 503 はリトライして成功する", async () => {
+      mockFetch
+        .mockResolvedValueOnce(createErrorResponse(503, "high demand"))
+        .mockResolvedValueOnce(createSuccessResponse('{"result": "hello"}'));
+
+      const provider = new GeminiProvider();
+      const result = await provider.generateObject({
+        taskType: "eval",
+        schema: dummySchema,
+        schemaName: "TestSchema",
+        messages: [{ role: "user", content: "test" }],
       });
+
+      expect(result.data).toEqual({ result: "hello" });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("HTTPエラー (429) で AI_PROVIDER_RATE_LIMITED を投げる", async () => {
+      mockFetch.mockResolvedValue(createErrorResponse(429, "rate limited"));
 
       const provider = new GeminiProvider();
       await expect(

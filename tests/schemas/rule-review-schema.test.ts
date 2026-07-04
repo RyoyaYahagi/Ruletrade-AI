@@ -73,6 +73,28 @@ describe("RuleReviewSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("clamps next question priority into the supported range", () => {
+    const result = RuleReviewSchema.safeParse({
+      ...validReview,
+      nextQuestions: [
+        {
+          questionKey: "position_size",
+          questionText: "最大投資比率はどのくらいにしますか？",
+          questionType: "multi_choice",
+          options: [{ value: "undecided", label: "まだ決めていない" }],
+          priority: 8,
+          isRequired: true,
+          source: "ai",
+          status: "pending",
+          displayOrder: 0,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.nextQuestions[0]?.priority).toBe(5);
+  });
+
   it("rejects completionScore over 100", () => {
     const result = RuleReviewSchema.safeParse({
       ...validReview,
