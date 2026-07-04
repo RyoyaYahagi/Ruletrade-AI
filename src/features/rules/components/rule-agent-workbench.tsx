@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Database,
+  FileText,
   GitBranch,
   ShieldCheck,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   agentDefinitions,
+  type RuleSessionSummary,
   ruleStatusLabels,
   sampleInvestmentMemory,
   sampleRule,
@@ -33,11 +35,43 @@ const severityClassName = {
   blocker: "border-rose-200 bg-rose-50 text-rose-950",
 };
 
-export function AgentWorkbench() {
+const ruleSessionStatusLabels: Record<string, string> = {
+  draft: "下書き",
+  in_progress: "作成中",
+  needs_more_info: "追加情報待ち",
+  quality_gate_passed: "レビュー通過",
+  paused: "一時停止",
+  finalized: "確定済み",
+  archived: "アーカイブ",
+};
+
+const qualityGateStatusLabels: Record<string, string> = {
+  not_reviewed: "未レビュー",
+  pending: "確認中",
+  passed: "通過",
+  failed: "要修正",
+  blocked: "ブロック",
+};
+
+const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function AgentWorkbench({
+  ruleSessions = [],
+}: {
+  ruleSessions?: RuleSessionSummary[];
+}) {
   const ruleValidation = validateTradingRule(sampleRule);
 
   return (
-    <main className="min-h-screen bg-background text-foreground" data-testid="dashboard-workbench">
+    <main
+      className="min-h-screen bg-background text-foreground"
+      data-testid="dashboard-workbench"
+    >
       <section className="border-b bg-muted/30">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -66,6 +100,72 @@ export function AgentWorkbench() {
                 New rule
               </Link>
             </div>
+          </div>
+
+          <div className="rounded-lg border bg-background p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FileText className="size-4 text-muted-foreground" />
+                  <h2 className="text-sm font-medium">保存済み投資ルール</h2>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  作成中・確定済みのルールセッションを確認できます。
+                </p>
+              </div>
+              <Link
+                href="/rules/new"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <ClipboardCheck />
+                New rule
+              </Link>
+            </div>
+
+            {ruleSessions.length > 0 ? (
+              <div className="mt-4 divide-y rounded-lg border">
+                {ruleSessions.map((session) => (
+                  <Link
+                    key={session.id}
+                    href={`/rules/${session.id}`}
+                    className="block p-4 transition hover:bg-muted/40"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-base font-medium">
+                          {session.company_name
+                            ? `${session.company_name} (${session.ticker})`
+                            : session.ticker}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          質問 {session.question_count}/
+                          {session.max_question_count} ・ 更新{" "}
+                          {dateFormatter.format(new Date(session.updated_at))}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="rounded-md border px-2 py-1 text-xs font-medium">
+                          {ruleSessionStatusLabels[session.status] ??
+                            session.status}
+                        </span>
+                        <span className="rounded-md border bg-muted/30 px-2 py-1 text-xs text-muted-foreground">
+                          {qualityGateStatusLabels[
+                            session.quality_gate_status
+                          ] ?? session.quality_gate_status}
+                        </span>
+                        <span className="rounded-md border bg-muted/30 px-2 py-1 text-xs text-muted-foreground">
+                          {session.completion_score}%
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
+                まだ保存済みルールはありません。新しい投資ルールを作ると、ここに表示されます。
+              </div>
+            )}
           </div>
 
           <div className="grid gap-3 md:grid-cols-5">
