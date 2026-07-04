@@ -27,6 +27,53 @@ function getConfiguredModelForLog(): string {
   return "mock-model";
 }
 
+const RULE_REVIEW_JSON_FORMAT = `
+Return only one JSON object. Do not wrap it in markdown or add commentary.
+The JSON object must have exactly this shape:
+{
+  "summary": "string",
+  "completionScore": 0,
+  "needsMoreInfo": true,
+  "canFinalize": false,
+  "qualityChecks": [
+    {
+      "checkKey": "string",
+      "label": "string",
+      "status": "pass | warning | fail",
+      "severity": "low | medium | high",
+      "reason": "string",
+      "suggestedQuestion": "string, optional"
+    }
+  ],
+  "nextQuestions": [
+    {
+      "questionKey": "string",
+      "questionText": "string",
+      "questionType": "free_text | single_choice | multi_choice",
+      "priority": 1,
+      "isRequired": true,
+      "mapsToRuleField": "string, optional",
+      "source": "ai",
+      "status": "pending",
+      "displayOrder": 0,
+      "helpText": "string, optional"
+    }
+  ],
+  "suggestedRuleUpdates": [],
+  "safety": {
+    "passed": true,
+    "riskLevel": "low",
+    "violations": [],
+    "prohibitedPhrasesDetected": []
+  }
+}
+Rules:
+- completionScore must be a number from 0 to 100.
+- canFinalize must be false when important information is missing.
+- nextQuestions can be [] when no more information is needed.
+- Do not recommend buying, selling, timing, target returns, or price predictions.
+`.trim();
+
 async function saveUnsafeRuleReview(params: {
   userId: string;
   sessionId: string;
@@ -148,8 +195,10 @@ export async function runRuleReview(params: {
         messages: [
           {
             role: "system",
-            content:
+            content: [
               "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
+              RULE_REVIEW_JSON_FORMAT,
+            ].join("\n\n"),
           },
           {
             role: "user",
