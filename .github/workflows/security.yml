@@ -8,7 +8,7 @@ on:
       - "src/**"
       - "scripts/security-checks/**"
       - "package.json"
-      - "pnpm-lock.yaml"
+      - "package-lock.json"
   push:
     branches: [develop, main]
     paths:
@@ -16,7 +16,7 @@ on:
       - "src/**"
       - "scripts/security-checks/**"
       - "package.json"
-      - "pnpm-lock.yaml"
+      - "package-lock.json"
   schedule:
     - cron: "0 9 * * 1"
   workflow_dispatch:
@@ -27,15 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level moderate
+          cache: "npm"
+      - run: npm ci
+      - run: npm audit --audit-level moderate
       - name: Secret scan
         uses: trufflesecurity/trufflehog@main
         with:

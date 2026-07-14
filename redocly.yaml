@@ -1,6 +1,8 @@
 apis:
   ruletrade@v1:
     root: openapi/openapi.yaml
+    x-openapi-ts:
+      output: src/generated/openapi-types.ts
 
 extends:
   - recommended

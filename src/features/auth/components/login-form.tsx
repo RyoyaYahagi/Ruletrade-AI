@@ -22,36 +22,48 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const { error } = await signInWithPassword({ email, password });
+    try {
+      const { error } = await signInWithPassword({ email, password });
 
-    setIsLoading(false);
+      if (error) {
+        setErrorMessage(
+          "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
+        );
+        return;
+      }
 
-    if (error) {
+      window.location.href = "/dashboard";
+    } catch {
       setErrorMessage(
         "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
       );
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    window.location.href = "/dashboard";
   }
 
   async function handleGuestLogin() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const { error } = await signInAsGuest();
+    try {
+      const { error } = await signInAsGuest();
 
-    setIsLoading(false);
+      if (error) {
+        setErrorMessage(
+          "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",
+        );
+        return;
+      }
 
-    if (error) {
+      window.location.href = "/dashboard";
+    } catch {
       setErrorMessage(
         "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",
       );
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    window.location.href = "/dashboard";
   }
 
   return (

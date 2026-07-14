@@ -4,597 +4,577 @@
  */
 
 export interface paths {
-  "/api/rule-sessions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rule-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List rule sessions */
+        get: operations["listRuleSessions"];
+        put?: never;
+        /** Create rule session */
+        post: operations["createRuleSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List rule sessions */
-    get: operations["listRuleSessions"];
-    put?: never;
-    /** Create rule session */
-    post: operations["createRuleSession"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rule-sessions/{sessionId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rule-sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get rule session */
+        get: operations["getRuleSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get rule session */
-    get: operations["getRuleSession"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rule-sessions/{sessionId}/review": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rule-sessions/{sessionId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run AI review for a rule session
+         * @description Runs AI review for a rule session.
+         *
+         *     The AI review checks rule completeness and missing fields.
+         *     It does not provide investment advice or buy/sell recommendations.
+         */
+        post: operations["runRuleReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Run AI review for a rule session
-     * @description Runs AI review for a rule session.
-     *
-     *     The AI review checks rule completeness and missing fields.
-     *     It does not provide investment advice or buy/sell recommendations.
-     */
-    post: operations["runRuleReview"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/documents": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List user documents */
+        get: operations["listDocuments"];
+        put?: never;
+        /** Create a document record */
+        post: operations["createDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List user documents */
-    get: operations["listDocuments"];
-    put?: never;
-    /** Create a document record */
-    post: operations["createDocument"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/privacy/settings": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/privacy/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get privacy settings */
+        get: operations["getPrivacySettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update privacy settings */
+        patch: operations["updatePrivacySettings"];
+        trace?: never;
     };
-    /** Get privacy settings */
-    get: operations["getPrivacySettings"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Update privacy settings */
-    patch: operations["updatePrivacySettings"];
-    trace?: never;
-  };
-  "/api/billing/plans": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/billing/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List billing plans */
+        get: operations["listBillingPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List billing plans */
-    get: operations["listBillingPlans"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/watchlist/items": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/watchlist/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List watchlist items */
+        get: operations["listWatchlistItems"];
+        put?: never;
+        /** Add watchlist item */
+        post: operations["addWatchlistItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List watchlist items */
-    get: operations["listWatchlistItems"];
-    put?: never;
-    /** Add watchlist item */
-    post: operations["addWatchlistItem"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    ApiSuccess: {
-      /** @constant */
-      ok: true;
-      /** @description Response payload. */
-      data: unknown;
+    schemas: {
+        ApiSuccess: {
+            /** @constant */
+            ok: true;
+            /** @description Response payload. */
+            data: unknown;
+        };
+        ApiError: {
+            /** @constant */
+            ok: false;
+            error: {
+                code: components["schemas"]["ApiErrorCode"];
+                message: string;
+                /** Format: uuid */
+                requestId: string;
+            };
+        };
+        /** @enum {string} */
+        ApiErrorCode: "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION_ERROR" | "RATE_LIMIT_EXCEEDED" | "COST_LIMIT_EXCEEDED" | "USAGE_LIMIT_EXCEEDED" | "RESOURCE_LIMIT_EXCEEDED" | "AI_OUTPUT_INVALID" | "SAFETY_BLOCKED" | "COMPLIANCE_BLOCKED" | "PROCESSING_FAILED" | "WEBHOOK_VERIFICATION_FAILED" | "INTERNAL_ERROR";
+        RuleSession: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            ticker?: string | null;
+            companyName?: string | null;
+            /** @enum {string} */
+            status: "draft" | "in_progress" | "review_ready" | "reviewed" | "finalized" | "archived";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateRuleSessionRequest: {
+            ticker?: string;
+            companyName?: string;
+            initialMemo?: string;
+        };
+        RuleReview: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sessionId: string;
+            summary: string;
+            safetyPassed: boolean;
+            compliancePassed: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PrivacySettings: {
+            aiMemoryEnabled: boolean;
+            aiLoggingEnabled: boolean;
+            aiPayloadLoggingEnabled?: boolean;
+            allowRagIndexing: boolean;
+            allowDocumentIndexing: boolean;
+            dataRetentionDays?: number | null;
+        };
+        BillingPlan: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            key: "free" | "plus" | "pro";
+        };
+        WatchlistItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            ticker: string;
+            companyName?: string | null;
+            memo?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
     };
-    ApiError: {
-      /** @constant */
-      ok: false;
-      error: {
-        code: components["schemas"]["ApiErrorCode"];
-        message: string;
-        /** Format: uuid */
-        requestId: string;
-      };
+    responses: {
+        /** @description User is not authenticated. */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description User is not allowed to access the resource. */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description Resource was not found. */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description Request validation failed. */
+        ValidationError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description Internal server error. */
+        InternalError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
     };
-    /** @enum {string} */
-    ApiErrorCode:
-      | "UNAUTHORIZED"
-      | "FORBIDDEN"
-      | "NOT_FOUND"
-      | "VALIDATION_ERROR"
-      | "RATE_LIMIT_EXCEEDED"
-      | "COST_LIMIT_EXCEEDED"
-      | "USAGE_LIMIT_EXCEEDED"
-      | "RESOURCE_LIMIT_EXCEEDED"
-      | "AI_OUTPUT_INVALID"
-      | "SAFETY_BLOCKED"
-      | "COMPLIANCE_BLOCKED"
-      | "PROCESSING_FAILED"
-      | "WEBHOOK_VERIFICATION_FAILED"
-      | "INTERNAL_ERROR";
-    RuleSession: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      userId: string;
-      ticker?: string | null;
-      companyName?: string | null;
-      /** @enum {string} */
-      status:
-        | "draft"
-        | "in_progress"
-        | "review_ready"
-        | "reviewed"
-        | "finalized"
-        | "archived";
-      /** Format: date-time */
-      createdAt: string;
-      /** Format: date-time */
-      updatedAt?: string;
+    parameters: {
+        SessionId: string;
     };
-    CreateRuleSessionRequest: {
-      ticker?: string;
-      companyName?: string;
-      initialMemo?: string;
-    };
-    RuleReview: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      sessionId: string;
-      summary: string;
-      safetyPassed: boolean;
-      compliancePassed: boolean;
-      /** Format: date-time */
-      createdAt?: string;
-    };
-    PrivacySettings: {
-      aiMemoryEnabled: boolean;
-      aiLoggingEnabled: boolean;
-      aiPayloadLoggingEnabled?: boolean;
-      allowRagIndexing: boolean;
-      allowDocumentIndexing: boolean;
-      dataRetentionDays?: number | null;
-    };
-    BillingPlan: {
-      id: string;
-      name: string;
-      /** @enum {string} */
-      key: "free" | "plus" | "pro";
-    };
-    WatchlistItem: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      userId: string;
-      ticker: string;
-      companyName?: string | null;
-      memo?: string | null;
-      /** Format: date-time */
-      createdAt: string;
-      /** Format: date-time */
-      updatedAt?: string;
-    };
-  };
-  responses: {
-    /** @description User is not authenticated. */
-    Unauthorized: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ApiError"];
-      };
-    };
-    /** @description User is not allowed to access the resource. */
-    Forbidden: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ApiError"];
-      };
-    };
-    /** @description Resource was not found. */
-    NotFound: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ApiError"];
-      };
-    };
-    /** @description Request validation failed. */
-    ValidationError: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ApiError"];
-      };
-    };
-    /** @description Internal server error. */
-    InternalError: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ApiError"];
-      };
-    };
-  };
-  parameters: {
-    SessionId: string;
-  };
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  listRuleSessions: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Rule sessions. */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    listRuleSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              sessions: components["schemas"]["RuleSession"][];
+        requestBody?: never;
+        responses: {
+            /** @description Rule sessions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            sessions: components["schemas"]["RuleSession"][];
+                        };
+                    };
+                };
             };
-          };
+            401: components["responses"]["Unauthorized"];
         };
-      };
-      401: components["responses"]["Unauthorized"];
     };
-  };
-  createRuleSession: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateRuleSessionRequest"];
-      };
-    };
-    responses: {
-      /** @description Rule session created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
+    createRuleSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              session: components["schemas"]["RuleSession"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRuleSessionRequest"];
             };
-          };
         };
-      };
-      400: components["responses"]["ValidationError"];
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  getRuleSession: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        sessionId: components["parameters"]["SessionId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Rule session. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              session: components["schemas"]["RuleSession"];
+        responses: {
+            /** @description Rule session created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            session: components["schemas"]["RuleSession"];
+                        };
+                    };
+                };
             };
-          };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      404: components["responses"]["NotFound"];
     };
-  };
-  runRuleReview: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        sessionId: components["parameters"]["SessionId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description AI review completed. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              review: components["schemas"]["RuleReview"];
+    getRuleSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
             };
-          };
+            cookie?: never;
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      404: components["responses"]["NotFound"];
-      /** @description AI output was blocked or invalid. */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiError"];
-        };
-      };
-    };
-  };
-  listDocuments: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Documents. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              documents: Record<string, never>[];
+        requestBody?: never;
+        responses: {
+            /** @description Rule session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            session: components["schemas"]["RuleSession"];
+                        };
+                    };
+                };
             };
-          };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
-      };
-      401: components["responses"]["Unauthorized"];
     };
-  };
-  createDocument: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Document created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: Record<string, never>;
-          };
-        };
-      };
-      400: components["responses"]["ValidationError"];
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  getPrivacySettings: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Privacy settings. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              settings: components["schemas"]["PrivacySettings"];
+    runRuleReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
             };
-          };
+            cookie?: never;
         };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  updatePrivacySettings: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PrivacySettings"];
-      };
-    };
-    responses: {
-      /** @description Updated privacy settings. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              settings: components["schemas"]["PrivacySettings"];
+        requestBody?: never;
+        responses: {
+            /** @description AI review completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            review: components["schemas"]["RuleReview"];
+                        };
+                    };
+                };
             };
-          };
-        };
-      };
-      400: components["responses"]["ValidationError"];
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  listBillingPlans: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Billing plans. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              plans: components["schemas"]["BillingPlan"][];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description AI output was blocked or invalid. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
-          };
         };
-      };
-      401: components["responses"]["Unauthorized"];
     };
-  };
-  listWatchlistItems: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Watchlist items. */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    listDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              items: components["schemas"]["WatchlistItem"][];
+        requestBody?: never;
+        responses: {
+            /** @description Documents. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            documents: Record<string, never>[];
+                        };
+                    };
+                };
             };
-          };
+            401: components["responses"]["Unauthorized"];
         };
-      };
-      401: components["responses"]["Unauthorized"];
     };
-  };
-  addWatchlistItem: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          ticker: string;
-          companyName?: string;
-          memo?: string;
+    createDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
-    };
-    responses: {
-      /** @description Watchlist item created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ApiSuccess"] & {
-            data?: {
-              item: components["schemas"]["WatchlistItem"];
+        requestBody?: never;
+        responses: {
+            /** @description Document created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: Record<string, never>;
+                    };
+                };
             };
-          };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
         };
-      };
-      400: components["responses"]["ValidationError"];
-      401: components["responses"]["Unauthorized"];
     };
-  };
+    getPrivacySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Privacy settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            settings: components["schemas"]["PrivacySettings"];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updatePrivacySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivacySettings"];
+            };
+        };
+        responses: {
+            /** @description Updated privacy settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            settings: components["schemas"]["PrivacySettings"];
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listBillingPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Billing plans. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            plans: components["schemas"]["BillingPlan"][];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listWatchlistItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Watchlist items. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            items: components["schemas"]["WatchlistItem"][];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    addWatchlistItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ticker: string;
+                    companyName?: string;
+                    memo?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Watchlist item created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccess"] & {
+                        data?: {
+                            item: components["schemas"]["WatchlistItem"];
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
 }
