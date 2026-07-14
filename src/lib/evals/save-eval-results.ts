@@ -1,6 +1,17 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
+
+type EvalResultRow = {
+  status?: string;
+  true_positive?: number;
+  false_positive?: number;
+  false_negative?: number;
+  schema_valid?: boolean;
+  safety_passed?: boolean;
+  latency_ms?: number;
+  estimated_cost_usd?: number;
+};
 
 export async function createEvalRun(params: {
   runName?: string;
@@ -10,9 +21,9 @@ export async function createEvalRun(params: {
   promptVersion: string;
   totalCases: number;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("eval_runs")
     .insert({
       run_name: params.runName ?? null,
@@ -58,9 +69,9 @@ export async function saveEvalRunResult(params: {
   errorCode?: string;
   errorMessage?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { error } = await supabase.from("eval_run_results").insert({
+  const { error } = await db.from("eval_run_results").insert({
     eval_run_id: params.evalRunId,
     eval_case_id: params.evalCaseId,
     ai_run_log_id: params.aiRunLogId ?? null,
@@ -90,9 +101,9 @@ export async function saveEvalRunResult(params: {
 }
 
 export async function completeEvalRun(params: { evalRunId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: results, error } = await supabase
+  const { data: results, error } = await db
     .from("eval_run_results")
     .select("*")
     .eq("eval_run_id", params.evalRunId);
@@ -101,7 +112,7 @@ export async function completeEvalRun(params: { evalRunId: string }) {
     throw error;
   }
 
-  const rows = results ?? [];
+  const rows = (results ?? []) as EvalResultRow[];
 
   const totalCases = rows.length;
   const passedCases = rows.filter((row) => row.status === "passed").length;
@@ -142,7 +153,7 @@ export async function completeEvalRun(params: { evalRunId: string }) {
     0,
   );
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from("eval_runs")
     .update({
       status: "completed",

@@ -9,7 +9,7 @@ PR merged → Preview → Staging → Production
 ## PR Preview
 
 - Automatically deployed by Vercel
-- Supabase preview branch created
+- SQLite storage volume configured for the preview environment
 - Run smoke tests
 
 ## Staging Deployment
@@ -32,7 +32,7 @@ PR merged → Preview → Staging → Production
 ## Deployment Checklist
 
 - [ ] DB migrations reviewed
-- [ ] RLS policies reviewed
+- [ ] ownership checks policies reviewed
 - [ ] Feature flags configured
 - [ ] Environment variables set
 - [ ] Secrets rotated if needed

@@ -14,8 +14,8 @@ Do not trust:
 
 Use:
 
-- Supabase Auth
-- RLS
+- Local session auth
+- Server-side ownership checks
 - server-side ownership checks
 
 ## Server to AI Provider

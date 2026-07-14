@@ -6,7 +6,7 @@ Focus on:
 
 - Scope creep
 - Type safety
-- RLS safety
+- Ownership safety
 - Auth and ownership checks
 - Secret leakage
 - AI Safety and Compliance
@@ -19,7 +19,7 @@ Flag anything that:
 
 - exposes secrets
 - trusts client userId
-- weakens RLS
+- weakens ownership checks
 - displays unsafe AI output
 - sounds like buy/sell advice
 - skips tests

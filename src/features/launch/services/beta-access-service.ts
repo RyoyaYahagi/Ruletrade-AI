@@ -1,12 +1,12 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { requireUser } from "@/lib/auth/require-user";
 
 export async function getBetaAccessForUser(params: { userId: string }) {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data, error } = await db
     .from("beta_access_grants")
     .select(`*, beta_cohorts (id, cohort_key, display_name, phase, is_active)`)
     .eq("user_id", params.userId)
@@ -29,8 +29,8 @@ export async function requireBetaAccess() {
 }
 
 export async function updateBetaLastSeen(params: { userId: string }) {
-  const supabase = await createServerClient();
-  await supabase
+  const db = await createDatabaseClient();
+  await db
     .from("beta_access_grants")
     .update({ last_seen_at: new Date().toISOString() })
     .eq("user_id", params.userId);

@@ -15,7 +15,7 @@
 - ✅ `require-admin.ts` に `app_metadata.role` の undefined/null guard を追加
 
 ### CI 自動化
-- 新規スクリプト `migration-lint.js`（RLS・重複インデックス・ポリシーパターンチェック）
+- 新規スクリプトによるSQLite schema・重複インデックス・ownershipパターンチェック
 - 新規スクリプト `pattern-check.js`（10+ セキュリティアンチパターンチェック）
 - GitHub Actions `.github/workflows/security.yml`（PR/push/週次スケジュール）
 
@@ -30,7 +30,7 @@
 | # | 領域 | 内容 | 修正状態 |
 |---|------|------|----------|
 | 1 | Auth | SQLite モードで全ユーザーが admin（`role: "admin"` ハードコード） | ✅ 修正（`MOCK_AUTH_ROLE` env var に変更） |
-| 2 | Auth | SQLite モードで RLS 完全消失（`SqliteQueryBuilder` にユーザーコンテキストなし） | ⚠️ 既知制約（P0 ガード推奨） |
+| 2 | Auth | SQLite adapter にユーザーコンテキストがない | ⚠️ API/service ownership check を必須化 |
 | 3 | Auth | `requireAdminPermission()` が `permission` 引数を無視 | ⏳ 未修正（P1） |
 | 4 | API | Mass Assignment 3 ルート（`notifications/preferences`, `legal/acceptance`, `privacy/settings`） | ✅ 修正（`body.userId` destructuring で除外） |
 | 5 | API | `investment-memory/route.ts` の情報漏洩（raw error 返却） | ⏳ 未修正（P1） |
@@ -78,7 +78,7 @@
 | # | 対策 | 対象リスク | 工数 | 効果 |
 |---|------|-----------|------|------|
 | 1 | **`MOCK_AUTH_EMAIL` の本番ガード** — `NODE_ENV === "production"` で設定を拒否 | R7 | 小（30分） | 全認証バイパス防止 |
-| 2 | **SQLite モードの本番禁止** — `DB_PROVIDER=sqlite` を production で禁止 | R1/R8 | 小（15分） | RLS 消失＋スキーマドリフト防止 |
+| 2 | **SQLiteの永続化確認** — production の durable volume を必須化 | R1/R8 | 小（15分） | データ消失＋スキーマドリフト防止 |
 | 3 | **`feedback-service.ts` の `listFeedback()` userId フィルタ追加** | R3 | **済** | 全ユーザー feedback 漏洩防止 |
 
 ### [P1] 次のスプリント

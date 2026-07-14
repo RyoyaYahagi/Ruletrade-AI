@@ -3,7 +3,7 @@ import { validateJsonRequest } from "@/lib/api/validate-request";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { UpdateStopSwitchSchema } from "@/schemas/launch/beta-schema";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { logAdminAudit } from "@/features/admin/services/admin-audit-service";
 
 export async function PATCH(
@@ -26,7 +26,7 @@ export async function PATCH(
       });
     }
     const input = await validateJsonRequest(request, UpdateStopSwitchSchema);
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
     const now = new Date().toISOString();
     const update: Record<string, unknown> = {
       is_active: input.isActive,
@@ -41,7 +41,7 @@ export async function PATCH(
       update.deactivated_by = admin.user.id;
       update.deactivation_reason = input.reason ?? null;
     }
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("launch_stop_switches")
       .update(update)
       .eq("switch_key", key)

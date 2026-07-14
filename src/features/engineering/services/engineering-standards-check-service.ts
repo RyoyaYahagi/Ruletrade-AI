@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * engineering_standards_checks テーブル CRUD
@@ -58,9 +58,9 @@ export type UpdateStandardsCheckStatusInput = {
  * Returns the created engineering standards check record.
  */
 export async function createStandardsCheck(input: CreateStandardsCheckInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_standards_checks")
     .insert({
       check_key: input.check_key,
@@ -99,9 +99,9 @@ export async function createStandardsCheck(input: CreateStandardsCheckInput) {
 export async function listStandardsChecks(
   filters?: ListStandardsChecksFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("engineering_standards_checks").select("*");
+  let query = db.from("engineering_standards_checks").select("*");
 
   // Apply filters
   if (filters) {
@@ -147,10 +147,10 @@ export async function listStandardsChecks(
 export async function updateStandardsCheckStatus(
   input: UpdateStandardsCheckStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current check to ensure it exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("engineering_standards_checks")
     .select("id, status")
     .eq("id", input.checkId)
@@ -173,7 +173,7 @@ export async function updateStandardsCheckStatus(
     payload.findings = input.findings;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_standards_checks")
     .update(payload)
     .eq("id", input.checkId)

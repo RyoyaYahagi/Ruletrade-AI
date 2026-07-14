@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export type RuleStateTransition = {
   id: string;
@@ -50,9 +50,9 @@ export function isValidTransition(
 export async function recordRuleStateTransition(
   input: CreateRuleStateTransitionInput
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("rule_state_transitions")
     .insert({
       rule_id: input.rule_id,
@@ -77,11 +77,11 @@ export async function recordRuleStateTransition(
 export async function listRuleStateTransitions(
   filters?: ListRuleStateTransitionsFilters
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const limit = Math.min(filters?.limit ?? 50, 100);
 
-  let request = supabase
+  let request = db
     .from("rule_state_transitions")
     .select("*")
     .order("created_at", { ascending: false })
@@ -101,9 +101,9 @@ export async function listRuleStateTransitions(
 }
 
 export async function getRuleAuditTrail(ruleId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("rule_state_transitions")
     .select("*")
     .eq("rule_id", ruleId)

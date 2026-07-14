@@ -6,9 +6,9 @@ This guide explains how to develop Ruletrade-AI.
 
 - Next.js App Router
 - TypeScript
-- Supabase Auth
-- Supabase Postgres
-- Supabase Storage
+- Local session authentication
+- SQLite
+- Local file storage
 - pgvector
 - AI Provider Gateway
 - OpenAI / Gemini / Mock Provider

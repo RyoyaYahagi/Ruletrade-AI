@@ -2,7 +2,7 @@
 
 ## Local
 
-- Supabase local stack
+- SQLite local database and local file storage
 - Mock providers (AI, Stripe, Email)
 - `.env.local` with test keys
 - No real user data
@@ -10,21 +10,21 @@
 ## Preview (PR)
 
 - Vercel preview deployment
-- Supabase preview branch
+- Preview SQLite volume
 - Sandbox providers
 - Used for visual QA and API testing
 
 ## Staging
 
 - Vercel production-like deployment
-- Supabase staging project
+- Staging SQLite volume
 - Sandbox providers
 - Final validation before production
 
 ## Production
 
 - Vercel production deployment
-- Supabase production project
+- Production SQLite volume
 - Live providers (AI, Stripe, Email)
 - Real user data
 
@@ -33,8 +33,8 @@
 | Variable | Local | Preview | Staging | Production |
 |----------|-------|---------|---------|------------|
 | `NODE_ENV` | development | production | production | production |
-| `NEXT_PUBLIC_SUPABASE_URL` | local | preview | staging | prod |
-| `SUPABASE_SERVICE_ROLE_KEY` | local key | preview key | staging key | prod key |
+| `SQLITE_DATABASE_PATH` | local | preview | staging | prod |
+| `LOCAL_STORAGE_PATH` | local | preview | staging | prod |
 | `OPENAI_API_KEY` | mock | sandbox | sandbox | live |
 | `STRIPE_SECRET_KEY` | mock | test | test | live |
 | `STRIPE_WEBHOOK_SECRET` | mock | test | test | live |

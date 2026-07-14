@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import {
 } from "@/features/auth/services/auth-client-service";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +34,7 @@ export function LoginForm() {
         return;
       }
 
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
     } catch {
       setErrorMessage(
         "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
@@ -56,7 +58,7 @@ export function LoginForm() {
         return;
       }
 
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
     } catch {
       setErrorMessage(
         "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",

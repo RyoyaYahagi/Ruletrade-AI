@@ -7,7 +7,7 @@ import {
   generateInviteCode,
   hashInviteCode,
 } from "@/features/launch/services/beta-invite-code-service";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { logAdminAudit } from "@/features/admin/services/admin-audit-service";
 
 export async function POST(request: Request) {
@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     );
     const rawCode = generateInviteCode();
     const codeHash = hashInviteCode(rawCode);
-    const supabase = await createServerClient();
-    const { data, error } = await supabase
+    const db = await createDatabaseClient();
+    const { data, error } = await db
       .from("beta_invite_codes")
       .insert({
         code_hash: codeHash,

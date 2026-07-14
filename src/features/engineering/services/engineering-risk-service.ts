@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * engineering_risk_register テーブル CRUD
@@ -75,9 +75,9 @@ export type UpdateEngineeringRiskStatusInput = {
  * Returns the created engineering risk record.
  */
 export async function createEngineeringRisk(input: CreateEngineeringRiskInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_risk_register")
     .insert({
       risk_key: input.risk_key,
@@ -123,9 +123,9 @@ export async function createEngineeringRisk(input: CreateEngineeringRiskInput) {
 export async function listEngineeringRisks(
   filters?: ListEngineeringRisksFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("engineering_risk_register").select("*");
+  let query = db.from("engineering_risk_register").select("*");
 
   // Apply filters
   if (filters) {
@@ -172,10 +172,10 @@ export async function listEngineeringRisks(
 export async function updateEngineeringRiskStatus(
   input: UpdateEngineeringRiskStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current risk to ensure it exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("engineering_risk_register")
     .select("id, status")
     .eq("id", input.riskId)
@@ -202,7 +202,7 @@ export async function updateEngineeringRiskStatus(
     payload.mitigation_plan = input.mitigationPlan;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_risk_register")
     .update(payload)
     .eq("id", input.riskId)

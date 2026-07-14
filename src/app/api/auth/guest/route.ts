@@ -4,10 +4,10 @@ import {
   GUEST_SESSION_COOKIE,
   GUEST_SESSION_COOKIE_VALUE,
 } from "@/lib/auth/guest-session";
-import { getDatabaseProvider } from "@/lib/db/provider";
 
 export async function POST() {
-  if (process.env.NODE_ENV === "production" || getDatabaseProvider() !== "sqlite") {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction) {
     return Response.json(
       {
         ok: false,
@@ -26,6 +26,7 @@ export async function POST() {
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
     sameSite: "lax",
+    secure: isProduction,
   });
 
   return Response.json({

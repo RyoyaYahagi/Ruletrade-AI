@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import type {
   FeatureFlagProvider,
   FeatureFlagValue,
@@ -13,10 +13,10 @@ export class DbFeatureFlagProvider implements FeatureFlagProvider {
     defaultValue: T,
     context: FeatureFlagContext,
   ): Promise<T> {
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
     // 1. Fetch the flag definition
-    const { data: flag, error: flagError } = await supabase
+    const { data: flag, error: flagError } = await db
       .from("feature_flags")
       .select("id, flag_type, default_value, is_enabled, is_safety_critical")
       .eq("flag_key", flagKey)
@@ -37,7 +37,7 @@ export class DbFeatureFlagProvider implements FeatureFlagProvider {
     }
 
     // 3. Fetch rules for this flag and environment
-    const { data: rules, error: rulesError } = await supabase
+    const { data: rules, error: rulesError } = await db
       .from("feature_flag_rules")
       .select("id, rule_type, conditions_json, value_json, priority")
       .eq("feature_flag_id", flag.id)
@@ -58,7 +58,7 @@ export class DbFeatureFlagProvider implements FeatureFlagProvider {
       );
       if (matches) {
         // 5. Log evaluation
-        await supabase.from("feature_flag_evaluations").insert({
+        await db.from("feature_flag_evaluations").insert({
           user_id: context.userId,
           flag_key: flagKey,
           environment: context.environment,

@@ -1,13 +1,13 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { getOrCreateMainPortfolio } from "@/features/portfolio/services/portfolio-service";
 
 export async function listPortfolioPositions(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("portfolio_positions")
     .select("*")
     .eq("user_id", params.userId)
@@ -48,13 +48,13 @@ export async function createPortfolioPosition(params: {
   positionStatus?: string;
   memo?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const { portfolio } = await getOrCreateMainPortfolio({
     userId: params.userId,
   });
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("portfolio_positions")
     .insert({
       user_id: params.userId,

@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { validateJsonRequest } from "@/lib/api/validate-request";
 import { WatchlistItemSchema } from "@/schemas/watchlist/watchlist-item-schema";
@@ -14,8 +14,8 @@ export async function GET(
   try {
     const user = await requireUser();
     const { itemId } = await params;
-    const supabase = await createServerClient();
-    const { data, error } = await supabase
+    const db = await createDatabaseClient();
+    const { data, error } = await db
       .from("watchlist_items")
       .select("*")
       .eq("id", itemId)
@@ -44,7 +44,7 @@ export async function PATCH(
       request,
       WatchlistItemSchema.partial(),
     );
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
     const updateData: Record<string, unknown> = {};
     if (input.ticker !== undefined) updateData.ticker = input.ticker;
@@ -78,7 +78,7 @@ export async function PATCH(
     if (input.ruleSessionId !== undefined)
       updateData.rule_session_id = input.ruleSessionId;
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("watchlist_items")
       .update(updateData)
       .eq("id", itemId)
@@ -109,8 +109,8 @@ export async function DELETE(
   try {
     const user = await requireUser();
     const { itemId } = await params;
-    const supabase = await createServerClient();
-    const { error } = await supabase
+    const db = await createDatabaseClient();
+    const { error } = await db
       .from("watchlist_items")
       .delete()
       .eq("id", itemId)

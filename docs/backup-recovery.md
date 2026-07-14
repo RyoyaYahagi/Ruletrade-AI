@@ -2,8 +2,8 @@
 
 ## What we protect
 
-- Postgres DB (Supabase)
-- Supabase Storage objects
+- SQLite database file
+- Local storage objects
 - Vercel deployment (rollback)
 - App config / env vars
 
@@ -11,21 +11,21 @@
 
 | Tier   | Data                             | RPO | RTO | Recovery method                    |
 | ------ | -------------------------------- | --- | --- | ---------------------------------- |
-| Tier 1 | User accounts, rules, portfolios | 1h  | 2h  | Supabase PITR or pg_dump restore   |
+| Tier 1 | User accounts, rules, portfolios | 1h  | 2h  | SQLite file snapshot              |
 | Tier 2 | Documents, memos, AI outputs     | 4h  | 4h  | Logical backup + selective restore |
 | Tier 3 | Audit logs, legal acceptances    | 24h | 8h  | Long-term backup archive           |
 
 ## Backup policy
 
-- Supabase automated backups: daily snapshots (enabled by default on Pro)
-- Logical backup: weekly `pg_dump` to encrypted storage
+- SQLite file backup: daily snapshots to encrypted storage
+- Logical backup: weekly export of SQLite data to encrypted storage
 - Storage objects: weekly inventory + checksum verification
 - Before destructive migration: manual snapshot + approval
 
 ## Restore policy
 
 - Restore only to staging/local first
-- Verify RLS policies after restore
+- Verify ownership checks after restore
 - Verify privacy delete consistency after restore
 - Document restore time and issues in `restore_drills`
 
@@ -33,7 +33,7 @@
 
 | Severity             | Decision                              |
 | -------------------- | ------------------------------------- |
-| P1 (service down)    | Vercel rollback + DB PITR             |
+| P1 (service down)    | Vercel rollback + SQLite restore     |
 | P2 (data corruption) | Feature flag OFF + DB forward-fix     |
 | P3 (partial loss)    | Selective restore from logical backup |
 | P4 (minor bug)       | Hotfix deploy                         |
@@ -48,9 +48,9 @@
 ## Runbook: DB restore
 
 1. Pause production writes (maintenance mode)
-2. Restore from Supabase dashboard or `pg_dump`
+2. Restore the SQLite database and local storage snapshot
 3. Run smoke tests
-4. Verify RLS
+4. Verify ownership checks
 5. Resume writes
 
 ## Runbook: Storage restore
@@ -70,4 +70,4 @@
 
 - Never rewrite existing migrations
 - Destructive migrations require: pre-backup, approval, forward-fix plan
-- After migration: RLS / privacy / billing / smoke check
+- After migration: ownership / privacy / billing / smoke check

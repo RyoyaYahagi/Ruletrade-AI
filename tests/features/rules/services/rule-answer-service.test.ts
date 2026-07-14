@@ -1,15 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { saveRuleAnswer } from "@/features/rules/services/rule-answer-service";
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
 vi.mock("@/features/rules/services/rule-draft-service", () => ({
   applyAnswerToRuleJson: vi.fn(),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
 
 const mockSingle = vi.fn();
@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockSingle.mockReset();
   mockUpdateEqB.mockResolvedValue({ data: [], error: null });
-  vi.mocked(createServerClient).mockResolvedValue({
+  vi.mocked(createDatabaseClient).mockResolvedValue({
     from: mockFrom,
   } as unknown);
   vi.mocked(applyAnswerToRuleJson).mockResolvedValue({

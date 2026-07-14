@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import {
   AgentRole,
   WorkflowStepStatus,
@@ -31,9 +31,9 @@ export type CreateWorkflowInput = {
 };
 
 export async function createAgentWorkflow(input: CreateWorkflowInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: workflow, error: workflowError } = await supabase
+  const { data: workflow, error: workflowError } = await db
     .from("agent_workflows")
     .insert({
       rule_id: input.ruleId ?? null,
@@ -61,7 +61,7 @@ export async function createAgentWorkflow(input: CreateWorkflowInput) {
     cost_estimate: null,
   }));
 
-  const { data: steps, error: stepsError } = await supabase
+  const { data: steps, error: stepsError } = await db
     .from("agent_workflow_steps")
     .insert(stepsToInsert)
     .select("*");
@@ -79,9 +79,9 @@ export async function createAgentWorkflow(input: CreateWorkflowInput) {
 }
 
 export async function getWorkflowById(id: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: workflow, error: workflowError } = await supabase
+  const { data: workflow, error: workflowError } = await db
     .from("agent_workflows")
     .select("*")
     .eq("id", id)
@@ -91,7 +91,7 @@ export async function getWorkflowById(id: string) {
     throw workflowError;
   }
 
-  const { data: steps, error: stepsError } = await supabase
+  const { data: steps, error: stepsError } = await db
     .from("agent_workflow_steps")
     .select("*")
     .eq("workflow_id", id)
@@ -117,7 +117,7 @@ export async function updateWorkflowStep(params: {
   modelUsed?: string | null;
   costEstimate?: number | null;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status: params.status,
@@ -147,7 +147,7 @@ export async function updateWorkflowStep(params: {
     payload.completed_at = new Date().toISOString();
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("agent_workflow_steps")
     .update(payload)
     .eq("id", params.stepId)

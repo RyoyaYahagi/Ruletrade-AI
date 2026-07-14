@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_plans テーブル CRUD
@@ -24,7 +24,7 @@ export type ReleasePlan = {
   github_release_url: string | null;
   vercel_deployment_url: string | null;
   includes_db_migration: boolean | null;
-  includes_rls_change: boolean | null;
+  includes_data_access_change: boolean | null;
   includes_env_change: boolean | null;
   includes_feature_flag_change: boolean | null;
   includes_ai_prompt_change: boolean | null;
@@ -56,7 +56,7 @@ export type CreateReleasePlanInput = {
   github_release_url?: string;
   vercel_deployment_url?: string;
   includes_db_migration?: boolean;
-  includes_rls_change?: boolean;
+  includes_data_access_change?: boolean;
   includes_env_change?: boolean;
   includes_feature_flag_change?: boolean;
   includes_ai_prompt_change?: boolean;
@@ -84,9 +84,9 @@ export type ListReleasePlansFilters = {
  * Create a new release plan.
  */
 export async function createReleasePlan(input: CreateReleasePlanInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_plans")
     .insert({
       release_key: input.release_key,
@@ -105,7 +105,7 @@ export async function createReleasePlan(input: CreateReleasePlanInput) {
       github_release_url: input.github_release_url ?? null,
       vercel_deployment_url: input.vercel_deployment_url ?? null,
       includes_db_migration: input.includes_db_migration ?? null,
-      includes_rls_change: input.includes_rls_change ?? null,
+      includes_data_access_change: input.includes_data_access_change ?? null,
       includes_env_change: input.includes_env_change ?? null,
       includes_feature_flag_change: input.includes_feature_flag_change ?? null,
       includes_ai_prompt_change: input.includes_ai_prompt_change ?? null,
@@ -137,9 +137,9 @@ export async function createReleasePlan(input: CreateReleasePlanInput) {
  * Results are ordered by created_at descending.
  */
 export async function listReleasePlans(filters?: ListReleasePlansFilters) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("release_plans").select("*");
+  let query = db.from("release_plans").select("*");
 
   // Apply filters
   if (filters) {
@@ -162,9 +162,9 @@ export async function listReleasePlans(filters?: ListReleasePlansFilters) {
  * Get a single release plan by its unique `release_key`.
  */
 export async function getReleasePlanByKey(releaseKey: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_plans")
     .select("*")
     .eq("release_key", releaseKey)
@@ -189,7 +189,7 @@ export async function updateReleasePlanStatus(
   releaseKey: string,
   input: UpdateReleasePlanStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status: input.status,
@@ -216,7 +216,7 @@ export async function updateReleasePlanStatus(
     payload.approved_by = input.approved_by;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_plans")
     .update(payload)
     .eq("release_key", releaseKey)

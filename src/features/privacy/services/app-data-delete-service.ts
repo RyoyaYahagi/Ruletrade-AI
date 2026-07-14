@@ -1,11 +1,11 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { deleteAllUserStorageObjects } from "@/features/privacy/services/storage-delete-service";
 import { logPrivacyAudit } from "@/features/privacy/services/privacy-audit-service";
 
 export async function deleteUserAppData(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   await deleteAllUserStorageObjects({ userId: params.userId });
 
@@ -41,7 +41,7 @@ export async function deleteUserAppData(params: { userId: string }) {
   ];
 
   for (const table of deleteOrder) {
-    await supabase.from(table).delete().eq("user_id", params.userId);
+    await db.from(table).delete().eq("user_id", params.userId);
   }
 
   await logPrivacyAudit({

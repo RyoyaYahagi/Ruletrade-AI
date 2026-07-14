@@ -1,11 +1,11 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function isStopSwitchActive(params: { switchKey: string }) {
   if (process.env.ENABLE_LAUNCH_STOP_SWITCHES !== "true") return false;
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data, error } = await db
     .from("launch_stop_switches")
     .select("is_active")
     .eq("switch_key", params.switchKey)

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_changelog_entries テーブル CRUD
@@ -12,7 +12,7 @@ import { createServerClient } from "@/lib/db/supabase-server";
 
 const FORBIDDEN_PUBLIC_CHANGELOG_TERMS = [
   "Service Role Key",
-  "RLS bypass",
+  "ownership bypass",
   "脆弱性の詳細",
   "攻撃手順",
   "secret",
@@ -91,9 +91,9 @@ export async function createReleaseChangelogEntry(
     validatePublicChangelogSafety(input.body);
   }
 
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_changelog_entries")
     .insert({
       release_plan_id: input.releasePlanId,
@@ -129,9 +129,9 @@ export async function createReleaseChangelogEntry(
  * Results are ordered by `sort_order` ascending, then `created_at` ascending.
  */
 export async function listChangelogEntriesByReleasePlan(releasePlanId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_changelog_entries")
     .select("*")
     .eq("release_plan_id", releasePlanId)

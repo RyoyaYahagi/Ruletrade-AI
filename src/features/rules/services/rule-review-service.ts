@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { AppError } from "@/lib/errors/app-error";
@@ -204,9 +204,9 @@ async function saveUnsafeRuleReview(params: {
   review: unknown;
   safety: unknown;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { error } = await supabase.from("rule_reviews").insert({
+  const { error } = await db.from("rule_reviews").insert({
     user_id: params.userId,
     session_id: params.sessionId,
     ai_run_log_id: params.aiRunLogId,
@@ -241,8 +241,8 @@ export async function runRuleReview(params: {
   sessionId: string;
   requestId?: string;
 }) {
-  const supabase = await createServerClient();
-  const { data: session, error: sessionError } = await supabase
+  const db = await createDatabaseClient();
+  const { data: session, error: sessionError } = await db
     .from("rule_design_sessions")
     .select("*")
     .eq("id", params.sessionId)
@@ -394,7 +394,7 @@ export async function runRuleReview(params: {
     );
   }
 
-  const { data: savedReview, error: reviewError } = await supabase
+  const { data: savedReview, error: reviewError } = await db
     .from("rule_reviews")
     .insert({
       user_id: params.userId,
@@ -427,7 +427,7 @@ export async function runRuleReview(params: {
   }
 
   if (review.qualityChecks.length > 0) {
-    const { error: checksError } = await supabase
+    const { error: checksError } = await db
       .from("rule_quality_checks")
       .insert(
         review.qualityChecks.map(
@@ -462,7 +462,7 @@ export async function runRuleReview(params: {
   }
 
   const { data: existingQuestions, error: existingQuestionsError } =
-    await supabase
+    await db
       .from("rule_questions")
       .select("question_key, question_text, status")
       .eq("session_id", params.sessionId)
@@ -493,7 +493,7 @@ export async function runRuleReview(params: {
   });
 
   if (questionsToInsert.length > 0) {
-    const { error: questionsError } = await supabase
+    const { error: questionsError } = await db
       .from("rule_questions")
       .insert(
         questionsToInsert.map((question, index: number) => ({
@@ -525,7 +525,7 @@ export async function runRuleReview(params: {
   const nextStatus = review.canFinalize
     ? "quality_gate_passed"
     : "needs_more_info";
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from("rule_design_sessions")
     .update({
       completion_score: review.completionScore,

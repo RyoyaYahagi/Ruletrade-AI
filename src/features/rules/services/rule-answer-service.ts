@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
 
@@ -12,8 +12,8 @@ export async function saveRuleAnswer(params: {
   answerText?: string;
   answerJson: unknown;
 }) {
-  const supabase = await createServerClient();
-  const { data: answer, error: answerError } = await supabase
+  const db = await createDatabaseClient();
+  const { data: answer, error: answerError } = await db
     .from("rule_answers")
     .insert({
       user_id: params.userId,
@@ -34,7 +34,7 @@ export async function saveRuleAnswer(params: {
     );
   }
   if (params.questionId) {
-    const { error: questionError } = await supabase
+    const { error: questionError } = await db
       .from("rule_questions")
       .update({ status: "answered", answered_at: new Date().toISOString() })
       .eq("id", params.questionId)

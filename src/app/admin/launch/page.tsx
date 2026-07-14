@@ -1,7 +1,5 @@
-export const dynamic = "force-dynamic";
-
 import { requireAdminPermission } from "@/features/admin/services/admin-auth-service";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 interface Review {
   id: string;
@@ -20,12 +18,12 @@ interface StopSwitch {
 
 export default async function Page() {
   await requireAdminPermission("admin.launch.read");
-  const supabase = await createServerClient();
-  const { data: reviews } = await supabase
+  const db = await createDatabaseClient();
+  const { data: reviews } = await db
     .from("launch_readiness_reviews")
     .select("*")
     .order("created_at", { ascending: false });
-  const { data: switches } = await supabase
+  const { data: switches } = await db
     .from("launch_stop_switches")
     .select("*")
     .order("switch_key");

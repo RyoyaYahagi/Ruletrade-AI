@@ -2,16 +2,32 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
 
-const mockRpc = vi.fn();
 const mockInsert = vi.fn();
+const mockQueryResult = vi.fn();
 const mockCreateEmbeddings = vi.fn();
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(async () => ({
-    from: vi.fn(() => ({
-      insert: mockInsert,
-    })),
-    rpc: mockRpc,
+function createAwaitableQuery(result: unknown | (() => unknown)) {
+  const resolveResult = () =>
+    typeof result === "function" ? result() : result;
+  return {
+    in: vi.fn(() => createAwaitableQuery(result)),
+    then: (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
+      Promise.resolve(resolveResult()).then(resolve, reject),
+  };
+}
+
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(async () => ({
+    from: vi.fn((table: string) => {
+      if (table === "rag_chunks") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => createAwaitableQuery(() => mockQueryResult())),
+          })),
+        };
+      }
+      return { insert: mockInsert };
+    }),
   })),
 }));
 
@@ -32,14 +48,8 @@ describe("retrieveRagContext", () => {
     mockInsert.mockResolvedValue({ data: null, error: null });
   });
 
-  it("returns empty context when local SQLite RPC is unsupported", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: null,
-      error: {
-        code: "SQLITE_UNSUPPORTED",
-        message: "Supabase RPC is not available with SQLite",
-      },
-    });
+  it("returns empty context when SQLite has no matching chunks", async () => {
+    mockQueryResult.mockReturnValueOnce({ data: [], error: null });
 
     await expect(
       retrieveRagContext({
@@ -52,17 +62,13 @@ describe("retrieveRagContext", () => {
       contextText: "",
     });
 
-    expect(mockRpc).toHaveBeenCalledWith("match_rag_chunks", expect.any(Object));
-    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockInsert).toHaveBeenCalled();
   });
 
-  it("throws other RAG RPC errors", async () => {
-    mockRpc.mockResolvedValueOnce({
+  it("throws SQLite query errors", async () => {
+    mockQueryResult.mockReturnValueOnce({
       data: null,
-      error: {
-        code: "DATABASE_ERROR",
-        message: "failed",
-      },
+      error: { message: "failed" },
     });
 
     await expect(
@@ -71,9 +77,6 @@ describe("retrieveRagContext", () => {
         taskType: "rule_review",
         queryText: "review this rule",
       }),
-    ).rejects.toMatchObject({
-      code: "DATABASE_ERROR",
-      message: "failed",
-    });
+    ).rejects.toMatchObject({ message: "failed" });
   });
 });

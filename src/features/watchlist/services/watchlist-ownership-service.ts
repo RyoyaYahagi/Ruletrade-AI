@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 /**
@@ -12,9 +12,9 @@ export async function assertWatchlistItemOwnership(params: {
   userId: string;
   itemId: string;
 }): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: item, error } = await supabase
+  const { data: item, error } = await db
     .from("watchlist_items")
     .select("id, user_id")
     .eq("id", params.itemId)

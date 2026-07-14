@@ -15,7 +15,7 @@ Agents must not:
 - access secrets
 - deploy to production
 - change production environment variables
-- weaken RLS
+- weaken ownership checks
 - bypass safety checks
 - change legal boundaries
 - make broad refactors without instruction
@@ -37,7 +37,7 @@ All agent PRs require human review.
 Critical areas require careful review:
 
 - Auth
-- RLS
+- ownership checks
 - Security
 - Billing
 - Privacy
@@ -56,9 +56,9 @@ Critical areas require careful review:
 - Do not edit `.env.local`.
 - Do not write secrets in code.
 - Do not use `NEXT_PUBLIC_` for secrets.
-- Do not use `SUPABASE_SERVICE_ROLE_KEY` from client.
+- Do not use privileged database access from client.
 - Do not call AI providers from client components.
-- Do not disable RLS.
+- Do not disable ownership checks.
 - Do not use `any` to suppress type errors.
 - Do not add `eslint-disable` without reason.
 - Do not delete or skip tests to pass CI.

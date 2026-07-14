@@ -7,7 +7,7 @@ Ruletrade-AI uses ADRs to record important engineering decisions.
 Write an ADR for decisions involving:
 
 - database architecture
-- RLS
+- ownership checks
 - auth/session design
 - AI provider or prompt architecture
 - RAG architecture

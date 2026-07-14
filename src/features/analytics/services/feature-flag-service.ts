@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function isFeatureEnabled(params: {
   userId: string;
@@ -8,9 +8,9 @@ export async function isFeatureEnabled(params: {
   userPlan?: string;
   userRole?: string;
 }): Promise<boolean> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: flag } = await supabase
+  const { data: flag } = await db
     .from("feature_flags")
     .select("*")
     .eq("name", params.flagName)

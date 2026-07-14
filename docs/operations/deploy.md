@@ -19,4 +19,4 @@ After deploy, verify:
 - login works
 - rule session creation works
 - AI review works
-- RLS blocks cross-user access
+- ownership checks blocks cross-user access

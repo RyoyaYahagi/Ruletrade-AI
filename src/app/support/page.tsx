@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { SupportForm } from "@/features/support/components/support-form";
 
 export default function SupportPage() {

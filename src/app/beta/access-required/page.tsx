@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { BetaInviteCodeForm } from "@/features/launch/components/beta-invite-code-form";
 
 export default function Page() {

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getStripe, isStripeEnabled } from "./stripe-client";
 
 export async function verifyStripeSignature(params: {
@@ -34,12 +34,12 @@ export async function verifyStripeSignature(params: {
 }
 
 export async function processStripeEvent(event: Record<string, unknown>) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const eventType = String(event.type);
   const eventId = String(event.id);
 
-  await supabase.from("billing_webhook_events").insert({
+  await db.from("billing_webhook_events").insert({
     stripe_event_id: eventId,
     event_type: eventType,
     payload: JSON.stringify(event),
@@ -52,7 +52,7 @@ export async function processStripeEvent(event: Record<string, unknown>) {
     const subscriptionId = String(session.subscription);
 
     // Update subscription status
-    await supabase
+    await db
       .from("billing_subscriptions")
       .update({ status: "active", stripe_subscription_id: subscriptionId })
       .eq("stripe_subscription_id", subscriptionId);
@@ -62,7 +62,7 @@ export async function processStripeEvent(event: Record<string, unknown>) {
     const subscription = event.data as Record<string, unknown>;
     const subscriptionId = String(subscription.id);
 
-    await supabase
+    await db
       .from("billing_subscriptions")
       .update({ status: "canceled" })
       .eq("stripe_subscription_id", subscriptionId);

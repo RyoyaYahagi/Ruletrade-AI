@@ -1,14 +1,14 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function deliverQueuedInAppNotifications(params: {
   userId?: string;
   limit?: number;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("notifications")
     .select("*")
     .eq("status", "queued")
@@ -29,7 +29,7 @@ export async function deliverQueuedInAppNotifications(params: {
   let deliveredCount = 0;
 
   for (const notification of notifications ?? []) {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from("notifications")
       .update({
         status: "delivered",
@@ -39,7 +39,7 @@ export async function deliverQueuedInAppNotifications(params: {
       .eq("user_id", notification.user_id);
 
     if (updateError) {
-      await supabase.from("notification_delivery_logs").insert({
+      await db.from("notification_delivery_logs").insert({
         user_id: notification.user_id,
         notification_id: notification.id,
         channel: "in_app",
@@ -50,7 +50,7 @@ export async function deliverQueuedInAppNotifications(params: {
       continue;
     }
 
-    await supabase.from("notification_delivery_logs").insert({
+    await db.from("notification_delivery_logs").insert({
       user_id: notification.user_id,
       notification_id: notification.id,
       channel: "in_app",

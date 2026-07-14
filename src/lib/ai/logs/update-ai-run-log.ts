@@ -1,13 +1,13 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
 import type { UpdateAiRunLogInput } from "@/lib/ai/logs/ai-run-log-types";
 
 export async function updateAiRunLog(input: UpdateAiRunLogInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { error } = await supabase
+  const { error } = await db
     .from("ai_run_logs")
     .update({
       status: input.status,

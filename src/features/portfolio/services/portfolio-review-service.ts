@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { PortfolioReviewSchema } from "@/schemas/portfolio/portfolio-review-schema";
 import { calculatePortfolioSummary } from "@/features/portfolio/services/portfolio-aggregation-service";
@@ -15,9 +15,9 @@ export async function runPortfolioReview(params: {
   userId: string;
   requestId?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: portfolio, error: portfolioError } = await supabase
+  const { data: portfolio, error: portfolioError } = await db
     .from("portfolios")
     .select("*")
     .eq("user_id", params.userId)
@@ -31,7 +31,7 @@ export async function runPortfolioReview(params: {
     throw new AppError("NOT_FOUND", "ポートフォリオが見つかりません。", 404);
   }
 
-  const { data: positions, error: positionsError } = await supabase
+  const { data: positions, error: positionsError } = await db
     .from("portfolio_positions")
     .select("*")
     .eq("user_id", params.userId)
@@ -92,7 +92,7 @@ export async function runPortfolioReview(params: {
     safety,
   };
 
-  const { data: savedReview, error: reviewError } = await supabase
+  const { data: savedReview, error: reviewError } = await db
     .from("portfolio_reviews")
     .insert({
       user_id: params.userId,
@@ -140,7 +140,7 @@ export async function runPortfolioReview(params: {
   }
 
   if (review.qualityChecks.length > 0) {
-    const { error: checksError } = await supabase
+    const { error: checksError } = await db
       .from("portfolio_quality_checks")
       .insert(
         review.qualityChecks.map((check) => ({

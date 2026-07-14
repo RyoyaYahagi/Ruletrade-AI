@@ -86,7 +86,7 @@ Issue #49 「[API] Rule Session API MVP・ルール作成/回答保存/レビュ
 
 - 回答保存→質問更新→`rule_json`更新 は複数のDB操作
 - 現状は各操作を個別に行っている
-- 後続で Supabase RPC または transaction でまとめる必要がある
+- 後続で SQLite transaction でまとめる必要がある
 
 ### 3. `as any` の使用
 
@@ -125,9 +125,9 @@ Issue #49 「[API] Rule Session API MVP・ルール作成/回答保存/レビュ
 - `rule_versions`
 - `app_users`
 
-### RLS ポリシー
+### ownership checks ポリシー
 
-- Issue #46 で RLS ポリシーが設定されている
+- Issue #46 で ownership checks ポリシーが設定されている
 - API層でも `assertOwnRuleSession` で二重に所有権確認を行っている
 
 ### AI Provider

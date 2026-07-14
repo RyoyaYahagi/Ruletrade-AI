@@ -1,8 +1,24 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getEmbeddingProvider } from "@/lib/ai/embeddings/embedding-provider-factory";
 import type { AITaskType } from "@/lib/ai/provider";
+
+type RagChunkRow = {
+  id: string;
+  source_type: string;
+  source_id: string;
+  content: string;
+  embedding: unknown;
+};
+
+type RetrievedChunk = {
+  id: string;
+  source_type: string;
+  source_id: string;
+  content: string;
+  similarity: number;
+};
 
 export async function retrieveRagContext(params: {
   userId: string;
@@ -32,43 +48,44 @@ export async function retrieveRagContext(params: {
     taskType: "retrieval_query",
   });
 
-  const queryEmbedding = embeddingResult.embeddings[0];
+  const db = await createDatabaseClient();
+  let query = db
+    .from("rag_chunks")
+    .select("id, source_type, source_id, content, embedding")
+    .eq("user_id", params.userId);
 
-  const supabase = await createServerClient();
-
-  const { data, error } = await supabase.rpc("match_rag_chunks", {
-    p_user_id: params.userId,
-    p_query_embedding: queryEmbedding,
-    p_match_threshold: matchThreshold,
-    p_match_count: matchCount,
-    p_source_types: params.sourceTypes ?? null,
-  });
-
-  if (error) {
-    if (isUnsupportedLocalRpc(error)) {
-      return {
-        chunks: [],
-        contextText: "",
-      };
-    }
-
-    throw error;
+  if (params.sourceTypes && params.sourceTypes.length > 0) {
+    query = query.in("source_type", params.sourceTypes);
   }
 
-  const chunks = (data ?? []) as Array<{
-    id: string;
-    source_type: string;
-    source_id: string;
-    content: string;
-    similarity: number;
-  }>;
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const queryEmbedding = embeddingResult.embeddings[0] ?? [];
+  const chunks = (data ?? [])
+    .map((row: RagChunkRow) => {
+      const embedding = parseEmbedding(row.embedding);
+      return {
+        id: row.id,
+        source_type: row.source_type,
+        source_id: row.source_id,
+        content: row.content,
+        similarity: cosineSimilarity(queryEmbedding, embedding),
+      };
+    })
+    .filter((chunk: RetrievedChunk) => chunk.similarity >= matchThreshold)
+    .sort(
+      (left: RetrievedChunk, right: RetrievedChunk) =>
+        right.similarity - left.similarity,
+    )
+    .slice(0, matchCount);
 
   const contextText = buildContextText({
     chunks,
     maxContextChars,
   });
 
-  await supabase.from("rag_retrieval_logs").insert({
+  await db.from("rag_retrieval_logs").insert({
     user_id: params.userId,
     request_id: params.requestId ?? null,
     task_type: params.taskType,
@@ -77,7 +94,7 @@ export async function retrieveRagContext(params: {
     query_embedding_provider: embeddingResult.provider,
     match_threshold: matchThreshold,
     match_count: matchCount,
-    retrieved_chunk_ids: chunks.map((chunk) => chunk.id),
+    retrieved_chunk_ids: chunks.map((chunk: RetrievedChunk) => chunk.id),
     retrieved_count: chunks.length,
     metadata: {
       sourceTypes: params.sourceTypes ?? null,
@@ -91,22 +108,40 @@ export async function retrieveRagContext(params: {
   };
 }
 
-function isUnsupportedLocalRpc(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "SQLITE_UNSUPPORTED"
-  );
+function parseEmbedding(value: unknown): number[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is number => typeof item === "number");
+  }
+
+  if (typeof value !== "string") return [];
+
+  try {
+    return parseEmbedding(JSON.parse(value));
+  } catch {
+    return [];
+  }
+}
+
+function cosineSimilarity(left: number[], right: number[]) {
+  if (left.length === 0 || left.length !== right.length) return 0;
+
+  let dot = 0;
+  let leftMagnitude = 0;
+  let rightMagnitude = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    const leftValue = left[index] ?? 0;
+    const rightValue = right[index] ?? 0;
+    dot += leftValue * rightValue;
+    leftMagnitude += leftValue ** 2;
+    rightMagnitude += rightValue ** 2;
+  }
+
+  if (leftMagnitude === 0 || rightMagnitude === 0) return 0;
+  return dot / Math.sqrt(leftMagnitude * rightMagnitude);
 }
 
 function buildContextText(params: {
-  chunks: Array<{
-    source_type: string;
-    source_id: string;
-    content: string;
-    similarity: number;
-  }>;
+  chunks: Array<Pick<RetrievedChunk, "source_type" | "source_id" | "content" | "similarity">>;
   maxContextChars: number;
 }) {
   const parts: string[] = [];

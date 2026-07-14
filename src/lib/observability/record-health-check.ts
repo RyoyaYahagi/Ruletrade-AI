@@ -1,5 +1,5 @@
 import "server-only";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export interface HealthCheckInput {
   checkName: string;
@@ -13,9 +13,9 @@ export async function recordHealthCheck(
   params: HealthCheckInput,
 ): Promise<void> {
   try {
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    await supabase.from("health_check_logs").insert({
+    await db.from("health_check_logs").insert({
       check_name: params.checkName,
       status: params.status,
       latency_ms: params.latencyMs,

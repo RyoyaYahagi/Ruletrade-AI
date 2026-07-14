@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * technical_debt_events テーブル CRUD
@@ -43,9 +43,9 @@ export type CreateTechnicalDebtEventInput = {
 export async function createTechnicalDebtEvent(
   input: CreateTechnicalDebtEventInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("technical_debt_events")
     .insert({
       debt_item_id: input.debt_item_id,
@@ -76,9 +76,9 @@ export async function createTechnicalDebtEvent(
  * Results are ordered by `created_at` ascending (oldest first).
  */
 export async function listTechnicalDebtEventsByDebtItem(debtItemId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("technical_debt_events")
     .select("*")
     .eq("debt_item_id", debtItemId)

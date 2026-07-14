@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import type {
   PracticeSession,
   PracticeSessionStatus,
@@ -48,9 +48,9 @@ export type ListUserSessionsFilters = {
  * The `virtual_balance` and `starting_balance` default to 1,000,000.
  */
 export async function createPracticeSession(input: CreatePracticeSessionInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_sessions")
     .insert({
       user_id: input.user_id,
@@ -83,9 +83,9 @@ export async function createPracticeSession(input: CreatePracticeSessionInput) {
  * Returns `null` if the session is not found or not accessible.
  */
 export async function getPracticeSessionById(id: string, userId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_sessions")
     .select("*")
     .eq("id", id)
@@ -109,9 +109,9 @@ export async function getPracticeSessionById(id: string, userId: string) {
 export async function listUserPracticeSessions(
   filters: ListUserSessionsFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("practice_sessions")
     .select("*")
     .eq("user_id", filters.userId);
@@ -140,14 +140,14 @@ export async function listUserPracticeSessions(
 /**
  * Update a practice session's mutable fields.
  *
- * Only the record matching `sessionId` AND `userId` (for RLS scoping) is
+ * Only the record matching `sessionId` AND `userId` (for ownership scoping) is
  * updated. Returns the updated record.
  */
 export async function updatePracticeSession(input: UpdatePracticeSessionInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Verify the record exists and is accessible
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("practice_sessions")
     .select("id")
     .eq("id", input.sessionId)
@@ -170,7 +170,7 @@ export async function updatePracticeSession(input: UpdatePracticeSessionInput) {
   if (input.target_duration_days !== undefined)
     payload.target_duration_days = input.target_duration_days;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_sessions")
     .update(payload)
     .eq("id", input.sessionId)
@@ -206,10 +206,10 @@ export async function updatePracticeSessionStatus(params: {
   userId: string;
   status: PracticeSessionStatus;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current record to inspect existing state
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("practice_sessions")
     .select("id, status, started_at")
     .eq("id", params.sessionId)
@@ -241,7 +241,7 @@ export async function updatePracticeSessionStatus(params: {
     payload.completed_at = now;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_sessions")
     .update(payload)
     .eq("id", params.sessionId)
@@ -273,10 +273,10 @@ export async function deletePracticeSession(
   id: string,
   userId: string,
 ): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // First verify the record exists and is accessible
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("practice_sessions")
     .select("id")
     .eq("id", id)
@@ -289,7 +289,7 @@ export async function deletePracticeSession(
     );
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("practice_sessions")
     .delete()
     .eq("id", id)

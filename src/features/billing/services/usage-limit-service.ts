@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function incrementUsage(params: {
   userId: string;
@@ -11,7 +11,7 @@ export async function incrementUsage(params: {
     | "embedding_request";
   amount?: number;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
   const amount = params.amount ?? 1;
 
   const now = new Date();
@@ -26,7 +26,7 @@ export async function incrementUsage(params: {
     0,
   ).toISOString();
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("usage_counters")
     .select("*")
     .eq("user_id", params.userId)
@@ -35,12 +35,12 @@ export async function incrementUsage(params: {
     .maybeSingle();
 
   if (existing) {
-    await supabase
+    await db
       .from("usage_counters")
       .update({ used_count: existing.used_count + amount })
       .eq("id", existing.id);
   } else {
-    await supabase.from("usage_counters").insert({
+    await db.from("usage_counters").insert({
       user_id: params.userId,
       counter_type: params.eventType,
       period_start: periodStart,
@@ -50,7 +50,7 @@ export async function incrementUsage(params: {
     });
   }
 
-  await supabase.from("usage_events").insert({
+  await db.from("usage_events").insert({
     user_id: params.userId,
     event_type: params.eventType,
     amount,
@@ -65,7 +65,7 @@ export async function checkUsageLimit(params: {
     | "rag_indexing"
     | "embedding_request";
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const now = new Date();
   const periodStart = new Date(
@@ -74,7 +74,7 @@ export async function checkUsageLimit(params: {
     1,
   ).toISOString();
 
-  const { data: counter } = await supabase
+  const { data: counter } = await db
     .from("usage_counters")
     .select("*")
     .eq("user_id", params.userId)
@@ -82,7 +82,7 @@ export async function checkUsageLimit(params: {
     .eq("period_start", periodStart)
     .maybeSingle();
 
-  const { data: planData } = await supabase
+  const { data: planData } = await db
     .from("billing_customers")
     .select("billing_subscriptions(billing_plans(*))")
     .eq("user_id", params.userId)

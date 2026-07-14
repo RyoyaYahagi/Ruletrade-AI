@@ -1,6 +1,6 @@
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { assertValidCronRequest } from "@/features/notifications/services/cron-auth-service";
 import { detectAndCreateReviewReminders } from "@/features/notifications/services/reminder-detection-service";
 import { deliverQueuedInAppNotifications } from "@/features/notifications/services/notification-delivery-service";
@@ -11,9 +11,9 @@ export async function GET(request: Request) {
   try {
     assertValidCronRequest(request);
 
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    const { data: users, error } = await supabase
+    const { data: users, error } = await db
       .from("notification_preferences")
       .select("user_id")
       .eq("in_app_enabled", true)

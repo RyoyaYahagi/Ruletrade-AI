@@ -1,5 +1,5 @@
 import "server-only";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export interface WebhookProcessingInput {
   provider: string;
@@ -15,9 +15,9 @@ export async function recordWebhookProcessing(
   params: WebhookProcessingInput,
 ): Promise<void> {
   try {
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    await supabase.from("webhook_processing_logs").insert({
+    await db.from("webhook_processing_logs").insert({
       provider: params.provider,
       event_type: params.eventType,
       external_event_id: params.externalEventId ?? null,

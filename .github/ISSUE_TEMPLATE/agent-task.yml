@@ -50,7 +50,7 @@ body:
         - [ ] Component Test
         - [ ] API Test
         - [ ] E2E Test
-        - [ ] DB/RLS Test
+        - [ ] DB Ownership Test
     validations:
       required: true
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { signUpWithPassword } from "@/features/auth/services/auth-client-service";
 
 export function SignupForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,11 +23,7 @@ export function SignupForm() {
     setMessage(null);
     setErrorMessage(null);
 
-    const { error } = await signUpWithPassword({
-      email,
-      password,
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
+    const { error } = await signUpWithPassword({ email, password });
 
     setIsLoading(false);
 
@@ -36,9 +34,8 @@ export function SignupForm() {
       return;
     }
 
-    setMessage(
-      "確認メールを送信しました。メール内のリンクから登録を完了してください。",
-    );
+    setMessage("アカウントを作成しました。ダッシュボードへ移動します。");
+    router.replace("/dashboard");
   }
 
   return (

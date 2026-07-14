@@ -12,8 +12,8 @@ Runs on every PR:
 - Lint
 - Test
 - Build
-- DB Migration check
-- RLS policy check
+- SQLite schema check
+- Ownership check audit
 - Secret scan
 
 ### `security.yml`
@@ -32,12 +32,12 @@ Before merge, CI must pass:
 - `lint`
 - `test`
 - `build`
-- `db-migration-check`
+- `sqlite-schema-check`
 
 ## Local CI Check
 
 ```bash
-pnpm ci:check
+npm run typecheck && npm run lint && npm run test && npm run build
 ```
 
 Runs all CI checks locally.
