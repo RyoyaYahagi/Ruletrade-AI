@@ -33,6 +33,9 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
+exclude_docs: |
+  adr/README.md
+
 nav:
   - Home: index.md
 
