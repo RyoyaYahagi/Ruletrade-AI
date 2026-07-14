@@ -1,12 +1,12 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function getOrCreateLegalAcceptance(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("legal_acceptances")
     .select("*")
     .eq("user_id", params.userId)
@@ -14,7 +14,7 @@ export async function getOrCreateLegalAcceptance(params: { userId: string }) {
 
   if (existing) return { acceptance: existing };
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("legal_acceptances")
     .insert({ user_id: params.userId })
     .select("*")
@@ -38,7 +38,7 @@ export async function acceptLegalTerms(params: {
   privacyVersion?: string;
   disclaimerVersion?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = { user_id: params.userId };
   if (params.termsVersion) {
@@ -54,7 +54,7 @@ export async function acceptLegalTerms(params: {
     payload.disclaimer_version = params.disclaimerVersion;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("legal_acceptances")
     .upsert(payload, { onConflict: "user_id" })
     .select("*")

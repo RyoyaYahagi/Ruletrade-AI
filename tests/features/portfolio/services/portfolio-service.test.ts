@@ -5,11 +5,11 @@ import {
 } from "@/features/portfolio/services/portfolio-service";
 import { AppError } from "@/lib/errors/app-error";
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 const mockMaybeSingle = vi.fn();
 const mockSingle = vi.fn();
@@ -26,7 +26,7 @@ const mockFrom = vi.fn(() => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(createServerClient).mockResolvedValue({
+  vi.mocked(createDatabaseClient).mockResolvedValue({
     from: mockFrom,
   } as unknown);
 });

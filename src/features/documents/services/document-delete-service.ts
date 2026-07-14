@@ -1,15 +1,16 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
+import { removeLocalStorageFiles } from "@/lib/storage/local-file-storage";
 
 export async function deleteDocument(params: {
   userId: string;
   documentId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: document, error: findError } = await supabase
+  const { data: document, error: findError } = await db
     .from("user_documents")
     .select("storage_path")
     .eq("id", params.documentId)
@@ -20,13 +21,15 @@ export async function deleteDocument(params: {
     throw new AppError("NOT_FOUND", "資料が見つかりません。", 404);
   }
 
-  // Storageから削除
   if (document.storage_path) {
-    await supabase.storage.from("documents").remove([document.storage_path]);
+    await removeLocalStorageFiles({
+      bucket: "documents",
+      storagePaths: [document.storage_path],
+    });
   }
 
   // DBから削除（cascadeで関連テーブルも消える）
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await db
     .from("user_documents")
     .delete()
     .eq("id", params.documentId)

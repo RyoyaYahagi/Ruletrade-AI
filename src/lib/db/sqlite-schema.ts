@@ -7,8 +7,21 @@ const schemaStatements = [
     id text primary key,
     email text,
     display_name text,
+    role text not null default 'user',
     created_at text not null default (datetime('now')),
     updated_at text not null default (datetime('now'))
+  )`,
+  `create table if not exists auth_credentials (
+    user_id text primary key,
+    email text not null unique,
+    password_hash text not null,
+    created_at text not null default (datetime('now'))
+  )`,
+  `create table if not exists auth_sessions (
+    token_hash text primary key,
+    user_id text not null,
+    expires_at text not null,
+    created_at text not null default (datetime('now'))
   )`,
   `create table if not exists rule_design_sessions (
     id text primary key,
@@ -108,6 +121,8 @@ const schemaStatements = [
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
   `create index if not exists idx_rule_reviews_session_created on rule_reviews(session_id, created_at desc)`,
   `create index if not exists idx_rule_quality_checks_review on rule_quality_checks(review_id)`,
+  `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
+  `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
 ];
 
 export function initializeSqliteSchema(db: Database.Database) {
@@ -121,4 +136,21 @@ export function initializeSqliteSchema(db: Database.Database) {
   });
 
   migrate();
+  ensureColumn(db, "app_users", "role", "text not null default 'user'");
+}
+
+function ensureColumn(
+  db: Database.Database,
+  table: string,
+  column: string,
+  definition: string,
+) {
+  const columns = db
+    .prepare(`pragma table_info("${table.replaceAll('"', '""')}")`)
+    .all() as Array<{ name: string }>;
+
+  if (columns.some((candidate) => candidate.name === column)) return;
+  db.prepare(
+    `alter table "${table.replaceAll('"', '""')}" add column "${column.replaceAll('"', '""')}" ${definition}`,
+  ).run();
 }

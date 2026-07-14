@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function AccountDeletePanel() {
+  const router = useRouter();
   const [confirmText, setConfirmText] = useState("");
   const [reason, setReason] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -26,7 +28,7 @@ export function AccountDeletePanel() {
         setError(json.error?.message ?? "アカウント削除に失敗しました。");
         return;
       }
-      window.location.href = "/";
+      router.replace("/");
     } catch {
       setError("通信に失敗しました。");
     } finally {

@@ -1,19 +1,13 @@
 # Local Environment
 
-## Supabase Local Stack
+## SQLite
+
+SQLite and local file storage are initialized automatically when the app starts.
 
 ```bash
-# Start
-pnpm supabase:start
-
-# Status
-pnpm supabase:status
-
-# Stop
-pnpm supabase:stop
-
-# Reset
-pnpm supabase:reset
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
 ## Common Issues
@@ -26,20 +20,11 @@ Use nvm or fnm:
 nvm use 20
 ```
 
-### Docker not running
+### Database reset
 
-Supabase local requires Docker. Start Docker Desktop or Docker daemon.
-
-### Port conflicts
-
-Supabase uses ports 54321-54326. Kill conflicting processes or change ports in `supabase/config.toml`.
-
-### Migration fails
-
-```bash
-pnpm supabase:reset
-pnpm supabase:migrate
-```
+Stop the development server and remove the local SQLite database and storage
+directory when a clean local state is needed. The schema is recreated on the
+next start.
 
 ### Missing env vars
 
@@ -47,15 +32,13 @@ Copy from `.env.example` and fill in your keys.
 
 ## Seed Data
 
-```bash
-pnpm db:seed
-```
+The SQLite schema is initialized by `src/lib/db/sqlite-schema.ts`.
 
 ## Mock Providers
 
 For local development without real AI/Stripe:
 
 ```text
-MOCK_AI_PROVIDER=true
-MOCK_STRIPE=true
+AI_PROVIDER=mock
+EMBEDDING_PROVIDER=mock
 ```

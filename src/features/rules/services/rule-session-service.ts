@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import type { RuleSessionSummary } from "@/features/rules/model";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
@@ -14,8 +14,8 @@ export async function createRuleSession(params: {
   currency?: string;
   templateKey?: string;
 }) {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data, error } = await db
     .from("rule_design_sessions")
     .insert({
       user_id: params.userId,
@@ -45,8 +45,8 @@ export async function createRuleSession(params: {
 }
 
 export async function listRuleSessions(params: { userId: string }) {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data, error } = await db
     .from("rule_design_sessions")
     .select(
       "id, ticker, company_name, status, completion_score, quality_gate_status, question_count, max_question_count, created_at, updated_at",
@@ -68,8 +68,8 @@ export async function getRuleSessionDetail(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createServerClient();
-  const { data: session, error: sessionError } = await supabase
+  const db = await createDatabaseClient();
+  const { data: session, error: sessionError } = await db
     .from("rule_design_sessions")
     .select("*")
     .eq("id", params.sessionId)
@@ -82,20 +82,20 @@ export async function getRuleSessionDetail(params: {
       404,
     );
   }
-  const { data: questions } = await supabase
+  const { data: questions } = await db
     .from("rule_questions")
     .select("*")
     .eq("session_id", params.sessionId)
     .eq("user_id", params.userId)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
-  const { data: answers } = await supabase
+  const { data: answers } = await db
     .from("rule_answers")
     .select("*")
     .eq("session_id", params.sessionId)
     .eq("user_id", params.userId)
     .order("created_at", { ascending: true });
-  const { data: latestReview } = await supabase
+  const { data: latestReview } = await db
     .from("rule_reviews")
     .select("*")
     .eq("session_id", params.sessionId)
@@ -104,7 +104,7 @@ export async function getRuleSessionDetail(params: {
     .limit(1)
     .maybeSingle();
   const { data: qualityChecks } = latestReview
-    ? await supabase
+    ? await db
         .from("rule_quality_checks")
         .select("*")
         .eq("review_id", latestReview.id)
@@ -125,9 +125,9 @@ export async function updateRuleSession(params: {
   status?: string;
   ruleJson?: unknown;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: currentSession, error: fetchError } = await supabase
+  const { data: currentSession, error: fetchError } = await db
     .from("rule_design_sessions")
     .select("status")
     .eq("id", params.sessionId)
@@ -183,7 +183,7 @@ export async function updateRuleSession(params: {
     updatePayload.rule_json = parseResult.data;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("rule_design_sessions")
     .update(updatePayload)
     .eq("id", params.sessionId)
@@ -208,8 +208,8 @@ export async function createRuleVersion(params: {
   changeReason: string;
   createdBy: "user" | "ai" | "system";
 }) {
-  const supabase = await createServerClient();
-  const { data: latestVersion } = await supabase
+  const db = await createDatabaseClient();
+  const { data: latestVersion } = await db
     .from("rule_versions")
     .select("version_number")
     .eq("session_id", params.sessionId)
@@ -218,7 +218,7 @@ export async function createRuleVersion(params: {
     .limit(1)
     .maybeSingle();
   const nextVersionNumber = (latestVersion?.version_number ?? 0) + 1;
-  const { error } = await supabase.from("rule_versions").insert({
+  const { error } = await db.from("rule_versions").insert({
     user_id: params.userId,
     session_id: params.sessionId,
     version_number: nextVersionNumber,

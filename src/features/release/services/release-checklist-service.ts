@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_checklists / release_checklist_items テーブル CRUD
@@ -87,9 +87,9 @@ export type UpdateChecklistItemStatusInput = {
 async function fetchItemsByChecklistId(
   checklistId: string,
 ): Promise<ReleaseChecklistItem[]> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_checklist_items")
     .select("*")
     .eq("checklist_id", checklistId)
@@ -112,10 +112,10 @@ async function fetchItemsByChecklistId(
 export async function createReleaseChecklist(
   input: CreateReleaseChecklistInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // 1. Create the checklist
-  const { data: checklist, error: checkErr } = await supabase
+  const { data: checklist, error: checkErr } = await db
     .from("release_checklists")
     .insert({
       release_plan_id: input.release_plan_id,
@@ -148,7 +148,7 @@ export async function createReleaseChecklist(
       notes: item.notes ?? null,
     }));
 
-    const { data: insertedItems, error: itemErr } = await supabase
+    const { data: insertedItems, error: itemErr } = await db
       .from("release_checklist_items")
       .insert(itemRows)
       .select("*");
@@ -176,10 +176,10 @@ export async function createReleaseChecklist(
  * Results are ordered by `checklist_key` ascending.
  */
 export async function listChecklistsByReleasePlan(releasePlanId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // 1. Fetch all checklists for the release plan
-  const { data: checklists, error: listErr } = await supabase
+  const { data: checklists, error: listErr } = await db
     .from("release_checklists")
     .select("*")
     .eq("release_plan_id", releasePlanId)
@@ -219,7 +219,7 @@ export async function updateChecklistItemStatus(
   itemKey: string,
   input: UpdateChecklistItemStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status: input.status,
@@ -252,7 +252,7 @@ export async function updateChecklistItemStatus(
     payload.notes = input.notes;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_checklist_items")
     .update(payload)
     .eq("checklist_id", checklistId)

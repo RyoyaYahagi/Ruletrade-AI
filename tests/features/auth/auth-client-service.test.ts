@@ -7,97 +7,74 @@ import {
   signUpWithPassword,
 } from "@/features/auth/services/auth-client-service";
 
-const mockSignInWithPassword = vi.fn();
-const mockSignInAnonymously = vi.fn();
-const mockSignUp = vi.fn();
-const mockSignOut = vi.fn();
 const mockFetch = vi.fn();
 
-vi.mock("@/lib/db/supabase-browser", () => ({
-  createBrowserClient: vi.fn(() => ({
-    auth: {
-      signInWithPassword: mockSignInWithPassword,
-      signInAnonymously: mockSignInAnonymously,
-      signUp: mockSignUp,
-      signOut: mockSignOut,
-    },
-  })),
-}));
+vi.stubGlobal("fetch", mockFetch);
 
 describe("auth client service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("fetch", mockFetch);
   });
 
-  it("signs in with email and password", async () => {
-    const response = { error: null };
-    mockSignInWithPassword.mockResolvedValueOnce(response);
+  it("signs in with email and password through the local API", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValueOnce({ ok: true, data: { user: { id: "user-1" } } }),
+    });
 
     await expect(
-      signInWithPassword({
-        email: "user@example.com",
-        password: "password",
-      }),
-    ).resolves.toBe(response);
+      signInWithPassword({ email: "user@example.com", password: "password123" }),
+    ).resolves.toMatchObject({ error: null });
 
-    expect(mockSignInWithPassword).toHaveBeenCalledWith({
-      email: "user@example.com",
-      password: "password",
+    expect(mockFetch).toHaveBeenCalledWith("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "user@example.com", password: "password123" }),
     });
   });
 
-  it("signs in anonymously for guest login", async () => {
-    const response = { error: null };
-    mockFetch.mockResolvedValueOnce({ ok: false });
-    mockSignInAnonymously.mockResolvedValueOnce(response);
+  it("uses the local guest session endpoint", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValueOnce({ ok: true }),
+    });
 
-    await expect(signInAsGuest()).resolves.toBe(response);
-
+    await expect(signInAsGuest()).resolves.toMatchObject({ error: null });
     expect(mockFetch).toHaveBeenCalledWith("/api/auth/guest", {
       method: "POST",
+      headers: undefined,
+      body: undefined,
     });
-    expect(mockSignInAnonymously).toHaveBeenCalledWith();
   });
 
-  it("uses local guest session when available", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true });
-
-    await expect(signInAsGuest()).resolves.toEqual({ error: null });
-
-    expect(mockFetch).toHaveBeenCalledWith("/api/auth/guest", {
-      method: "POST",
+  it("signs up through the local API", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValueOnce({ ok: true, data: { user: { id: "user-1" } } }),
     });
-    expect(mockSignInAnonymously).not.toHaveBeenCalled();
-  });
-
-  it("signs up with email redirect", async () => {
-    const response = { error: null };
-    mockSignUp.mockResolvedValueOnce(response);
 
     await expect(
-      signUpWithPassword({
-        email: "user@example.com",
-        password: "password",
-        redirectTo: "http://localhost:3000/auth/callback",
-      }),
-    ).resolves.toBe(response);
+      signUpWithPassword({ email: "user@example.com", password: "password123" }),
+    ).resolves.toMatchObject({ error: null });
 
-    expect(mockSignUp).toHaveBeenCalledWith({
-      email: "user@example.com",
-      password: "password",
-      options: {
-        emailRedirectTo: "http://localhost:3000/auth/callback",
-      },
+    expect(mockFetch).toHaveBeenCalledWith("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "user@example.com", password: "password123" }),
     });
   });
 
-  it("signs out", async () => {
-    const response = { error: null };
-    mockSignOut.mockResolvedValueOnce(response);
+  it("signs out through the local API", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValueOnce({ ok: true }),
+    });
 
-    await expect(signOut()).resolves.toBe(response);
-
-    expect(mockSignOut).toHaveBeenCalledWith();
+    await expect(signOut()).resolves.toMatchObject({ error: null });
+    expect(mockFetch).toHaveBeenCalledWith("/api/auth/logout", {
+      method: "POST",
+      headers: undefined,
+      body: undefined,
+    });
   });
 });

@@ -1,16 +1,17 @@
 import "server-only";
 
 import { createHash } from "crypto";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
+import { readLocalStorageFile } from "@/lib/storage/local-file-storage";
 
 export async function extractDocumentText(params: {
   userId: string;
   documentId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: document, error } = await supabase
+  const { data: document, error } = await db
     .from("user_documents")
     .select("*")
     .eq("id", params.documentId)
@@ -22,7 +23,7 @@ export async function extractDocumentText(params: {
   }
 
   // extraction job を作成
-  const { data: job, error: jobError } = await supabase
+  const { data: job, error: jobError } = await db
     .from("document_extraction_jobs")
     .insert({
       user_id: params.userId,
@@ -44,21 +45,10 @@ export async function extractDocumentText(params: {
   }
 
   try {
-    // Storageからファイルを取得
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from("documents")
-      .download(document.storage_path);
-
-    if (downloadError || !fileData) {
-      throw new AppError(
-        "INTERNAL_ERROR",
-        "資料ファイルの読み込みに失敗しました。",
-        500,
-        downloadError,
-      );
-    }
-
-    const buffer = Buffer.from(await fileData.arrayBuffer());
+    const buffer = await readLocalStorageFile({
+      bucket: "documents",
+      storagePath: document.storage_path,
+    });
 
     const extractedText = await extractTextByMimeType({
       mimeType: document.mime_type,
@@ -67,7 +57,7 @@ export async function extractDocumentText(params: {
 
     const normalizedText = normalizeExtractedText(extractedText);
 
-    await supabase
+    await db
       .from("user_documents")
       .update({
         extracted_text: normalizedText,
@@ -80,7 +70,7 @@ export async function extractDocumentText(params: {
       .eq("id", params.documentId)
       .eq("user_id", params.userId);
 
-    await supabase
+    await db
       .from("document_extraction_jobs")
       .update({
         status: "succeeded",
@@ -95,7 +85,7 @@ export async function extractDocumentText(params: {
       textLength: normalizedText?.length ?? 0,
     };
   } catch (error) {
-    await supabase
+    await db
       .from("user_documents")
       .update({
         extraction_status: "failed",
@@ -103,7 +93,7 @@ export async function extractDocumentText(params: {
       .eq("id", params.documentId)
       .eq("user_id", params.userId);
 
-    await supabase
+    await db
       .from("document_extraction_jobs")
       .update({
         status: "failed",

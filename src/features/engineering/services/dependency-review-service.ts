@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * dependency_review_items テーブル CRUD
@@ -80,10 +80,10 @@ export type UpdateDependencyReviewStatusInput = {
 export async function createDependencyReviewItem(
   input: CreateDependencyReviewItemInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Attempt to find an existing item with the same unique key
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("dependency_review_items")
     .select("id")
     .eq("dependency_name", input.dependency_name)
@@ -133,7 +133,7 @@ export async function createDependencyReviewItem(
       updatePayload.metadata = input.metadata;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("dependency_review_items")
       .update(updatePayload)
       .eq("id", existing.id)
@@ -151,7 +151,7 @@ export async function createDependencyReviewItem(
   }
 
   // ── Insert new row ──
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("dependency_review_items")
     .insert({
       dependency_name: input.dependency_name,
@@ -200,9 +200,9 @@ export async function createDependencyReviewItem(
 export async function listDependencyReviewItems(
   filters?: ListDependencyReviewItemsFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("dependency_review_items").select("*");
+  let query = db.from("dependency_review_items").select("*");
 
   // Apply filters
   if (filters) {
@@ -248,10 +248,10 @@ export async function listDependencyReviewItems(
 export async function updateDependencyReviewStatus(
   input: UpdateDependencyReviewStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current item to ensure it exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("dependency_review_items")
     .select("id, review_status")
     .eq("id", input.itemId)
@@ -269,7 +269,7 @@ export async function updateDependencyReviewStatus(
     reviewed_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("dependency_review_items")
     .update(payload)
     .eq("id", input.itemId)

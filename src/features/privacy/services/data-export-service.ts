@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { logPrivacyAudit } from "@/features/privacy/services/privacy-audit-service";
 
@@ -12,9 +12,9 @@ export async function requestDataExport(params: {
   includeExtractedText: boolean;
   includeRagChunks: boolean;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("data_export_requests")
     .insert({
       user_id: params.userId,
@@ -47,9 +47,9 @@ export async function generateUserDataExport(params: {
   userId: string;
   exportRequestId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: request, error: reqError } = await supabase
+  const { data: request, error: reqError } = await db
     .from("data_export_requests")
     .select("*")
     .eq("id", params.exportRequestId)
@@ -65,25 +65,25 @@ export async function generateUserDataExport(params: {
     user_id: params.userId,
   };
 
-  const { data: sessions } = await supabase
+  const { data: sessions } = await db
     .from("rule_design_sessions")
     .select("*")
     .eq("user_id", params.userId);
   result.rule_design_sessions = sessions ?? [];
 
-  const { data: portfolios } = await supabase
+  const { data: portfolios } = await db
     .from("portfolios")
     .select("*")
     .eq("user_id", params.userId);
   result.portfolios = portfolios ?? [];
 
-  const { data: watchlists } = await supabase
+  const { data: watchlists } = await db
     .from("watchlists")
     .select("*")
     .eq("user_id", params.userId);
   result.watchlists = watchlists ?? [];
 
-  const { data: documents } = await supabase
+  const { data: documents } = await db
     .from("user_documents")
     .select(
       request.include_extracted_text
@@ -94,7 +94,7 @@ export async function generateUserDataExport(params: {
   result.documents = documents ?? [];
 
   if (request.include_ai_logs) {
-    const { data: logs } = await supabase
+    const { data: logs } = await db
       .from("ai_run_logs")
       .select(
         "id, task_type, model, provider, latency_ms, token_usage, estimated_cost_usd, safety_passed, schema_valid, created_at",
@@ -106,14 +106,14 @@ export async function generateUserDataExport(params: {
   }
 
   if (request.include_rag_chunks) {
-    const { data: ragDocs } = await supabase
+    const { data: ragDocs } = await db
       .from("rag_documents")
       .select("id, source_type, source_id, title, hash, created_at")
       .eq("user_id", params.userId);
     result.rag_documents = ragDocs ?? [];
   }
 
-  await supabase
+  await db
     .from("data_export_requests")
     .update({ status: "completed", completed_at: new Date().toISOString() })
     .eq("id", params.exportRequestId);

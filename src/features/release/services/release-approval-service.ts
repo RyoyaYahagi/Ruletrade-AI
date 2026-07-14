@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_approvals テーブル CRUD
@@ -51,7 +51,7 @@ export type UpdateApprovalStatusInput = {
  * timestamp.
  */
 export async function createReleaseApproval(input: CreateReleaseApprovalInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Auto-set decided_at when transitioning to a terminal status
   let decidedAt = input.decided_at;
@@ -66,7 +66,7 @@ export async function createReleaseApproval(input: CreateReleaseApprovalInput) {
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_approvals")
     .insert({
       release_plan_id: input.release_plan_id,
@@ -97,9 +97,9 @@ export async function createReleaseApproval(input: CreateReleaseApprovalInput) {
  * Results are ordered by `created_at` ascending (oldest first).
  */
 export async function listApprovalsByReleasePlan(releasePlanId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_approvals")
     .select("*")
     .eq("release_plan_id", releasePlanId)
@@ -128,7 +128,7 @@ export async function updateApprovalStatus(
   approvalId: string,
   input: UpdateApprovalStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     approval_status: input.approval_status,
@@ -149,7 +149,7 @@ export async function updateApprovalStatus(
     payload.comment = input.comment;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_approvals")
     .update(payload)
     .eq("id", approvalId)

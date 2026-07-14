@@ -1,13 +1,13 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { getOrCreateMainWatchlist } from "@/features/watchlist/services/watchlist-service";
 
 export async function listWatchlistItems(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("watchlist_items")
     .select("*")
     .eq("user_id", params.userId)
@@ -47,13 +47,13 @@ export async function createWatchlistItem(params: {
   tags?: string[];
   ruleSessionId?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const { watchlist } = await getOrCreateMainWatchlist({
     userId: params.userId,
   });
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("watchlist_items")
     .insert({
       user_id: params.userId,
@@ -96,9 +96,9 @@ export async function getWatchlistItem(params: {
   userId: string;
   itemId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("watchlist_items")
     .select("*")
     .eq("id", params.itemId)
@@ -139,10 +139,10 @@ export async function updateWatchlistItem(params: {
   tags?: string[];
   ruleSessionId?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // First, verify the item belongs to the user
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("watchlist_items")
     .select("id")
     .eq("id", params.itemId)
@@ -190,7 +190,7 @@ export async function updateWatchlistItem(params: {
   if (params.ruleSessionId !== undefined)
     updateData.rule_session_id = params.ruleSessionId;
 
-  const { data: updated, error: updateError } = await supabase
+  const { data: updated, error: updateError } = await db
     .from("watchlist_items")
     .update(updateData)
     .eq("id", params.itemId)
@@ -213,10 +213,10 @@ export async function deleteWatchlistItem(params: {
   userId: string;
   itemId: string;
 }): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // First, verify the item belongs to the user
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("watchlist_items")
     .select("id")
     .eq("id", params.itemId)
@@ -232,7 +232,7 @@ export async function deleteWatchlistItem(params: {
     );
   }
 
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await db
     .from("watchlist_items")
     .delete()
     .eq("id", params.itemId);

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export type BacktestEvaluation = {
   id: string;
@@ -51,9 +51,9 @@ export type ListBacktestEvaluationsFilters = {
 export async function createBacktestEvaluation(
   input: CreateBacktestEvaluationInput
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("backtest_evaluations")
     .insert({
       rule_id: input.rule_id,
@@ -84,11 +84,11 @@ export async function createBacktestEvaluation(
 export async function listBacktestEvaluations(
   filters?: ListBacktestEvaluationsFilters
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const limit = Math.min(filters?.limit ?? 50, 100);
 
-  let request = supabase
+  let request = db
     .from("backtest_evaluations")
     .select("*")
     .order("created_at", { ascending: false })
@@ -112,9 +112,9 @@ export async function listBacktestEvaluations(
 }
 
 export async function getBacktestEvaluationById(id: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("backtest_evaluations")
     .select("*")
     .eq("id", id)
@@ -132,7 +132,7 @@ export async function updateBacktestEvaluationStatus(params: {
   status: string;
   actorUserId?: string | null;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status: params.status,
@@ -143,7 +143,7 @@ export async function updateBacktestEvaluationStatus(params: {
     payload.evaluated_by = params.actorUserId ?? null;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("backtest_evaluations")
     .update(payload)
     .eq("id", params.evaluationId)

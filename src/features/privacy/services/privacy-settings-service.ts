@@ -1,12 +1,12 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function getOrCreatePrivacySettings(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("privacy_settings")
     .select("*")
     .eq("user_id", params.userId)
@@ -16,7 +16,7 @@ export async function getOrCreatePrivacySettings(params: { userId: string }) {
     return { settings: existing };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("privacy_settings")
     .insert({
       user_id: params.userId,
@@ -50,7 +50,7 @@ export async function updatePrivacySettings(params: {
   allowDocumentIndexing?: boolean;
   dataRetentionDays?: number | null;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = { user_id: params.userId };
 
@@ -67,7 +67,7 @@ export async function updatePrivacySettings(params: {
   if (params.dataRetentionDays !== undefined)
     payload.data_retention_days = params.dataRetentionDays;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("privacy_settings")
     .upsert(payload, { onConflict: "user_id" })
     .select("*")

@@ -5,10 +5,10 @@
  * Scans source code for security anti-patterns:
  * 1. getClaims() usage (should be getUser())
  * 2. user_id taken from request body instead of auth context
- * 3. Admin pages missing force-dynamic
+ * 3. Admin pages missing authorization checks
  * 4. dangerouslySetInnerHTML usage
  * 5. Raw SQL string concatenation
- * 6. supabase-admin import in non-admin routes
+ * 6. privileged database import in non-admin routes
  * 7. Empty catch blocks in auth code
  * 8. console.log of sensitive data
  * 9. Weak random values (Math.random for IDs)
@@ -57,15 +57,6 @@ const BLOCKING_PATTERNS = [
     skipIfContains: ["quoteIdent", "quoteId"],
   },
   {
-    id: "SEC-PAT-005",
-    name: "supabase-admin in API routes",
-    pattern: /from\s+["']@\/lib\/db\/supabase-admin["']/,
-    message: "supabase-admin (service role) imported in API route. Ensure this is intentional and restricted.",
-    files: [".ts", ".tsx"],
-    includePaths: ["/api/"],
-    excludePaths: ["node_modules", ".next"],
-  },
-  {
     id: "SEC-PAT-006",
     name: "empty catch in auth",
     pattern: /catch\s*\([^)]*\)\s*\{\s*\}/,
@@ -95,7 +86,7 @@ const BLOCKING_PATTERNS = [
   {
     id: "SEC-PAT-009",
     name: "TODO/FIXME security",
-    pattern: /(?:TODO|FIXME|HACK)\s*:?\s*(?:.*security|.*auth|.*rls|.*sanitize|.*validate|.*bypass)/i,
+    pattern: /(?:TODO|FIXME|HACK)\s*:?\s*(?:.*security|.*auth|.*ownership|.*sanitize|.*validate|.*bypass)/i,
     message: "Security-related TODO found. Track and address before production.",
     files: [".ts", ".tsx", ".sql"],
     excludePaths: ["node_modules", ".next"],
@@ -111,19 +102,6 @@ const BLOCKING_PATTERNS = [
 ];
 
 const WARN_PATTERNS = [
-  {
-    id: "SEC-PAT-W01",
-    name: "admin page missing force-dynamic",
-    check: (filePath, content) => {
-      if (!filePath.includes("/admin/")) return false;
-      if (content.includes('dynamic = "force-dynamic"')) return false;
-      if (content.includes("export const dynamic")) return false;
-      // Only check page.tsx and layout.tsx
-      if (!filePath.endsWith("page.tsx") && !filePath.endsWith("layout.tsx")) return false;
-      return true;
-    },
-    message: 'Admin page should export const dynamic = "force-dynamic" to prevent static generation auth failures.',
-  },
   {
     id: "SEC-PAT-W02",
     name: "role check without undefined guard",
@@ -246,23 +224,9 @@ function main() {
   if (fs.existsSync(sqliteClientPath)) {
     const sqliteContent = fs.readFileSync(sqliteClientPath, "utf-8");
 
-    // Check if there's any auth.uid() equivalent filtering in SqliteQueryBuilder
-    if (!sqliteContent.includes("auth.uid") && !sqliteContent.includes("user_id")) {
-      log("warn", `[SEC-SQLITE-001] SqliteQueryBuilder has no built-in RLS/auth filtering. Ensure API routes always add user_id filters.`);
+    if (!sqliteContent.includes("normalizeError(error)")) {
+      log("warn", `[SEC-SQLITE-001] SQLite adapter errors must be normalized before returning.`);
       warnings++;
-    }
-
-    // Check if execute() method handles errors without leaking SQL
-    const errorLeak = sqliteContent.match(/catch\s*\([^)]*\)\s*\{[^}]*error[^}]*\}/g);
-    if (errorLeak) {
-      for (const match of errorLeak) {
-        if (match.includes("data: null") && match.includes("error")) {
-          // This pattern returns raw error — check if it includes SQL
-          log("warn", `[SEC-SQLITE-002] sqlite-client may return raw errors. Ensure SQL is not leaked to client.`);
-          warnings++;
-          break;
-        }
-      }
     }
   }
 

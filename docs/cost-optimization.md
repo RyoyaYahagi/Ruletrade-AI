@@ -17,7 +17,7 @@ Trigger at 80% of monthly budget:
 - Storage usage
 - Email sends
 - Vercel function duration
-- Supabase egress
+- Database/file-storage egress
 
 ## Optimization Tactics
 

@@ -1,12 +1,12 @@
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function GET() {
   const requestId = crypto.randomUUID();
   try {
-    const supabase = await createServerClient();
-    const { data, error } = await supabase
+    const db = await createDatabaseClient();
+    const { data, error } = await db
       .from("billing_plans")
       .select("*")
       .eq("is_active", true)

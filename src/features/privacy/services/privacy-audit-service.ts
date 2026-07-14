@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function logPrivacyAudit(params: {
   userId: string | null;
@@ -10,9 +10,9 @@ export async function logPrivacyAudit(params: {
   targetId?: string;
   metadata?: Record<string, unknown>;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  await supabase.from("privacy_audit_logs").insert({
+  await db.from("privacy_audit_logs").insert({
     user_id: params.userId,
     actor_user_id: params.actorUserId,
     action: params.action,

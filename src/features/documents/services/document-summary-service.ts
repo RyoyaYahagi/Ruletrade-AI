@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { DocumentSummarySchema } from "@/schemas/documents/document-summary-schema";
 import {
@@ -14,9 +14,9 @@ export async function summarizeDocument(params: {
   userId: string;
   documentId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: document, error } = await supabase
+  const { data: document, error } = await db
     .from("user_documents")
     .select("*")
     .eq("id", params.documentId)
@@ -76,7 +76,7 @@ export async function summarizeDocument(params: {
     safety,
   };
 
-  const { data: savedSummary, error: summaryError } = await supabase
+  const { data: savedSummary, error: summaryError } = await db
     .from("document_summaries")
     .insert({
       user_id: params.userId,

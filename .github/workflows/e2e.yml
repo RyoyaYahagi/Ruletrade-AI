@@ -17,14 +17,12 @@ jobs:
     env:
       CI: true
       NODE_ENV: test
-      DB_PROVIDER: sqlite
       SQLITE_DATABASE_PATH: ./data/e2e-test.sqlite
+      LOCAL_STORAGE_PATH: ./data/e2e-test-storage
       MOCK_AUTH_EMAIL: e2e@example.com
       MOCK_AUTH_USER_ID: e2e-test-user
       MOCK_AUTH_ROLE: user
       AI_PROVIDER: mock
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
 

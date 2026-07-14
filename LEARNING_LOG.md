@@ -10,7 +10,7 @@ YYYY-MM-DD
 
 ### Topic
 
-Example: RLS, API design, RAG, AI safety
+Example: ownership checks, API design, RAG, AI safety
 
 ### What I learned
 

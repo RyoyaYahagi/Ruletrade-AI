@@ -8,16 +8,16 @@ Ruletrade-AI is built around user-owned investment rule data.
 graph TD
   Browser[Browser / Client UI]
   Next[Next.js Server]
-  SupabaseAuth[Supabase Auth]
-  DB[(Supabase Postgres)]
-  Storage[(Supabase Storage)]
+  Auth[Local session auth]
+  DB[(SQLite)]
+  Storage[(Local file storage)]
   AI[AI Provider Gateway]
   OpenAI[OpenAI]
   Gemini[Gemini]
   Mock[Mock Provider]
 
   Browser --> Next
-  Next --> SupabaseAuth
+  Next --> Auth
   Next --> DB
   Next --> Storage
   Next --> AI

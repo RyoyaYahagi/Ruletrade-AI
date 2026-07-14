@@ -46,7 +46,7 @@ Avoid wording like:
 ## Security rules
 
 - Never expose server secrets.
-- Never use `SUPABASE_SERVICE_ROLE_KEY` in Client Components.
+- Never expose local database paths, password hashes, or auth tokens to Client Components.
 - Never call OpenAI or Gemini from Client Components.
 - Do not log Authorization headers, cookies, tokens, or API keys.
 - Redact sensitive data before logging.
@@ -54,10 +54,8 @@ Avoid wording like:
 ## Database rules
 
 - User-owned tables must have `user_id`.
-- Enable RLS on user-owned tables.
-- Policies must scope access by `auth.uid() = user_id`.
-- Add DB/RLS tests for new user-owned tables.
-- Do not modify old migrations unless explicitly requested.
+- Scope all user-owned queries by the authenticated user's `user_id`.
+- Add database ownership tests for new user-owned tables.
 
 ## AI rules
 
@@ -73,5 +71,5 @@ Avoid wording like:
 
 - Add unit tests for pure logic.
 - Add API tests for auth/authorization.
-- Add RLS tests for user-owned tables.
+- Add ownership checks tests for user-owned tables.
 - Do not skip failing tests unless explicitly requested.

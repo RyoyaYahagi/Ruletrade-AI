@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { createRuleSession } from "@/features/rules/services/rule-session-service";
 
@@ -8,9 +8,9 @@ export async function createRuleSessionFromWatchlistItem(params: {
   userId: string;
   itemId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: item, error } = await supabase
+  const { data: item, error } = await db
     .from("watchlist_items")
     .select("*")
     .eq("id", params.itemId)
@@ -30,7 +30,7 @@ export async function createRuleSessionFromWatchlistItem(params: {
     templateKey: "watchlist-item",
   });
 
-  await supabase
+  await db
     .from("rule_design_sessions")
     .update({
       rule_json: {
@@ -59,7 +59,7 @@ export async function createRuleSessionFromWatchlistItem(params: {
     .eq("id", result.sessionId)
     .eq("user_id", params.userId);
 
-  await supabase
+  await db
     .from("watchlist_items")
     .update({
       status: "rule_designing",

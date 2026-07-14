@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import type {
   LessonCategory,
   LessonProgress,
@@ -44,9 +44,9 @@ export type ListLessonProgressFilters = {
  * use upsert if you need to create-or-update.
  */
 export async function createLessonProgress(input: CreateLessonProgressInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("lesson_progress")
     .insert({
       user_id: input.user_id,
@@ -75,9 +75,9 @@ export async function createLessonProgress(input: CreateLessonProgressInput) {
  * Returns `null` if the user has not started this lesson.
  */
 export async function getLessonProgress(userId: string, lessonId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("lesson_progress")
     .select("*")
     .eq("user_id", userId)
@@ -103,9 +103,9 @@ export async function getLessonProgress(userId: string, lessonId: string) {
 export async function listUserLessonProgress(
   filters: ListLessonProgressFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("lesson_progress")
     .select("*")
     .eq("user_id", filters.userId);
@@ -147,10 +147,10 @@ export async function listUserLessonProgress(
  * Only the record matching `progressId` AND `userId` is updated.
  */
 export async function updateLessonProgress(input: UpdateLessonProgressInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current record to inspect existing state
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("lesson_progress")
     .select("id, status, started_at")
     .eq("id", input.progressId)
@@ -185,7 +185,7 @@ export async function updateLessonProgress(input: UpdateLessonProgressInput) {
     payload.completion_percent = input.completion_percent;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("lesson_progress")
     .update(payload)
     .eq("id", input.progressId)
@@ -211,7 +211,7 @@ export async function updateLessonProgress(input: UpdateLessonProgressInput) {
  * Create or update lesson progress for a user and lesson.
  *
  * Since there is a unique constraint on (user_id, lesson_id), this uses
- * Supabase's `.upsert()` with the conflict target.
+ * SQLite upsert with the conflict target.
  */
 export async function upsertLessonProgress(
   input: CreateLessonProgressInput & {
@@ -219,7 +219,7 @@ export async function upsertLessonProgress(
     completion_percent?: number;
   },
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     user_id: input.user_id,
@@ -236,7 +236,7 @@ export async function upsertLessonProgress(
     payload.completion_percent = input.completion_percent;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("lesson_progress")
     .upsert(payload, {
       onConflict: "user_id, lesson_id",
@@ -264,10 +264,10 @@ export async function upsertLessonProgress(
  * `completed_at` to the current timestamp.
  */
 export async function markLessonCompleted(progressId: string, userId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Verify the record exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("lesson_progress")
     .select("id")
     .eq("id", progressId)
@@ -282,7 +282,7 @@ export async function markLessonCompleted(progressId: string, userId: string) {
 
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("lesson_progress")
     .update({
       status: "completed",
@@ -317,9 +317,9 @@ export async function deleteLessonProgress(
   id: string,
   userId: string,
 ): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("lesson_progress")
     .select("id")
     .eq("id", id)
@@ -332,7 +332,7 @@ export async function deleteLessonProgress(
     );
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("lesson_progress")
     .delete()
     .eq("id", id)

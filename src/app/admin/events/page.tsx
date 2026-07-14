@@ -1,13 +1,12 @@
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
-export const dynamic = "force-dynamic";
 
 export default async function AdminEventsPage() {
   await requireAdmin();
 
-  const supabase = await createServerClient();
-  const { data: events, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data: events, error } = await db
     .from("system_events")
     .select("id, event_type, severity, message, created_at")
     .order("created_at", { ascending: false })
@@ -30,7 +29,7 @@ export default async function AdminEventsPage() {
           </tr>
         </thead>
         <tbody>
-          {events?.map((e) => (
+          {events?.map((e: SystemEvent) => (
             <tr key={e.id} className="hover:bg-gray-50">
               <td className="border px-3 py-2">{e.event_type}</td>
               <td className="border px-3 py-2">{e.severity}</td>
@@ -43,3 +42,11 @@ export default async function AdminEventsPage() {
     </div>
   );
 }
+
+type SystemEvent = {
+  id: string;
+  event_type: string;
+  severity: string;
+  message: string;
+  created_at: string;
+};

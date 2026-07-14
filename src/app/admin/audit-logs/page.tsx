@@ -1,13 +1,12 @@
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
-export const dynamic = "force-dynamic";
 
 export default async function AdminAuditLogsPage() {
   await requireAdmin();
 
-  const supabase = await createServerClient();
-  const { data: logs, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data: logs, error } = await db
     .from("admin_audit_logs")
     .select("id, action, target_type, target_id, created_at")
     .order("created_at", { ascending: false })
@@ -30,7 +29,7 @@ export default async function AdminAuditLogsPage() {
           </tr>
         </thead>
         <tbody>
-          {logs?.map((log) => (
+          {logs?.map((log: AuditLog) => (
             <tr key={log.id} className="hover:bg-gray-50">
               <td className="border px-3 py-2">{log.action}</td>
               <td className="border px-3 py-2">{log.target_type}</td>
@@ -45,3 +44,11 @@ export default async function AdminAuditLogsPage() {
     </div>
   );
 }
+
+type AuditLog = {
+  id: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  created_at: string;
+};

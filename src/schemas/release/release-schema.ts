@@ -96,7 +96,7 @@ export const CreateReleasePlanRequestSchema = z.object({
   milestoneKey: z.string().max(200).optional(),
   plannedReleaseAt: z.string().datetime().optional(),
   includesDbMigration: z.boolean().default(false),
-  includesRlsChange: z.boolean().default(false),
+  includesDataAccessChange: z.boolean().default(false),
   includesEnvChange: z.boolean().default(false),
   includesFeatureFlagChange: z.boolean().default(false),
   includesAiPromptChange: z.boolean().default(false),
@@ -179,7 +179,7 @@ export const CreateRiskAssessmentRequestSchema = z.object({
   releasePlanId: z.string().uuid(),
   riskArea: z.enum([
     "db",
-    "rls",
+    "ownership",
     "ai_safety",
     "privacy",
     "security",

@@ -19,7 +19,7 @@ export function structuredLog(entry: LogEntry): void {
   };
 
   // In development, print readable logs
-  // In production, rely on Vercel / Supabase log aggregation
+  // In production, rely on the hosting platform's log aggregation
   if (process.env.NODE_ENV !== "production") {
     console.log(JSON.stringify(log));
   }

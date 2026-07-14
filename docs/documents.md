@@ -11,4 +11,5 @@ Document RAG is used only to support rule design:
 
 The AI must not use documents to make buy/sell recommendations.
 
-Documents are private and protected by Storage policies and RLS.
+Documents are private and protected by server-side ownership checks and safe
+local storage paths.

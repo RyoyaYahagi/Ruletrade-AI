@@ -1,17 +1,20 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function getOrCreateUiPreferences(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing, error: existingError } = await supabase
+  const { data: existing, error: existingError } = await db
     .from("user_ui_preferences")
     .select("*")
     .eq("user_id", params.userId)
     .single();
 
-  if (existingError && !["PGRST116", "SQLITE_NO_ROWS"].includes(existingError.code)) {
+  if (
+    existingError &&
+    !["PGRST116", "SQLITE_NO_ROWS"].includes(existingError.code ?? "")
+  ) {
     throw existingError;
   }
 
@@ -19,7 +22,7 @@ export async function getOrCreateUiPreferences(params: { userId: string }) {
     return { preferences: existing };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("user_ui_preferences")
     .insert({
       user_id: params.userId,
@@ -53,7 +56,7 @@ export async function updateUiPreferences(params: {
   compactMode?: boolean;
   showAdvancedFields?: boolean;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {};
   if (params.locale !== undefined) payload.locale = params.locale;
@@ -70,7 +73,7 @@ export async function updateUiPreferences(params: {
   if (params.showAdvancedFields !== undefined)
     payload.show_advanced_fields = params.showAdvancedFields;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("user_ui_preferences")
     .upsert({ user_id: params.userId, ...payload }, { onConflict: "user_id" })
     .select("*")

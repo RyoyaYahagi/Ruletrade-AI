@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_plan_items テーブル CRUD
@@ -41,9 +41,9 @@ export type UpdateReleasePlanItemStatusInput = {
  * Create a new release plan item.
  */
 export async function createReleasePlanItem(input: CreateReleasePlanItemInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_plan_items")
     .insert({
       release_plan_id: input.release_plan_id,
@@ -73,9 +73,9 @@ export async function createReleasePlanItem(input: CreateReleasePlanItemInput) {
  * Results are ordered by created_at ascending.
  */
 export async function listReleasePlanItems(releasePlanId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_plan_items")
     .select("*")
     .eq("release_plan_id", releasePlanId)
@@ -95,13 +95,13 @@ export async function updateReleasePlanItemStatus(
   itemId: string,
   status: string,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_plan_items")
     .update(payload)
     .eq("id", itemId)

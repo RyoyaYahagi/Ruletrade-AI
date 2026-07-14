@@ -6,7 +6,7 @@ Check:
 
 - API docs if endpoints changed
 - DB docs if schema changed
-- RLS docs if policies changed
+- Database ownership docs if access rules changed
 - AI docs if prompt/provider changed
 - Safety docs if compliance changed
 - Operations docs if env/deploy changed

@@ -29,6 +29,6 @@ Investment Memory allows each user to store their persistent trading preferences
 - `upsertInvestmentMemory(input)` — insert or update (1 record per user)
 - `deleteInvestmentMemory(userId)` — remove the record
 
-## RLS
+## ownership checks
 
 Users can only CRUD their own `user_investment_memories` row.

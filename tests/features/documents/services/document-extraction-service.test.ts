@@ -1,19 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
 vi.mock("pdf-parse", () => ({
   default: vi.fn().mockResolvedValue({ text: "PDF text" }),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+const mockReadLocalStorageFile = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/storage/local-file-storage", () => ({
+  readLocalStorageFile: mockReadLocalStorageFile,
+}));
+
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { extractDocumentText } from "@/features/documents/services/document-extraction-service";
 
 describe("extractDocumentText", () => {
   it("テキストファイルから本文を抽出する", async () => {
-    const mockSupabase = {
+    const mockDatabase = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -31,17 +36,10 @@ describe("extractDocumentText", () => {
         .mockResolvedValueOnce({ data: { id: "job-1" }, error: null }),
       insert: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
-      storage: {
-        from: vi.fn().mockReturnValue({
-          download: vi.fn().mockResolvedValue({
-            data: new Blob(["Hello world"]),
-            error: null,
-          }),
-        }),
-      },
     };
 
-    vi.mocked(createServerClient).mockResolvedValue(mockSupabase as never);
+    mockReadLocalStorageFile.mockResolvedValue(Buffer.from("Hello world"));
+    vi.mocked(createDatabaseClient).mockResolvedValue(mockDatabase as never);
 
     const result = await extractDocumentText({
       userId: "user-1",

@@ -20,7 +20,7 @@ Ruletrade-AI releases use:
 ## Sensitive changes
 
 - DB migration
-- RLS change
+- ownership checks change
 - env change
 - AI prompt change
 - privacy change

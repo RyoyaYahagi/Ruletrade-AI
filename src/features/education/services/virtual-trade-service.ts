@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import type {
   VirtualTrade,
   VirtualTradeStatus,
@@ -51,9 +51,9 @@ export type ListVirtualTradesFilters = {
  * The trade starts in `"open"` status by default.
  */
 export async function createVirtualTrade(input: CreateVirtualTradeInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("virtual_trades")
     .insert({
       practice_session_id: input.practice_session_id,
@@ -89,9 +89,9 @@ export async function createVirtualTrade(input: CreateVirtualTradeInput) {
  * Returns `null` if the trade is not found or not accessible.
  */
 export async function getVirtualTradeById(id: string, userId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("virtual_trades")
     .select("*")
     .eq("id", id)
@@ -113,9 +113,9 @@ export async function getVirtualTradeById(id: string, userId: string) {
  * Results are ordered by `opened_at` descending (newest first).
  */
 export async function listVirtualTrades(filters: ListVirtualTradesFilters) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("virtual_trades")
     .select("*")
     .eq("practice_session_id", filters.practiceSessionId)
@@ -149,10 +149,10 @@ export async function listVirtualTrades(filters: ListVirtualTradesFilters) {
  * Returns the updated record.
  */
 export async function updateVirtualTrade(input: UpdateVirtualTradeInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Verify the record exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("virtual_trades")
     .select("id")
     .eq("id", input.tradeId)
@@ -174,7 +174,7 @@ export async function updateVirtualTrade(input: UpdateVirtualTradeInput) {
   if (input.compliance_notes !== undefined)
     payload.compliance_notes = input.compliance_notes;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("virtual_trades")
     .update(payload)
     .eq("id", input.tradeId)
@@ -212,10 +212,10 @@ export async function closeVirtualTrade(params: {
   exit_price: number;
   exit_reason?: string | null;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch the current trade
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("virtual_trades")
     .select("id, status, trade_type, entry_price, quantity")
     .eq("id", params.tradeId)
@@ -257,7 +257,7 @@ export async function closeVirtualTrade(params: {
     payload.exit_reason = params.exit_reason;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("virtual_trades")
     .update(payload)
     .eq("id", params.tradeId)
@@ -289,10 +289,10 @@ export async function cancelVirtualTrade(
   userId: string,
   exit_reason?: string | null,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch the current trade
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("virtual_trades")
     .select("id, status")
     .eq("id", tradeId)
@@ -319,7 +319,7 @@ export async function cancelVirtualTrade(
     payload.exit_reason = exit_reason;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("virtual_trades")
     .update(payload)
     .eq("id", tradeId)
@@ -350,9 +350,9 @@ export async function deleteVirtualTrade(
   id: string,
   userId: string,
 ): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("virtual_trades")
     .select("id")
     .eq("id", id)
@@ -365,7 +365,7 @@ export async function deleteVirtualTrade(
     );
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("virtual_trades")
     .delete()
     .eq("id", id)

@@ -1,48 +1,47 @@
 "use client";
 
-import { createBrowserClient } from "@/lib/db/supabase-browser";
+type AuthResponse = {
+  ok?: boolean;
+  data?: unknown;
+  error?: { code?: string; message?: string } | null;
+};
 
 export async function signInWithPassword(input: {
   email: string;
   password: string;
 }) {
-  const supabase = createBrowserClient();
-
-  return supabase.auth.signInWithPassword(input);
+  return postAuthRequest("/api/auth/login", input);
 }
 
 export async function signInAsGuest() {
-  const localGuestResponse = await fetch("/api/auth/guest", {
-    method: "POST",
-  });
-
-  if (localGuestResponse.ok) {
-    return { error: null };
-  }
-
-  const supabase = createBrowserClient();
-
-  return supabase.auth.signInAnonymously();
+  return postAuthRequest("/api/auth/guest");
 }
 
 export async function signUpWithPassword(input: {
   email: string;
   password: string;
-  redirectTo: string;
 }) {
-  const supabase = createBrowserClient();
-
-  return supabase.auth.signUp({
-    email: input.email,
-    password: input.password,
-    options: {
-      emailRedirectTo: input.redirectTo,
-    },
-  });
+  return postAuthRequest("/api/auth/signup", input);
 }
 
 export async function signOut() {
-  const supabase = createBrowserClient();
+  return postAuthRequest("/api/auth/logout");
+}
 
-  return supabase.auth.signOut();
+async function postAuthRequest(path: string, body?: unknown) {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const json = (await response.json()) as AuthResponse;
+  if (response.ok && json.ok !== false) {
+    return { data: json.data, error: null };
+  }
+
+  return {
+    data: json.data,
+    error: json.error ?? { message: "認証処理に失敗しました。" },
+  };
 }

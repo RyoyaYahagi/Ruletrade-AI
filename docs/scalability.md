@@ -36,6 +36,6 @@ Use queue for heavy operations:
 
 ## Connection Limits
 
-- Supabase: 200 connections (pooler)
+- SQLite: single-writer WAL mode with a durable file volume
 - Vercel: 1000 concurrent functions
 - AI provider: Account limits

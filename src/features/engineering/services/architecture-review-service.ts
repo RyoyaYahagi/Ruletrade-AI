@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * architecture_review_requests テーブル CRUD
@@ -72,9 +72,9 @@ export type UpdateArchitectureReviewStatusInput = {
 export async function createArchitectureReviewRequest(
   input: CreateArchitectureReviewRequestInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("architecture_review_requests")
     .insert({
       request_key: input.request_key,
@@ -119,9 +119,9 @@ export async function createArchitectureReviewRequest(
 export async function listArchitectureReviewRequests(
   filters?: ListArchitectureReviewRequestsFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("architecture_review_requests").select("*");
+  let query = db.from("architecture_review_requests").select("*");
 
   // Apply filters
   if (filters) {
@@ -168,10 +168,10 @@ export async function listArchitectureReviewRequests(
 export async function updateArchitectureReviewStatus(
   input: UpdateArchitectureReviewStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current request to ensure it exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("architecture_review_requests")
     .select("id, status")
     .eq("id", input.requestId)
@@ -193,7 +193,7 @@ export async function updateArchitectureReviewStatus(
     payload.decision_summary = input.decisionSummary;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("architecture_review_requests")
     .update(payload)
     .eq("id", input.requestId)
