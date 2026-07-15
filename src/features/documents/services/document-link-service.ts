@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function linkDocumentToTarget(params: {
@@ -15,9 +15,9 @@ export async function linkDocumentToTarget(params: {
   targetId?: string;
   linkReason?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: document } = await supabase
+  const { data: document } = await db
     .from("user_documents")
     .select("id")
     .eq("id", params.documentId)
@@ -28,7 +28,7 @@ export async function linkDocumentToTarget(params: {
     throw new AppError("NOT_FOUND", "資料が見つかりません。", 404);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("document_rag_links")
     .upsert(
       {
@@ -64,9 +64,9 @@ export async function listLinkedDocuments(params: {
   targetType: string;
   targetId?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("document_rag_links")
     .select(
       `

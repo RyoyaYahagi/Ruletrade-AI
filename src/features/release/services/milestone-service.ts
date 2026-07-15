@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * internal_milestones テーブル CRUD
@@ -51,9 +51,9 @@ export type ListMilestonesFilters = {
  * Create a new milestone.
  */
 export async function createMilestone(input: CreateMilestoneInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("internal_milestones")
     .insert({
       milestone_key: input.milestone_key,
@@ -90,9 +90,9 @@ export async function createMilestone(input: CreateMilestoneInput) {
  * created_at ascending.
  */
 export async function listMilestones(filters?: ListMilestonesFilters) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("internal_milestones").select("*");
+  let query = db.from("internal_milestones").select("*");
 
   // Apply filters
   if (filters) {
@@ -105,7 +105,7 @@ export async function listMilestones(filters?: ListMilestonesFilters) {
   }
 
   // Order: target_date ASC (nulls last), then created_at ASC
-  query = query.order("target_date", { ascending: true, nullsFirst: false });
+  query = query.order("target_date", { ascending: true });
   query = query.order("created_at", { ascending: true });
 
   const { data, error } = await query;
@@ -119,9 +119,9 @@ export async function listMilestones(filters?: ListMilestonesFilters) {
  * Get a single milestone by its unique `milestone_key`.
  */
 export async function getMilestoneByKey(milestoneKey: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("internal_milestones")
     .select("*")
     .eq("milestone_key", milestoneKey)
@@ -143,7 +143,7 @@ export async function updateMilestoneStatus(
   milestoneKey: string,
   input: UpdateMilestoneStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status: input.status,
@@ -157,7 +157,7 @@ export async function updateMilestoneStatus(
     payload.completed_at = new Date().toISOString();
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("internal_milestones")
     .update(payload)
     .eq("milestone_key", milestoneKey)

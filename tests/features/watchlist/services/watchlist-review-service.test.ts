@@ -4,8 +4,8 @@ import { AppError } from "@/lib/errors/app-error";
 
 // ── Mock dependencies ────────────────────────────────────────────────────────
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
 vi.mock("@/lib/ai/provider-factory", () => ({
@@ -21,7 +21,7 @@ vi.mock("@/features/watchlist/prompts/watchlist-review-prompt", () => ({
   WATCHLIST_REVIEW_PROMPT_VERSION: "watchlist-reviewer-v1",
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { buildWatchlistReviewPrompt } from "@/features/watchlist/prompts/watchlist-review-prompt";
@@ -189,7 +189,7 @@ beforeEach(() => {
   buildMocks();
   vi.clearAllMocks();
 
-  vi.mocked(createServerClient).mockResolvedValue({
+  vi.mocked(createDatabaseClient).mockResolvedValue({
     from: mockFrom,
   } as unknown);
 

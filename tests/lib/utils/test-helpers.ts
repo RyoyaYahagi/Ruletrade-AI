@@ -1,9 +1,16 @@
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function resetTestDatabase() {
-  const supabase = await createServerClient();
-  // Truncate test tables in dependency order
-  await supabase.rpc("truncate_test_tables");
+  const db = await createDatabaseClient();
+  const tables = [
+    "rule_answers",
+    "rule_questions",
+    "rule_design_sessions",
+    "app_users",
+  ];
+  for (const table of tables) {
+    await db.from(table).delete();
+  }
 }
 
 export function createMockUser(overrides?: Partial<{ id: string; email: string }>) {

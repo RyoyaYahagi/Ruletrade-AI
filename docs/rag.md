@@ -13,4 +13,4 @@ RAG does not provide investment advice.
 
 The AI must treat retrieved context as reference only and prioritize current user input.
 
-All RAG documents and chunks are user-owned and protected by RLS.
+All RAG documents and chunks are user-owned and protected by ownership checks.

@@ -26,6 +26,9 @@ type GeminiGenerateContentResponse = {
   };
 };
 
+const GEMINI_MAX_ATTEMPTS = 3;
+const GEMINI_RETRY_DELAYS_MS = [500, 1500] as const;
+
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
 
@@ -54,6 +57,7 @@ export class GeminiProvider implements AIProvider {
         temperature: params.temperature ?? 0.2,
         maxOutputTokens: params.maxOutputTokens,
         responseMimeType: "application/json",
+        responseSchema: getGeminiResponseSchema(params.schemaName),
       });
       const rawText = getGeminiText(response);
       const parsedJson = parseJson(rawText);
@@ -122,6 +126,7 @@ export class GeminiProvider implements AIProvider {
       temperature: number;
       maxOutputTokens?: number;
       responseMimeType?: "application/json";
+      responseSchema?: unknown;
     },
   ): Promise<GeminiGenerateContentResponse> {
     const url = new URL(
@@ -130,26 +135,47 @@ export class GeminiProvider implements AIProvider {
 
     const controller = new AbortController();
 
-    const response = await withTimeout(
-      fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": this.apiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: options.prompt }] }],
-          generationConfig: {
-            temperature: options.temperature,
-            maxOutputTokens: options.maxOutputTokens,
-            responseMimeType: options.responseMimeType,
+    let response: Response | undefined;
+
+    for (let attempt = 0; attempt < GEMINI_MAX_ATTEMPTS; attempt += 1) {
+      response = await withTimeout(
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": this.apiKey,
           },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: options.prompt }] }],
+            generationConfig: {
+              temperature: options.temperature,
+              maxOutputTokens: options.maxOutputTokens,
+              responseMimeType: options.responseMimeType,
+              responseSchema: options.responseSchema,
+            },
+          }),
+          signal: controller.signal,
         }),
-        signal: controller.signal,
-      }),
-      getAITimeoutMs(),
-      controller,
-    );
+        getAITimeoutMs(),
+        controller,
+      );
+
+      if (
+        !isRetryableGeminiStatus(response.status) ||
+        attempt === GEMINI_MAX_ATTEMPTS - 1
+      ) {
+        break;
+      }
+
+      await delay(GEMINI_RETRY_DELAYS_MS[attempt] ?? 0);
+    }
+
+    if (!response) {
+      throw new AIProviderError(
+        "AI_PROVIDER_REQUEST_FAILED",
+        "Gemini API request failed.",
+      );
+    }
 
     if (!response.ok) {
       throw new AIProviderError(
@@ -166,6 +192,14 @@ export class GeminiProvider implements AIProvider {
   }
 }
 
+function isRetryableGeminiStatus(status: number): boolean {
+  return status === 429 || status === 503;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function toGeminiPrompt(
   messages: Array<{ role: string; content: string }>,
   schemaName?: string,
@@ -179,6 +213,133 @@ function toGeminiPrompt(
   }
 
   return `${prompt}\n\nReturn only valid JSON matching the ${schemaName} schema.`;
+}
+
+function getGeminiResponseSchema(schemaName: string): unknown {
+  if (schemaName !== "RuleReview") return undefined;
+
+  return {
+    type: "OBJECT",
+    required: [
+      "summary",
+      "completionScore",
+      "needsMoreInfo",
+      "canFinalize",
+      "qualityChecks",
+      "nextQuestions",
+      "suggestedRuleUpdates",
+      "safety",
+    ],
+    properties: {
+      summary: { type: "STRING" },
+      completionScore: { type: "NUMBER" },
+      needsMoreInfo: { type: "BOOLEAN" },
+      canFinalize: { type: "BOOLEAN" },
+      qualityChecks: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          required: ["checkKey", "label", "status", "severity", "reason"],
+          properties: {
+            checkKey: { type: "STRING" },
+            label: { type: "STRING" },
+            status: { type: "STRING", enum: ["pass", "warning", "fail"] },
+            severity: { type: "STRING", enum: ["low", "medium", "high"] },
+            reason: { type: "STRING" },
+            suggestedQuestion: { type: "STRING" },
+          },
+        },
+      },
+      nextQuestions: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          required: [
+            "questionKey",
+            "questionText",
+            "questionType",
+            "priority",
+            "isRequired",
+            "source",
+            "status",
+            "displayOrder",
+          ],
+          properties: {
+            questionKey: { type: "STRING" },
+            questionText: { type: "STRING" },
+            questionType: {
+              type: "STRING",
+              enum: ["free_text", "single_choice", "multi_choice"],
+            },
+            options: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                required: ["value", "label"],
+                properties: {
+                  value: { type: "STRING" },
+                  label: { type: "STRING" },
+                },
+              },
+            },
+            priority: { type: "INTEGER" },
+            isRequired: { type: "BOOLEAN" },
+            mapsToRuleField: { type: "STRING" },
+            source: { type: "STRING", enum: ["ai", "system", "user"] },
+            status: {
+              type: "STRING",
+              enum: ["pending", "answered", "skipped"],
+            },
+            displayOrder: { type: "INTEGER" },
+            helpText: { type: "STRING" },
+          },
+        },
+      },
+      suggestedRuleUpdates: {
+        type: "ARRAY",
+        items: { type: "OBJECT" },
+      },
+      safety: {
+        type: "OBJECT",
+        required: ["passed", "riskLevel", "violations", "prohibitedPhrasesDetected"],
+        properties: {
+          passed: { type: "BOOLEAN" },
+          riskLevel: { type: "STRING", enum: ["low", "medium", "high"] },
+          violations: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              required: ["type", "reason"],
+              properties: {
+                type: {
+                  type: "STRING",
+                  enum: [
+                    "buy_recommendation",
+                    "sell_recommendation",
+                    "price_prediction",
+                    "profit_guarantee",
+                    "loss_avoidance_guarantee",
+                    "decision_delegation",
+                    "urgency_pressure",
+                    "fear_mongering",
+                    "privacy_risk",
+                    "other",
+                  ],
+                },
+                phrase: { type: "STRING" },
+                reason: { type: "STRING" },
+              },
+            },
+          },
+          prohibitedPhrasesDetected: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+          },
+          suggestedRewrite: { type: "STRING" },
+        },
+      },
+    },
+  };
 }
 
 function getGeminiText(response: GeminiGenerateContentResponse): string {

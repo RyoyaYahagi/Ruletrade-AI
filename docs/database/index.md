@@ -1,3 +1,3 @@
 # Database
 
-This section describes the database schema, RLS policies, and migrations.
+This section describes the SQLite schema and server-side ownership checks.

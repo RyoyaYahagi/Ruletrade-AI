@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 // ──────────────────────────────────────────────
 // Types
@@ -40,9 +40,9 @@ export type UpsertInvestmentMemoryInput = {
  * Returns `null` if the user has not set any preferences yet.
  */
 export async function getInvestmentMemory(userId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("user_investment_memories")
     .select("*")
     .eq("user_id", userId)
@@ -69,10 +69,10 @@ export async function getInvestmentMemory(userId: string) {
 export async function upsertInvestmentMemory(
   input: UpsertInvestmentMemoryInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Check if a record already exists for this user
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("user_investment_memories")
     .select("id")
     .eq("user_id", input.user_id)
@@ -94,7 +94,7 @@ export async function upsertInvestmentMemory(
       payload.standing_constraints = input.standing_constraints;
     if (input.notes !== undefined) payload.notes = input.notes;
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("user_investment_memories")
       .update(payload)
       .eq("id", existing.id)
@@ -113,7 +113,7 @@ export async function upsertInvestmentMemory(
   }
 
   // Insert new record
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("user_investment_memories")
     .insert({
       user_id: input.user_id,
@@ -147,10 +147,10 @@ export async function upsertInvestmentMemory(
  * Throws if no record exists for the given user.
  */
 export async function deleteInvestmentMemory(userId: string): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Verify the record exists before deleting
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("user_investment_memories")
     .select("id")
     .eq("user_id", userId)
@@ -162,7 +162,7 @@ export async function deleteInvestmentMemory(userId: string): Promise<void> {
     );
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("user_investment_memories")
     .delete()
     .eq("id", existing.id)

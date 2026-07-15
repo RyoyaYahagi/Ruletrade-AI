@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+"use client";
 
 export default function OfflinePage() {
   return (

@@ -11,7 +11,7 @@ Closes #
 - [ ] UI only
 - [ ] API
 - [ ] DB migration
-- [ ] RLS
+- [ ] Ownership checks
 - [ ] AI / Prompt / Safety
 - [ ] RAG / Documents
 - [ ] Privacy / Deletion
@@ -39,8 +39,8 @@ ADR:
 ## Security / Privacy Checklist
 
 - [ ] No secrets in client bundle
-- [ ] No Service Role usage in client code
-- [ ] RLS impact reviewed
+- [ ] No privileged database access in client code
+- [ ] Ownership checks reviewed
 - [ ] Private user content is not logged
 - [ ] AI prompt/output is not persisted unexpectedly
 - [ ] Email/support/analytics do not include private investment content
@@ -49,7 +49,7 @@ ADR:
 
 - [ ] Unit
 - [ ] API
-- [ ] DB / RLS
+- [ ] DB / ownership
 - [ ] E2E
 - [ ] Manual QA
 

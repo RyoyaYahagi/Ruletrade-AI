@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function logAdminAudit(params: {
   adminUserId: string;
@@ -11,8 +11,8 @@ export async function logAdminAudit(params: {
   reason?: string;
   metadata?: Record<string, unknown>;
 }) {
-  const supabase = await createServerClient();
-  await supabase.from("admin_audit_logs").insert({
+  const db = await createDatabaseClient();
+  await db.from("admin_audit_logs").insert({
     admin_user_id: params.adminUserId,
     action: params.actionKey,
     target_type: params.targetType,

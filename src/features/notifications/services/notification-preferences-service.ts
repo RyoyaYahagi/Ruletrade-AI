@@ -1,14 +1,14 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function getOrCreateNotificationPreferences(params: {
   userId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("notification_preferences")
     .select("*")
     .eq("user_id", params.userId)
@@ -27,7 +27,7 @@ export async function getOrCreateNotificationPreferences(params: {
     return { preferences: data };
   }
 
-  const { data: created, error: createError } = await supabase
+  const { data: created, error: createError } = await db
     .from("notification_preferences")
     .insert({
       user_id: params.userId,
@@ -63,7 +63,7 @@ export async function updateNotificationPreferences(params: {
   timezone?: string;
   maxNotificationsPerDay?: number;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const updatePayload: Record<string, unknown> = {};
 
@@ -97,7 +97,7 @@ export async function updateNotificationPreferences(params: {
   if (params.maxNotificationsPerDay !== undefined)
     updatePayload.max_notifications_per_day = params.maxNotificationsPerDay;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("notification_preferences")
     .upsert(
       {

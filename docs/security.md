@@ -2,8 +2,8 @@
 
 ## 基本方針
 
-- 認証は Supabase Auth に寄せる
-- DB アクセスは RLS でユーザーごとに分離する
+- 認証は local session auth に寄せる
+- DB アクセスは server-side ownership check でユーザーごとに分離する
 - Client から userId を信用しない
 - Server 側で requireUser() を必ず通す
 - AI Provider API Key を Client に出さない
@@ -28,16 +28,16 @@
 ### Trust Boundaries
 
 1. Browser ↔ Next.js Server（HTTPS）
-2. Next.js Server ↔ Supabase（Service Role / Anon Key）
+2. Next.js Server ↔ SQLite / local file storage
 3. Next.js Server ↔ AI Provider（API Key）
-4. Supabase Auth ↔ DB（RLS）
-5. Supabase Storage（Bucket Policy）
+4. Session auth ↔ SQLite
+5. Local file storage（path validation）
 
 ### Top Threats
 
 | #   | Threat                    | Mitigation                            |
 | --- | ------------------------- | ------------------------------------- |
-| 1   | Broken Access Control     | RLS + requireUser() + owner check     |
+| 1   | Broken Access Control     | ownership check + requireUser()       |
 | 2   | Prompt Injection          | Safety Check + output validation      |
 | 3   | RAG Context Injection     | user_id filter + similarity threshold |
 | 4   | Sensitive Data Disclosure | no secrets in NEXT*PUBLIC*            |
@@ -58,9 +58,9 @@
 
 ### DB
 
-- [ ] RLS enabled on all user tables
-- [ ] Policies restrict to own data only
-- [ ] Service Role Key only in server-only files
+- [ ] Every user table has an ownership condition
+- [ ] Services restrict access to the current user
+- [ ] Privileged database access stays server-only
 
 ### API
 
@@ -78,7 +78,7 @@
 
 ### RAG
 
-- [ ] user_id filter on match_rag_chunks
+- [ ] user_id filter on local rag_chunks retrieval
 - [ ] similarity threshold enforced
 - [ ] Document hash verified
 
@@ -97,7 +97,7 @@
 
 ## Production Security Checklist
 
-- [ ] All RLS policies reviewed
+- [ ] All ownership checks reviewed
 - [ ] All API routes have auth
 - [ ] AI_PROVIDER is not mock
 - [ ] Rate limit enabled

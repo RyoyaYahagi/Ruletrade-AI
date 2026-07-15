@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function createFeedback(params: {
@@ -9,9 +9,9 @@ export async function createFeedback(params: {
   title: string;
   body: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("feedback_items")
     .insert({
       user_id: params.userId,
@@ -38,9 +38,9 @@ export async function listFeedback(params: {
   userId: string;
   status?: string 
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("feedback_items")
     .select("*, feedback_votes(vote_type)")
     .eq("user_id", params.userId);
@@ -61,9 +61,9 @@ export async function voteFeedback(params: {
   feedbackId: string;
   voteType: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("feedback_votes")
     .upsert(
       {

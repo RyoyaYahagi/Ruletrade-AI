@@ -11,7 +11,7 @@ export const EngineeringDecisionStatusSchema = z.enum([
 export const EngineeringDecisionAreaSchema = z.enum([
   "architecture",
   "db",
-  "rls",
+  "ownership",
   "auth",
   "ai",
   "rag",
@@ -84,7 +84,7 @@ export const CreateEngineeringExceptionRequestSchema = z.object({
   title: z.string().min(1).max(300),
   description: z.string().min(1).max(5000),
   exceptionType: z.enum([
-    "rls_exception",
+    "ownership_exception",
     "service_role_usage",
     "logging_exception",
     "cache_exception",
@@ -111,7 +111,7 @@ export const CreateArchitectureReviewRequestSchema = z.object({
   reviewArea: z.enum([
     "architecture",
     "db",
-    "rls",
+    "ownership",
     "auth",
     "ai",
     "rag",

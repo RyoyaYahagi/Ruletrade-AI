@@ -1,14 +1,14 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function GET() {
   const requestId = crypto.randomUUID();
   try {
     const user = await requireUser();
-    const supabase = await createServerClient();
-    const { data, error } = await supabase
+    const db = await createDatabaseClient();
+    const { data, error } = await db
       .from("privacy_audit_logs")
       .select("*")
       .eq("user_id", user.id)

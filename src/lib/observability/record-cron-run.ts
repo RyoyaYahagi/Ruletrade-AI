@@ -1,5 +1,5 @@
 import "server-only";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export interface CronRunInput {
   cronName: string;
@@ -12,9 +12,9 @@ export interface CronRunInput {
 
 export async function recordCronRun(params: CronRunInput): Promise<void> {
   try {
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    await supabase.from("cron_run_logs").insert({
+    await db.from("cron_run_logs").insert({
       cron_name: params.cronName,
       status: params.status,
       started_at: params.startedAt,

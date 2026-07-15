@@ -35,5 +35,6 @@ Features:
 
 ## Auth email
 
-Supabase Auth handles sign-up / password reset emails.
+Local auth handles sign-up. Password reset flows are implemented as server-side
+application services.
 Use Custom SMTP for production deliverability.

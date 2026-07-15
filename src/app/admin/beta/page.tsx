@@ -1,7 +1,5 @@
-export const dynamic = "force-dynamic";
-
 import { requireAdminPermission } from "@/features/admin/services/admin-auth-service";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 interface Cohort {
   id: string;
@@ -28,16 +26,16 @@ interface Grant {
 
 export default async function Page() {
   await requireAdminPermission("admin.beta.read");
-  const supabase = await createServerClient();
-  const { data: cohorts } = await supabase
+  const db = await createDatabaseClient();
+  const { data: cohorts } = await db
     .from("beta_cohorts")
     .select("*")
     .order("created_at");
-  const { data: flags } = await supabase
+  const { data: flags } = await db
     .from("beta_feature_flags")
     .select("*")
     .order("flag_key");
-  const { data: grants } = await supabase
+  const { data: grants } = await db
     .from("beta_access_grants")
     .select("*, app_users(email), beta_cohorts(cohort_key)")
     .order("created_at", { ascending: false })

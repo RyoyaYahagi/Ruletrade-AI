@@ -1,10 +1,8 @@
 # Default
 * @owner
 
-# Database / migrations / RLS
-/supabase/migrations/ @owner
+# Database / ownership checks
 /src/lib/db/ @owner
-/src/features/**/services/*rls* @owner
 
 # AI / RAG
 /src/features/ai/ @owner

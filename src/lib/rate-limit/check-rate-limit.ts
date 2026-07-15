@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import {
   RATE_LIMIT_CONFIGS,
@@ -15,9 +15,9 @@ export async function checkRateLimit(params: {
   const config = RATE_LIMIT_CONFIGS[params.key];
   const { periodStart, periodEnd } = getRateLimitPeriod(config.window);
 
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("rate_limit_counters")
     .select("used_count")
     .eq("user_id", params.userId)

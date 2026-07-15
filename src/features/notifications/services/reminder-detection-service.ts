@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { createNotification } from "./notification-service";
 import { getOrCreateNotificationPreferences } from "./notification-preferences-service";
 
@@ -16,9 +16,9 @@ export async function detectAndCreateReviewReminders(params: {
   }
 
   // Rate limit check
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
   const today = new Date().toISOString().slice(0, 10);
-  const { count: todayCount } = await supabase
+  const { count: todayCount } = await db
     .from("notifications")
     .select("*", { count: "exact", head: true })
     .eq("user_id", params.userId)
@@ -58,9 +58,9 @@ export async function detectAndCreateReviewReminders(params: {
 }
 
 async function createPendingQuestionNotifications(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: sessions, error } = await supabase
+  const { data: sessions, error } = await db
     .from("rule_design_sessions")
     .select("id, ticker, company_name")
     .eq("user_id", params.userId)
@@ -72,7 +72,7 @@ async function createPendingQuestionNotifications(params: { userId: string }) {
   let count = 0;
 
   for (const session of sessions ?? []) {
-    const { count: pendingCount } = await supabase
+    const { count: pendingCount } = await db
       .from("rule_questions")
       .select("*", { count: "exact", head: true })
       .eq("user_id", params.userId)
@@ -110,9 +110,9 @@ async function createPendingQuestionNotifications(params: { userId: string }) {
 }
 
 async function createRuleQualityNotifications(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: sessions, error } = await supabase
+  const { data: sessions, error } = await db
     .from("rule_design_sessions")
     .select("id, ticker, company_name, completion_score, quality_gate_status")
     .eq("user_id", params.userId)
@@ -190,9 +190,9 @@ async function createRuleQualityNotifications(params: { userId: string }) {
 }
 
 async function createWatchlistNotifications(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: items, error } = await supabase
+  const { data: items, error } = await db
     .from("watchlist_items")
     .select("id, ticker, company_name, status, rule_session_id")
     .eq("user_id", params.userId)
@@ -234,9 +234,9 @@ async function createWatchlistNotifications(params: { userId: string }) {
 }
 
 async function createPortfolioNotifications(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { count: missingRulesCount, error } = await supabase
+  const { count: missingRulesCount, error } = await db
     .from("portfolio_positions")
     .select("*", { count: "exact", head: true })
     .eq("user_id", params.userId)
@@ -277,13 +277,13 @@ async function hasRecentNotification(params: {
   targetId?: string;
   cooldownHours: number;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const since = new Date(
     Date.now() - params.cooldownHours * 60 * 60 * 1000,
   ).toISOString();
 
-  let query = supabase
+  let query = db
     .from("notifications")
     .select("id")
     .eq("user_id", params.userId)

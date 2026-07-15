@@ -1,5 +1,5 @@
 import "server-only";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export interface ApiRequestLogInput {
   requestId: string;
@@ -13,9 +13,9 @@ export interface ApiRequestLogInput {
 
 export async function logApiRequest(params: ApiRequestLogInput): Promise<void> {
   try {
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    await supabase.from("api_request_logs").insert({
+    await db.from("api_request_logs").insert({
       request_id: params.requestId,
       user_id: params.userId,
       route: params.route,

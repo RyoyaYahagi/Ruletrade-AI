@@ -1,15 +1,15 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function assertOwnRuleSession(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("rule_design_sessions")
     .select("id, user_id, status")
     .eq("id", params.sessionId)

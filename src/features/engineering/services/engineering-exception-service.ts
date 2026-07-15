@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * engineering_exceptions テーブル CRUD
@@ -85,9 +85,9 @@ export async function createEngineeringException(
     );
   }
 
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_exceptions")
     .insert({
       exception_key: input.exception_key,
@@ -133,9 +133,9 @@ export async function createEngineeringException(
 export async function listEngineeringExceptions(
   filters?: ListEngineeringExceptionsFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("engineering_exceptions").select("*");
+  let query = db.from("engineering_exceptions").select("*");
 
   // Apply filters
   if (filters) {
@@ -178,10 +178,10 @@ export async function listEngineeringExceptions(
 export async function approveEngineeringException(
   input: ApproveEngineeringExceptionInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current exception to ensure it exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("engineering_exceptions")
     .select("id, status")
     .eq("id", input.exceptionId)
@@ -199,7 +199,7 @@ export async function approveEngineeringException(
     approved_at: input.approvedAt ?? new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_exceptions")
     .update(payload)
     .eq("id", input.exceptionId)

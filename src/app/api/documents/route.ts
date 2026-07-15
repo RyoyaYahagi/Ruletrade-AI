@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function GET() {
   const requestId = crypto.randomUUID();
@@ -11,9 +11,9 @@ export async function GET() {
     const user = await requireUser();
     userId = user.id;
 
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("user_documents")
       .select("*")
       .eq("user_id", user.id)

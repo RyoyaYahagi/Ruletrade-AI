@@ -1,5 +1,5 @@
 cookieAuth:
   type: apiKey
   in: cookie
-  name: sb-access-token
-  description: Supabase Auth session cookie.
+  name: ruletrade_session
+  description: Ruletrade local session cookie.

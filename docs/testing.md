@@ -6,9 +6,9 @@
 |-------|-------|------|
 | Unit | Domain logic, validation, calculation | Every PR |
 | API | Route handlers, auth, error response | Every PR |
-| DB / RLS | Cross-user isolation, constraints | Every PR |
+| DB / ownership checks | Cross-user isolation, constraints | Every PR |
 | E2E | Critical user journeys | Release candidate |
-| Security / Privacy | Secret scan, RLS, data leak | Every PR + weekly |
+| Security / Privacy | Secret scan, ownership checks, data leak | Every PR + weekly |
 
 ## Unit Test Rules
 
@@ -38,12 +38,12 @@ Before release:
 
 - [ ] All unit tests pass
 - [ ] All API tests pass
-- [ ] DB migrations run cleanly
-- [ ] RLS policies prevent cross-user access
+- [ ] SQLite schema initializes cleanly
+- [ ] ownership checks prevent cross-user access
 - [ ] AI safety checks pass
 - [ ] Build succeeds
 - [ ] No secrets in client bundle
-- [ ] No Service Role Key in client code
+- [ ] No privileged database access in client code
 
 ## Bug Fix Rule
 

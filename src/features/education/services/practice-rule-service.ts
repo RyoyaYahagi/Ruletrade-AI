@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import type {
   PracticeRule,
   PracticeRuleType,
@@ -49,9 +49,9 @@ export type ListPracticeRulesFilters = {
  * The rule starts as active by default.
  */
 export async function createPracticeRule(input: CreatePracticeRuleInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_rules")
     .insert({
       practice_session_id: input.practice_session_id,
@@ -83,9 +83,9 @@ export async function createPracticeRule(input: CreatePracticeRuleInput) {
  * Returns `null` if the rule is not found or not accessible.
  */
 export async function getPracticeRuleById(id: string, userId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_rules")
     .select("*")
     .eq("id", id)
@@ -108,9 +108,9 @@ export async function getPracticeRuleById(id: string, userId: string) {
  * Results are ordered by `created_at` descending (newest first).
  */
 export async function listPracticeRules(filters: ListPracticeRulesFilters) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("practice_rules")
     .select("*")
     .eq("practice_session_id", filters.practiceSessionId)
@@ -148,10 +148,10 @@ export async function listPracticeRules(filters: ListPracticeRulesFilters) {
  * Returns the updated record.
  */
 export async function updatePracticeRule(input: UpdatePracticeRuleInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Verify the record exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("practice_rules")
     .select("id")
     .eq("id", input.ruleId)
@@ -175,7 +175,7 @@ export async function updatePracticeRule(input: UpdatePracticeRuleInput) {
   if (input.max_loss_amount !== undefined)
     payload.max_loss_amount = input.max_loss_amount;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_rules")
     .update(payload)
     .eq("id", input.ruleId)
@@ -207,10 +207,10 @@ export async function togglePracticeRuleActive(
   userId: string,
   is_active: boolean,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Verify the record exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("practice_rules")
     .select("id")
     .eq("id", ruleId)
@@ -223,7 +223,7 @@ export async function togglePracticeRuleActive(
     );
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("practice_rules")
     .update({ is_active })
     .eq("id", ruleId)
@@ -254,9 +254,9 @@ export async function deletePracticeRule(
   id: string,
   userId: string,
 ): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("practice_rules")
     .select("id")
     .eq("id", id)
@@ -269,7 +269,7 @@ export async function deletePracticeRule(
     );
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("practice_rules")
     .delete()
     .eq("id", id)

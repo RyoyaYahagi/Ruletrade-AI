@@ -38,5 +38,5 @@ Virtual trading environment for learning investment rule design without real mon
 
 - Virtual balance only (default ¥1,000,000)
 - No real money or brokerage connections
-- RLS enforces user isolation
+- ownership checks enforce user isolation
 - Rule compliance score (0-100) for learning feedback

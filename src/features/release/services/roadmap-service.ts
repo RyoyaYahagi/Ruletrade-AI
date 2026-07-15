@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * product_roadmap_items テーブル CRUD
@@ -74,9 +74,9 @@ export type ListRoadmapItemsSort = {
  * Create a new roadmap item.
  */
 export async function createRoadmapItem(input: CreateRoadmapItemInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("product_roadmap_items")
     .insert({
       item_key: input.item_key,
@@ -120,9 +120,9 @@ export async function listRoadmapItems(
   filters?: ListRoadmapItemsFilters,
   sort?: ListRoadmapItemsSort,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("product_roadmap_items").select("*");
+  let query = db.from("product_roadmap_items").select("*");
 
   // Apply filters
   if (filters) {
@@ -156,9 +156,9 @@ export async function listRoadmapItems(
  * Get a single roadmap item by its unique `item_key`.
  */
 export async function getRoadmapItemByKey(itemKey: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("product_roadmap_items")
     .select("*")
     .eq("item_key", itemKey)
@@ -177,7 +177,7 @@ export async function updateRoadmapItem(
   itemKey: string,
   input: UpdateRoadmapItemInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {};
 
@@ -198,7 +198,7 @@ export async function updateRoadmapItem(
   if (input.sort_order !== undefined) payload.sort_order = input.sort_order;
   if (input.updated_by !== undefined) payload.updated_by = input.updated_by;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("product_roadmap_items")
     .update(payload)
     .eq("item_key", itemKey)

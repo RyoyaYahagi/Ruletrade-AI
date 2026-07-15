@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/require-user";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { apiCreated } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { CreateSupportTicketSchema } from "@/schemas/support/support-schema";
@@ -10,9 +10,9 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser();
     const input = await validateJsonRequest(request, CreateSupportTicketSchema);
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("support_tickets")
       .insert({
         user_id: user.id,

@@ -1,20 +1,20 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import {
   upsertRagDocumentFromRuleSession,
   upsertRagDocumentFromWatchlistItem,
 } from "@/features/rag/services/upsert-rag-sources";
 
 export async function reindexUserRagDocuments(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: sessions } = await supabase
+  const { data: sessions } = await db
     .from("rule_design_sessions")
     .select("id")
     .eq("user_id", params.userId);
 
-  const { data: watchlistItems } = await supabase
+  const { data: watchlistItems } = await db
     .from("watchlist_items")
     .select("id")
     .eq("user_id", params.userId)

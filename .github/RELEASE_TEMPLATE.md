@@ -29,7 +29,7 @@
 - [ ] Auth
 - [ ] Rule Session
 - [ ] AI Review
-- [ ] RLS
+- [ ] Ownership checks
 - [ ] Safety
 - [ ] Privacy
 - [ ] Deploy

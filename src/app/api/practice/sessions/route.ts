@@ -7,6 +7,7 @@ import {
   createPracticeSession,
   listUserPracticeSessions,
 } from "@/features/education/services/practice-session-service";
+import type { PracticeSessionStatus } from "@/schemas/education/practice-mode-schema";
 
 const CreateSessionRequestSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
 
     const result = await listUserPracticeSessions({
       userId: user.id,
-      status: status as any,
+      status: status as PracticeSessionStatus | undefined,
       limit,
     });
     return apiSuccess(result);

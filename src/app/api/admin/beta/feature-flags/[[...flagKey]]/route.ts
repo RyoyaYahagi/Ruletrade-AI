@@ -3,7 +3,7 @@ import { validateJsonRequest } from "@/lib/api/validate-request";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { UpdateBetaFeatureFlagSchema } from "@/schemas/launch/beta-schema";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { logAdminAudit } from "@/features/admin/services/admin-audit-service";
 
 export async function PATCH(
@@ -29,7 +29,7 @@ export async function PATCH(
       request,
       UpdateBetaFeatureFlagSchema,
     );
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
     const update: Record<string, unknown> = {};
     if (input.isEnabledGlobally !== undefined)
       update.is_enabled_globally = input.isEnabledGlobally;
@@ -37,7 +37,7 @@ export async function PATCH(
       update.enabled_cohort_keys = input.enabledCohortKeys;
     if (input.killSwitchEnabled !== undefined)
       update.kill_switch_enabled = input.killSwitchEnabled;
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("beta_feature_flags")
       .update(update)
       .eq("flag_key", key)

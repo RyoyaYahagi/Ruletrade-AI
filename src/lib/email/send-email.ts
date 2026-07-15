@@ -1,19 +1,19 @@
 import "server-only";
 
 import { getEmailProvider, EmailMessage } from "@/lib/email/email-provider";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function sendEmail(message: EmailMessage) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Suppression check
-  const { data: suppressed } = await supabase
+  const { data: suppressed } = await db
     .from("email_suppressions")
     .select("email")
     .eq("email", message.to)
     .maybeSingle();
   if (suppressed) {
-    await supabase.from("email_send_logs").insert({
+    await db.from("email_send_logs").insert({
       to_address: message.to,
       subject: message.subject,
       status: "suppressed",
@@ -25,7 +25,7 @@ export async function sendEmail(message: EmailMessage) {
 
   // Idempotency check
   if (message.idempotencyKey) {
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from("email_send_logs")
       .select("id, status")
       .eq("idempotency_key", message.idempotencyKey)
@@ -46,7 +46,7 @@ export async function sendEmail(message: EmailMessage) {
     result = { id: `failed-${crypto.randomUUID()}`, status: "failed" };
   }
 
-  await supabase.from("email_send_logs").insert({
+  await db.from("email_send_logs").insert({
     to_address: message.to,
     subject: message.subject,
     status: result.status as string,

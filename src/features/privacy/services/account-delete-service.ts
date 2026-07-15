@@ -1,7 +1,7 @@
 import "server-only";
 
-import { createAdminClient } from "@/lib/db/supabase-admin";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { deleteLocalAuthUser } from "@/lib/auth/local-auth";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { deleteUserAppData } from "@/features/privacy/services/app-data-delete-service";
 import { logPrivacyAudit } from "@/features/privacy/services/privacy-audit-service";
@@ -15,9 +15,9 @@ export async function requestAccountDeletion(params: {
     throw new AppError("VALIDATION_ERROR", "確認テキストが一致しません。", 400);
   }
 
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("data_deletion_requests")
     .insert({
       user_id: params.userId,
@@ -48,9 +48,9 @@ export async function executeAccountDeletion(params: {
   userId: string;
   deletionRequestId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  await supabase
+  await db
     .from("data_deletion_requests")
     .update({
       status: "processing",
@@ -62,18 +62,11 @@ export async function executeAccountDeletion(params: {
   try {
     await deleteUserAppData({ userId: params.userId });
 
-    await supabase.from("app_users").delete().eq("id", params.userId);
+    await db.from("app_users").delete().eq("id", params.userId);
 
-    const admin = createAdminClient();
-    const { error: deleteAuthError } = await admin.auth.admin.deleteUser(
-      params.userId,
-    );
+    deleteLocalAuthUser(params.userId);
 
-    if (deleteAuthError) {
-      throw deleteAuthError;
-    }
-
-    await supabase
+    await db
       .from("data_deletion_requests")
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", params.deletionRequestId);
@@ -89,7 +82,7 @@ export async function executeAccountDeletion(params: {
 
     return { deleted: true };
   } catch (error) {
-    await supabase
+    await db
       .from("data_deletion_requests")
       .update({
         status: "failed",

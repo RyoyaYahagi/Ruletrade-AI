@@ -16,8 +16,8 @@ Restricted to users with `admin` role in `app_metadata`.
 ## Security
 
 - Admin routes require `requireAdmin()`
-- Admin tables have RLS enabled
-- Service role is isolated in `supabase-admin.ts`
+- Admin tables have ownership checks enabled
+- Privileged database access is isolated in server-only services.
 - Admin actions are logged to `admin_audit_logs`
 - Sensitive data (investment memos, AI prompts, document text) is not displayed
 

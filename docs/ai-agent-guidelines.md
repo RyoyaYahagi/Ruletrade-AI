@@ -256,7 +256,7 @@ Avoid prompts that ask for:
 
 ## Provider and Runtime Boundary
 
-AI provider calls belong behind server-side routes, Server Actions, Supabase
+AI provider calls belong behind server-side routes or Server Actions,
 Edge Functions, or a provider gateway.
 
 Client components must not:

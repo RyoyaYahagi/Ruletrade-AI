@@ -1,12 +1,12 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function getOrCreateMainWatchlist(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("watchlists")
     .select("*")
     .eq("user_id", params.userId)
@@ -27,7 +27,7 @@ export async function getOrCreateMainWatchlist(params: { userId: string }) {
     return { watchlist: existing };
   }
 
-  const { data: created, error: createError } = await supabase
+  const { data: created, error: createError } = await db
     .from("watchlists")
     .insert({
       user_id: params.userId,

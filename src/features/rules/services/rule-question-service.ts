@@ -1,13 +1,13 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function createInitialQuestions(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
   const questions = [
     {
       user_id: params.userId,
@@ -55,7 +55,7 @@ export async function createInitialQuestions(params: {
       display_order: 3,
     },
   ];
-  const { error } = await supabase.from("rule_questions").insert(questions);
+  const { error } = await db.from("rule_questions").insert(questions);
   if (error) {
     throw new AppError(
       "INTERNAL_ERROR",
@@ -70,8 +70,8 @@ export async function getNextQuestion(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
+  const db = await createDatabaseClient();
+  const { data, error } = await db
     .from("rule_questions")
     .select("*")
     .eq("session_id", params.sessionId)

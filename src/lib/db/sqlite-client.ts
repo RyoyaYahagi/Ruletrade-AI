@@ -10,6 +10,23 @@ import { initializeSqliteSchema } from "@/lib/db/sqlite-schema";
 
 type Row = Record<string, unknown>;
 
+// Services use the same small query surface regardless of the backing store.
+// The SQLite adapter intentionally keeps the result data structural here; the
+// feature services validate/shape data at their own boundaries.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryData = any;
+type QueryError = {
+  code?: string;
+  message: string;
+  details?: string;
+  hint?: string;
+};
+type QueryResult = {
+  data: QueryData;
+  error: QueryError | null;
+  count?: number | null;
+};
+
 let db: Database.Database | null = null;
 
 export function getSqliteDatabase() {
@@ -25,64 +42,19 @@ export function getSqliteDatabase() {
   return db;
 }
 
-export function createSqliteClient() {
-  return {
-    auth: {
-      admin: {
-        async deleteUser() {
-          return unsupported("Supabase Auth admin is not available with SQLite");
-        },
-      },
-      async exchangeCodeForSession() {
-        return unsupported("Supabase Auth callbacks are not available with SQLite");
-      },
-      async getUser() {
-        const email = process.env.MOCK_AUTH_EMAIL;
-        if (!email) return { data: { user: null }, error: null };
+export type SqliteDatabaseClient = {
+  from(table: string): SqliteQueryBuilder;
+};
 
-        return {
-          data: {
-            user: {
-              id: process.env.MOCK_AUTH_USER_ID ?? "mock-user-id",
-              email,
-              app_metadata: { role: process.env.MOCK_AUTH_ROLE ?? "user" },
-              user_metadata: {},
-              aud: "authenticated",
-              created_at: new Date().toISOString(),
-            },
-          },
-          error: null,
-        };
-      },
-    },
-    storage: {
-      from() {
-        return {
-          async upload() {
-            return unsupported("Supabase Storage is not available with SQLite");
-          },
-          async download() {
-            return unsupported("Supabase Storage is not available with SQLite");
-          },
-          async remove() {
-            return unsupported("Supabase Storage is not available with SQLite");
-          },
-          async list() {
-            return unsupported("Supabase Storage is not available with SQLite");
-          },
-        };
-      },
-    },
-    async rpc() {
-      return unsupported("Supabase RPC is not available with SQLite");
-    },
+export function createSqliteClient(): SqliteDatabaseClient {
+  return {
     from(table: string) {
       return new SqliteQueryBuilder(table);
     },
   };
 }
 
-class SqliteQueryBuilder {
+export class SqliteQueryBuilder {
   private operation: "select" | "insert" | "update" | "delete" = "select";
   private selectedColumns = "*";
   private filters: Array<{ column: string; value: unknown }> = [];
@@ -115,7 +87,10 @@ class SqliteQueryBuilder {
     return this;
   }
 
-  upsert(payload: Row | Row[], options?: { onConflict?: string }) {
+  upsert(
+    payload: Row | Row[],
+    options?: { onConflict?: string; ignoreDuplicates?: boolean },
+  ) {
     this.operation = "insert";
     this.payload = payload;
     this.upsertConflictColumn = options?.onConflict ?? "id";
@@ -173,15 +148,22 @@ class SqliteQueryBuilder {
     return this;
   }
 
-  contains() {
+  contains(_column?: string, _value?: unknown) {
+    void _column;
+    void _value;
     return this;
   }
 
-  or() {
+  or(_filters?: string, _options?: { referencedTable?: string }) {
+    void _filters;
+    void _options;
     return this;
   }
 
-  order(column: string, options?: { ascending?: boolean }) {
+  order(
+    column: string,
+    options?: { ascending?: boolean; foreignTable?: string; referencedTable?: string },
+  ) {
     this.orders.push({ column, ascending: options?.ascending ?? true });
     return this;
   }
@@ -205,23 +187,23 @@ class SqliteQueryBuilder {
     return { data: rows[0] ?? null, error: null };
   }
 
-  then<TResult1 = unknown, TResult2 = never>(
+  then<TResult1 = QueryResult, TResult2 = never>(
     onfulfilled?:
-      | ((value: { data: unknown; error: unknown }) => TResult1 | PromiseLike<TResult1>)
+      | ((value: QueryResult) => TResult1 | PromiseLike<TResult1>)
       | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
-  ) {
+  ): Promise<TResult1 | TResult2> {
     return this.execute().then(onfulfilled, onrejected);
   }
 
-  private async execute() {
+  private async execute(): Promise<QueryResult> {
     try {
       if (this.operation === "insert") return this.executeInsert();
       if (this.operation === "update") return this.executeUpdate();
       if (this.operation === "delete") return this.executeDelete();
       return this.executeSelect();
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error: normalizeError(error) };
     }
   }
 
@@ -258,7 +240,10 @@ class SqliteQueryBuilder {
     const columns = Object.keys(payload);
     const params = { ...payload, ...this.filterParams() };
     const setSql = columns.map((column) => `${quoteIdent(column)} = @${column}`).join(", ");
-    const updateTimeSql = columns.includes("updated_at") ? "" : ", updated_at = datetime('now')";
+    const updateTimeSql =
+      columns.includes("updated_at") || !tableHasColumn(this.table, "updated_at")
+        ? ""
+        : ", updated_at = datetime('now')";
 
     getSqliteDatabase()
       .prepare(
@@ -423,8 +408,19 @@ function sqliteError(message: string) {
   return { message, code: "SQLITE_NO_ROWS" };
 }
 
-function unsupported(message: string) {
-  return { data: null, error: { message, code: "SQLITE_UNSUPPORTED" } };
+function normalizeError(error: unknown) {
+  if (error instanceof Error) {
+    return { message: error.message };
+  }
+
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return {
+      message: String(error.message),
+      ...("code" in error ? { code: String(error.code) } : {}),
+    };
+  }
+
+  return { message: String(error) };
 }
 
 function ensureTableForRow(table: string, row: Row) {
@@ -474,6 +470,14 @@ function ensureTableForColumns(table: string, columns: string[]) {
       )
       .run();
   }
+}
+
+function tableHasColumn(table: string, column: string) {
+  ensureTable(table);
+  return getSqliteDatabase()
+    .prepare(`pragma table_info(${quoteIdent(table)})`)
+    .all()
+    .some((existingColumn) => (existingColumn as { name: string }).name === column);
 }
 
 function sqliteType(value: unknown) {

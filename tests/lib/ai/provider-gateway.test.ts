@@ -144,10 +144,9 @@ describe("provider-gateway", () => {
         requestId: "req-456",
       });
 
-      // DB接続がないため失敗するが、エラーハンドリングが正しく動作することを確認
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toContain("AI provider call failed");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data).toEqual({ answer: "logged" });
       }
     });
   });

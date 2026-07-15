@@ -2,9 +2,8 @@
 
 The database is organized around user-owned resources.
 
-The default local provider is SQLite (`DB_PROVIDER=sqlite`). Supabase remains
-available behind `DB_PROVIDER=supabase` and the Supabase-backed state is
-preserved in `backup/develop-supabase-20260523`.
+SQLite is the only database backend. The schema is initialized and migrated
+locally by `src/lib/db/sqlite-schema.ts`.
 
 ## Core user tables
 

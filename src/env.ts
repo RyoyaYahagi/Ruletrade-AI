@@ -7,10 +7,8 @@ const EnvSchema = z.object({
 
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
 
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SQLITE_DATABASE_PATH: z.string().default("./data/ruletrade.sqlite"),
+  LOCAL_STORAGE_PATH: z.string().default("./data/storage"),
 
   AI_PROVIDER: z
     .enum(["mock", "openai", "gemini", "anthropic"])
@@ -69,10 +67,8 @@ export const env = EnvSchema.parse({
 
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  SQLITE_DATABASE_PATH: process.env.SQLITE_DATABASE_PATH,
+  LOCAL_STORAGE_PATH: process.env.LOCAL_STORAGE_PATH,
 
   AI_PROVIDER: process.env.AI_PROVIDER,
 

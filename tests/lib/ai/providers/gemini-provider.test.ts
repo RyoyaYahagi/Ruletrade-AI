@@ -2,11 +2,13 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
+import { RuleReviewSchema } from "@/schemas/rules/rule-review-schema";
 
 const mockFetch = vi.fn();
 
 describe("GeminiProvider", () => {
   beforeEach(() => {
+    mockFetch.mockReset();
     vi.stubEnv("GEMINI_API_KEY", "test-api-key");
     global.fetch = mockFetch;
     vi.stubEnv("AI_TIMEOUT_MS", "30000");
@@ -42,6 +44,14 @@ describe("GeminiProvider", () => {
     };
   }
 
+  function createErrorResponse(status: number, text: string) {
+    return {
+      ok: false,
+      status,
+      text: async () => text,
+    };
+  }
+
   describe("constructor", () => {
     it("APIキー未設定時に AIProviderError を投げる", () => {
       vi.unstubAllEnvs();
@@ -72,12 +82,84 @@ describe("GeminiProvider", () => {
       expect(result.meta.provider).toBe("gemini");
     });
 
-    it("HTTPエラー (429) で AI_PROVIDER_RATE_LIMITED を投げる", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 429,
-        text: async () => "rate limited",
+    it("RuleReview uses Gemini responseSchema", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createSuccessResponse(
+          JSON.stringify({
+            summary: "追加確認が必要です。",
+            completionScore: 35,
+            needsMoreInfo: true,
+            canFinalize: false,
+            qualityChecks: [],
+            nextQuestions: [],
+            suggestedRuleUpdates: [],
+            safety: {
+              passed: true,
+              riskLevel: "low",
+              violations: [],
+              prohibitedPhrasesDetected: [],
+            },
+          }),
+        ),
+      );
+
+      const provider = new GeminiProvider();
+      await provider.generateObject({
+        taskType: "rule_review",
+        schema: RuleReviewSchema,
+        schemaName: "RuleReview",
+        messages: [{ role: "user", content: "test" }],
       });
+
+      const lastCall = mockFetch.mock.calls.at(-1);
+      const body = JSON.parse(String(lastCall?.[1]?.body));
+      expect(body.generationConfig.responseMimeType).toBe("application/json");
+      expect(body.generationConfig.responseSchema).toMatchObject({
+        type: "OBJECT",
+        properties: {
+          summary: { type: "STRING" },
+          qualityChecks: expect.any(Object),
+          nextQuestions: {
+            items: {
+              properties: {
+                options: {
+                  type: "ARRAY",
+                  items: {
+                    properties: {
+                      value: { type: "STRING" },
+                      label: { type: "STRING" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(JSON.stringify(body.generationConfig.responseSchema)).not.toContain(
+        "$ref",
+      );
+    });
+
+    it("一時的な 503 はリトライして成功する", async () => {
+      mockFetch
+        .mockResolvedValueOnce(createErrorResponse(503, "high demand"))
+        .mockResolvedValueOnce(createSuccessResponse('{"result": "hello"}'));
+
+      const provider = new GeminiProvider();
+      const result = await provider.generateObject({
+        taskType: "eval",
+        schema: dummySchema,
+        schemaName: "TestSchema",
+        messages: [{ role: "user", content: "test" }],
+      });
+
+      expect(result.data).toEqual({ result: "hello" });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("HTTPエラー (429) で AI_PROVIDER_RATE_LIMITED を投げる", async () => {
+      mockFetch.mockResolvedValue(createErrorResponse(429, "rate limited"));
 
       const provider = new GeminiProvider();
       await expect(

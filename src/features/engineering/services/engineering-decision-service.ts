@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * engineering_decisions テーブル CRUD
@@ -75,9 +75,9 @@ export type UpdateEngineeringDecisionStatusInput = {
 export async function createEngineeringDecision(
   input: CreateEngineeringDecisionInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_decisions")
     .insert({
       adr_number: input.adr_number,
@@ -123,9 +123,9 @@ export async function createEngineeringDecision(
 export async function listEngineeringDecisions(
   filters?: ListEngineeringDecisionsFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("engineering_decisions").select("*");
+  let query = db.from("engineering_decisions").select("*");
 
   // Apply filters
   if (filters) {
@@ -172,10 +172,10 @@ export async function listEngineeringDecisions(
 export async function updateEngineeringDecisionStatus(
   input: UpdateEngineeringDecisionStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current decision to ensure it exists
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("engineering_decisions")
     .select("id, status")
     .eq("id", input.decisionId)
@@ -207,7 +207,7 @@ export async function updateEngineeringDecisionStatus(
     payload.superseded_by_adr_number = input.supersededByAdrNumber;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("engineering_decisions")
     .update(payload)
     .eq("id", input.decisionId)

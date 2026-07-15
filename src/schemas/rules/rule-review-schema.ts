@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { SafetyCheckSchema } from "@/schemas/safety/safety-check-schema";
 
+const PrioritySchema = z.preprocess((value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return value;
+  return Math.min(5, Math.max(1, Math.trunc(numericValue)));
+}, z.number().int().min(1).max(5));
+
 export const RuleReviewSchema = z.object({
   summary: z.string().min(1),
   completionScore: z.number().min(0).max(100),
@@ -21,7 +27,15 @@ export const RuleReviewSchema = z.object({
       questionKey: z.string().min(1),
       questionText: z.string().min(1),
       questionType: z.enum(["free_text", "single_choice", "multi_choice"]),
-      priority: z.number().int().min(1).max(5),
+      options: z
+        .array(
+          z.object({
+            value: z.string().min(1),
+            label: z.string().min(1),
+          }),
+        )
+        .optional(),
+      priority: PrioritySchema,
       isRequired: z.boolean(),
       mapsToRuleField: z.string().min(1).optional(),
       source: z.enum(["ai", "system", "user"]),

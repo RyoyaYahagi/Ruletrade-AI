@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { signInWithPassword } from "@/features/auth/services/auth-client-service";
+import {
+  signInAsGuest,
+  signInWithPassword,
+} from "@/features/auth/services/auth-client-service";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,18 +24,48 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const { error } = await signInWithPassword({ email, password });
+    try {
+      const { error } = await signInWithPassword({ email, password });
 
-    setIsLoading(false);
+      if (error) {
+        setErrorMessage(
+          "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
+        );
+        return;
+      }
 
-    if (error) {
+      router.replace("/dashboard");
+    } catch {
       setErrorMessage(
         "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
       );
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    window.location.href = "/dashboard";
+  async function handleGuestLogin() {
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const { error } = await signInAsGuest();
+
+      if (error) {
+        setErrorMessage(
+          "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",
+        );
+        return;
+      }
+
+      router.replace("/dashboard");
+    } catch {
+      setErrorMessage(
+        "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -69,6 +104,17 @@ export function LoginForm() {
 
       <Button type="submit" className="w-full" disabled={isLoading} data-testid="login-submit-button">
         {isLoading ? "ログイン中..." : "ログイン"}
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={isLoading}
+        onClick={handleGuestLogin}
+        data-testid="guest-login-button"
+      >
+        {isLoading ? "処理中..." : "ゲストで試す"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">

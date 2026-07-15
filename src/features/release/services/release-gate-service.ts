@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_gate_service.ts
@@ -34,8 +34,8 @@ export type ReleaseGateResult = {
  *    release plan has no rollback strategy.
  * 2. Changelog entries – if RELEASE_REQUIRE_CHANGELOG is "true" and there are
  *    zero changelog entries for this release plan.
- * 3. Sensitive-change approvals – if the release touches DB migration, RLS,
- *    privacy, or billing, and no approvals exist.
+ * 3. Sensitive-change approvals – if the release touches DB migration,
+ *    ownership rules, privacy, or billing, and no approvals exist.
  * 4. Checklist items – any items with status "failed" or "blocked".
  * 5. Open critical risks – any risk assessment with risk_level "critical" and
  *    status "open".
@@ -47,12 +47,12 @@ export type ReleaseGateResult = {
 export async function evaluateReleaseGates(
   releasePlanId: string,
 ): Promise<ReleaseGateResult> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
   const blockers: string[] = [];
 
   // ── 1. Fetch the release plan ──────────────────────────────────
 
-  const { data: releasePlan, error: planErr } = await supabase
+  const { data: releasePlan, error: planErr } = await db
     .from("release_plans")
     .select("*")
     .eq("id", releasePlanId)
@@ -77,7 +77,7 @@ export async function evaluateReleaseGates(
   const requireChangelog = process.env.RELEASE_REQUIRE_CHANGELOG !== "false"; // default true
 
   if (requireChangelog) {
-    const { count: changelogCount, error: countErr } = await supabase
+    const { count: changelogCount, error: countErr } = await db
       .from("release_changelog_entries")
       .select("*", { count: "exact", head: true })
       .eq("release_plan_id", releasePlanId);
@@ -93,12 +93,12 @@ export async function evaluateReleaseGates(
 
   const hasSensitiveChange =
     releasePlan.includes_db_migration === true ||
-    releasePlan.includes_rls_change === true ||
+    releasePlan.includes_data_access_change === true ||
     releasePlan.includes_privacy_change === true ||
     releasePlan.includes_billing_change === true;
 
   if (hasSensitiveChange) {
-    const { count: approvalCount, error: approvalErr } = await supabase
+    const { count: approvalCount, error: approvalErr } = await db
       .from("release_approvals")
       .select("*", { count: "exact", head: true })
       .eq("release_plan_id", releasePlanId);
@@ -113,19 +113,19 @@ export async function evaluateReleaseGates(
   // ── 5. Failed / blocked checklist items gate ───────────────────
 
   // First get all checklists for this release plan
-  const { data: checklists, error: checklistsErr } = await supabase
+  const { data: checklists, error: checklistsErr } = await db
     .from("release_checklists")
     .select("id")
     .eq("release_plan_id", releasePlanId);
 
   if (checklistsErr) throw checklistsErr;
 
-  const checklistIds = (checklists ?? []).map((cl) => cl.id);
+  const checklistIds = (checklists ?? []).map((cl: { id: string }) => cl.id);
 
   if (checklistIds.length > 0) {
     // Then find any items with status "failed" or "blocked" within those
     // checklists
-    const { data: failedOrBlockedItems, error: itemsErr } = await supabase
+    const { data: failedOrBlockedItems, error: itemsErr } = await db
       .from("release_checklist_items")
       .select("id")
       .in("checklist_id", checklistIds)
@@ -141,7 +141,7 @@ export async function evaluateReleaseGates(
 
   // ── 6. Open critical risk gate ─────────────────────────────────
 
-  const { data: criticalRisks, error: risksErr } = await supabase
+  const { data: criticalRisks, error: risksErr } = await db
     .from("release_risk_assessments")
     .select("id")
     .eq("release_plan_id", releasePlanId)

@@ -7,6 +7,7 @@ import {
   createPracticeRule,
   listPracticeRules,
 } from "@/features/education/services/practice-rule-service";
+import type { PracticeRuleType } from "@/schemas/education/practice-mode-schema";
 
 const CreateRuleRequestSchema = z.object({
   practice_session_id: z.string().uuid(),
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
     const result = await listPracticeRules({
       practiceSessionId,
       userId: user.id,
-      rule_type: ruleType as any,
+      rule_type: ruleType as PracticeRuleType | undefined,
       is_active: isActive !== null ? isActive === "true" : undefined,
       limit,
     });

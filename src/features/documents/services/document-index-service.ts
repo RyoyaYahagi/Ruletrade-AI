@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { upsertRagDocument } from "@/features/rag/services/upsert-rag-document";
 
@@ -8,9 +8,9 @@ export async function indexDocumentForRag(params: {
   userId: string;
   documentId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: document, error } = await supabase
+  const { data: document, error } = await db
     .from("user_documents")
     .select("*")
     .eq("id", params.documentId)
@@ -40,7 +40,7 @@ export async function indexDocumentForRag(params: {
     },
   });
 
-  await supabase
+  await db
     .from("user_documents")
     .update({
       rag_status: "indexed",

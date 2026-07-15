@@ -11,6 +11,8 @@ test.describe("Login Page", () => {
     await expect(page.getByTestId("login-password-input")).toBeVisible();
     await expect(page.getByTestId("login-submit-button")).toBeVisible();
     await expect(page.getByTestId("login-submit-button")).toContainText("ログイン");
+    await expect(page.getByTestId("guest-login-button")).toBeVisible();
+    await expect(page.getByTestId("guest-login-button")).toContainText("ゲストで試す");
   });
 
   test("shows validation error for empty submission", async ({ page }) => {
@@ -27,7 +29,7 @@ test.describe("Login Page", () => {
     await page.getByTestId("login-password-input").fill("wrongpassword");
     await page.getByTestId("login-submit-button").click();
 
-    // In mock auth environment, Supabase sign-in will fail
+    // In the test environment, local auth is deterministic.
     await expect(page.getByTestId("login-error-message")).toBeVisible({ timeout: 5000 });
     await expect(page.getByTestId("login-error-message")).toContainText("ログインに失敗しました");
   });

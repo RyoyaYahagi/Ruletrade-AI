@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { upsertRagDocument } from "@/features/rag/services/upsert-rag-document";
 import {
   buildRuleSessionRagContent,
@@ -13,9 +13,9 @@ export async function upsertRagDocumentFromRuleSession(params: {
   userId: string;
   sessionId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: session, error } = await supabase
+  const { data: session, error } = await db
     .from("rule_design_sessions")
     .select("*")
     .eq("id", params.sessionId)
@@ -50,9 +50,9 @@ export async function upsertRagDocumentFromWatchlistItem(params: {
   userId: string;
   itemId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: item, error } = await supabase
+  const { data: item, error } = await db
     .from("watchlist_items")
     .select("*")
     .eq("id", params.itemId)
@@ -87,9 +87,9 @@ export async function upsertRagDocumentFromPortfolioPosition(params: {
   userId: string;
   positionId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: position, error } = await supabase
+  const { data: position, error } = await db
     .from("portfolio_positions")
     .select("*")
     .eq("id", params.positionId)

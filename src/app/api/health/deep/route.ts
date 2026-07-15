@@ -1,5 +1,5 @@
 import { apiSuccess, apiError } from "@/lib/api/api-response";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { recordHealthCheck } from "@/lib/observability/record-health-check";
 import { generateRequestId } from "@/lib/observability/request-id";
 
@@ -15,8 +15,8 @@ export async function GET() {
   // DB check
   const dbStart = Date.now();
   try {
-    const supabase = await createServerClient();
-    const { error } = await supabase.from("app_users").select("id").limit(1);
+    const db = await createDatabaseClient();
+    const { error } = await db.from("app_users").select("id").limit(1);
 
     const dbLatency = Date.now() - dbStart;
 

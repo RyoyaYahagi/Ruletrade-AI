@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import type { CreateNotification } from "@/schemas/notifications/notification-schema";
@@ -10,7 +10,7 @@ export async function createNotification(
     userId: string;
   } & CreateNotification,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   let title = params.title;
   let body = params.body;
@@ -26,7 +26,7 @@ export async function createNotification(
     safetyPassed = false;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("notifications")
     .insert({
       user_id: params.userId,
@@ -63,9 +63,9 @@ export async function listNotifications(params: {
   limit?: number;
   status?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("notifications")
     .select("*")
     .eq("user_id", params.userId)
@@ -94,9 +94,9 @@ export async function markNotificationAsRead(params: {
   userId: string;
   notificationId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("notifications")
     .select("id, user_id, status")
     .eq("id", params.notificationId)
@@ -110,7 +110,7 @@ export async function markNotificationAsRead(params: {
     throw new AppError("FORBIDDEN", "この通知にアクセスできません。", 403);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("notifications")
     .update({
       status: "read",
@@ -137,9 +137,9 @@ export async function dismissNotification(params: {
   userId: string;
   notificationId: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("notifications")
     .select("id, user_id")
     .eq("id", params.notificationId)
@@ -153,7 +153,7 @@ export async function dismissNotification(params: {
     throw new AppError("FORBIDDEN", "この通知にアクセスできません。", 403);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("notifications")
     .update({
       status: "dismissed",
