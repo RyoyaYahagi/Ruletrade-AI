@@ -1,0 +1,50 @@
+paths:
+  /api/documents:
+    get:
+      tags:
+        - Documents
+      summary: List user documents
+      operationId: listDocuments
+      responses:
+        "200":
+          description: Documents.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - documents
+                        properties:
+                          documents:
+                            type: array
+                            items:
+                              type: object
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+
+    post:
+      tags:
+        - Documents
+      summary: Create a document record
+      operationId: createDocument
+      responses:
+        "201":
+          description: Document created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+        "400":
+          $ref: "../components/responses.yaml#/ValidationError"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"

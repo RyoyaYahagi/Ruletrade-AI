@@ -1,0 +1,42 @@
+name: Agent PR Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  agent-safety-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check forbidden files
+        run: |
+          git fetch origin "${{ github.base_ref }}"
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+          echo "$CHANGED_FILES"
+
+          if echo "$CHANGED_FILES" | grep -E '(^|/)\.env\.local$'; then
+            echo "Agent PR must not modify .env.local"
+            exit 1
+          fi
+
+      - name: Check dangerous strings
+        run: |
+          if git grep -n -E "NEXT_PUBLIC_.*SECRET|NEXT_PUBLIC_.*SERVICE_ROLE|sk_live_|sk_test_" -- . ':!docs/**' ':!.env.example'; then
+            echo "Potential secret exposure detected"
+            exit 1
+          fi

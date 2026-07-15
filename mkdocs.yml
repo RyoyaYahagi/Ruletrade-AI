@@ -1,0 +1,88 @@
+site_name: Ruletrade-AI Docs
+site_description: Documentation for Ruletrade-AI
+
+repo_name: ruletrade-ai
+repo_url: https://github.com/RyoyaYahagi/Ruletrade-AI
+
+theme:
+  name: material
+  language: ja
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+exclude_docs: |
+  adr/README.md
+
+nav:
+  - Home: index.md
+
+  - User Guide:
+      - user-guide/index.md
+      - Getting Started: user-guide/getting-started.md
+      - AI Review: user-guide/ai-review.md
+      - Privacy Settings: user-guide/privacy-settings.md
+
+  - Developer Guide:
+      - developer-guide/index.md
+      - Local Setup: developer-guide/local-setup.md
+      - Adding API Route: developer-guide/adding-api-route.md
+      - Adding ownership checks: developer-guide/adding-ownership-check.md
+
+  - Architecture:
+      - architecture/index.md
+      - Overview: architecture/overview.md
+      - Trust Boundaries: architecture/trust-boundaries.md
+
+  - Database:
+      - database/index.md
+      - Schema Overview: database/schema-overview.md
+      - Ownership model: database/ownership-overview.md
+
+  - API:
+      - api/index.md
+      - Errors: api/errors.md
+
+  - AI:
+      - ai/index.md
+      - Provider Gateway: ai/provider-gateway.md
+      - Prompt Design: ai/prompt-design.md
+
+  - RAG:
+      - rag/index.md
+      - Retrieval Flow: rag/retrieval-flow.md
+
+  - Safety:
+      - safety/index.md
+      - Financial Safety: safety/financial-safety.md
+
+  - Operations:
+      - operations/index.md
+      - Deploy: operations/deploy.md
+
+  - ADR:
+      - adr/index.md
+      - 0007 SQLite-only backend: adr/0007-sqlite-only.md
+      - 0003 AI Provider Gateway: adr/0003-ai-provider-gateway.md

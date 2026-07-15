@@ -1,0 +1,15 @@
+apis:
+  ruletrade@v1:
+    root: openapi/openapi.yaml
+    x-openapi-ts:
+      output: src/generated/openapi-types.ts
+
+extends:
+  - recommended
+
+rules:
+  operation-operationId: error
+  operation-summary: error
+  no-unused-components: warn
+  security-defined: error
+  no-server-example.com: off

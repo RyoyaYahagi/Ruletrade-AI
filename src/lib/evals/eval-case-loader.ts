@@ -1,14 +1,14 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function loadActiveEvalCases(params: {
   taskType: string;
   tags?: string[];
 }) {
-  const supabase = await createClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase
+  let query = db
     .from("eval_cases")
     .select("*")
     .eq("task_type", params.taskType)

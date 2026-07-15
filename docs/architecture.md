@@ -36,9 +36,6 @@ src/
     api/
       me/
         route.ts
-    auth/
-      callback/
-        route.ts
     dashboard/
       page.tsx
     layout.tsx
@@ -73,10 +70,9 @@ src/
       require-admin.ts
       require-user.ts
     db/
-      supabase-admin.ts
-      supabase-browser.ts
-      supabase-server.ts
-      update-session.ts
+      database-client.ts
+      sqlite-client.ts
+      sqlite-schema.ts
     errors/
       app-error.ts
     utils.ts
@@ -194,25 +190,15 @@ Persist rules, evidence, warnings, approval events, and user investment memory
 as separate but linkable records. Avoid overwriting history that explains why a
 rule was approved, blocked, or rejected.
 
-When Supabase is introduced, keep service-role access on the server side only.
-Browser code may use public Supabase anon configuration, but must never access
-service-role credentials.
+SQLite access and local session credentials remain server-only. Browser code
+must never access database paths, password hashes, or session tokens.
 
 ### Auth Layer
 
-Supabase clients are split by runtime:
-
-- `src/lib/db/supabase-browser.ts` is for Client Components and uses only
-  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-- `src/lib/db/supabase-server.ts` is for Server Components, Server Actions, and
-  Route Handlers that need the current user's cookie-backed session.
-- `src/lib/db/supabase-admin.ts` is server-only and reserved for privileged
-  operations that truly require `SUPABASE_SERVICE_ROLE_KEY`.
-
-Use `src/proxy.ts` to refresh Supabase SSR sessions. Protected server routes
-should use `getCurrentUser` for optional auth and `requireUser` when auth is
-mandatory. Client code must never import the admin client or read service-role
-credentials.
+Authentication uses `getCurrentUser` and the httpOnly `ruletrade_session` cookie.
+Protected server routes should use `getCurrentUser` for optional auth and
+`requireUser` when auth is mandatory. User-owned database queries must include
+an explicit `user_id` condition.
 
 ## AI Provider Boundary
 
@@ -223,7 +209,7 @@ Preferred runtime path:
 
 ```text
 Browser
-  -> Next.js API Route / Server Action / Supabase Edge Function
+  -> Next.js API Route / Server Action
   -> AI Provider Gateway
   -> OpenAI / Anthropic / Gemini
 ```

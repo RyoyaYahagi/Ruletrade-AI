@@ -1,14 +1,13 @@
 import "server-only";
 
-import { createAdminClient } from "@/lib/db/supabase-admin";
-import { AppError } from "@/lib/errors/app-error";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
 import type { SaveAiRunLogInput } from "@/lib/ai/logs/ai-run-log-types";
 
 export async function saveAiRunLog(input: SaveAiRunLogInput) {
-  const supabase = createAdminClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("ai_run_logs")
     .insert({
       user_id: input.userId,
@@ -30,13 +29,7 @@ export async function saveAiRunLog(input: SaveAiRunLogInput) {
     .single();
 
   if (error || !data) {
-    throw new AppError(
-      "INTERNAL_ERROR",
-      "AIログの保存に失敗しました。",
-      500,
-      error,
-      false,
-    );
+    throw error;
   }
 
   return {

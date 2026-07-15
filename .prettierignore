@@ -1,0 +1,5 @@
+# Auto-generated OpenAPI types
+src/generated/openapi-types.ts
+
+# Lock files
+package-lock.json

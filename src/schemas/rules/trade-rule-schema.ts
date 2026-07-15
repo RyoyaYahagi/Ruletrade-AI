@@ -12,6 +12,34 @@ export const TimeHorizonSchema = z.enum([
   "undecided",
 ]);
 
+export const HoldingPurposeSchema = z.enum([
+  "long_term_growth",
+  "value",
+  "dividend",
+  "cyclical",
+  "thematic",
+  "event_driven",
+  "short_term_trade",
+  "shareholder_benefit",
+  "learning",
+  "undecided",
+]);
+
+export const ExitTriggerCategorySchema = z.enum([
+  "price",
+  "volatility",
+  "fundamental",
+  "time",
+]);
+
+export const ExitTriggerActionSchema = z.enum(["sell", "review", "alert"]);
+
+export const ExitTriggerSchema = z.object({
+  category: ExitTriggerCategorySchema,
+  condition: z.string().min(1).max(1000),
+  action: ExitTriggerActionSchema.default("review"),
+});
+
 export const EarningsPolicySchema = z.enum([
   "hold_through",
   "avoid_before_earnings",
@@ -44,6 +72,7 @@ export const ExitPlanSchema = z.object({
 
 export const TradeRuleSchema = z.object({
   investmentThesis: z.string().max(4000).optional(),
+  purpose: HoldingPurposeSchema.default("undecided"),
   timeHorizon: TimeHorizonSchema.optional(),
   entryPlan: EntryPlanSchema.default({
     currency: "JPY",
@@ -55,6 +84,7 @@ export const TradeRuleSchema = z.object({
   exitPlan: ExitPlanSchema.default({
     exitConditions: [],
   }),
+  exitTriggers: z.array(ExitTriggerSchema).max(20).default([]),
   addPositionRule: z.string().max(2000).optional(),
   earningsPolicy: z
     .object({
@@ -69,3 +99,5 @@ export const TradeRuleSchema = z.object({
 });
 
 export type TradeRule = z.infer<typeof TradeRuleSchema>;
+export type HoldingPurpose = z.infer<typeof HoldingPurposeSchema>;
+export type ExitTrigger = z.infer<typeof ExitTriggerSchema>;

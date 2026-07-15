@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { updateRuleSession } from "@/features/rules/services/rule-session-service";
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 const mockSingle = vi.fn();
 const mockEqB = vi.fn(() => ({ single: mockSingle }));
@@ -22,7 +22,7 @@ const mockFrom = vi.fn(() => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(createClient).mockResolvedValue({
+  vi.mocked(createDatabaseClient).mockResolvedValue({
     from: mockFrom,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);

@@ -16,25 +16,65 @@ export function AnswerInput({
   onAnswerTextChange: (value: string) => void;
   onAnswerJsonChange: (value: Record<string, unknown>) => void;
 }) {
-  if (question.question_type === "single_choice") {
-    const options = Array.isArray(question.options) ? question.options : [];
+  const choiceOptions = Array.isArray(question.options)
+    ? question.options.filter(
+        (option): option is { value: string; label: string } =>
+          typeof option === "object" &&
+          option !== null &&
+          typeof (option as { value?: unknown }).value === "string" &&
+          typeof (option as { label?: unknown }).label === "string",
+      )
+    : [];
+
+  if (
+    question.question_type === "single_choice" ||
+    question.question_type === "multiple_choice" ||
+    question.question_type === "multi_choice"
+  ) {
+    const isMultiple =
+      question.question_type === "multiple_choice" ||
+      question.question_type === "multi_choice";
 
     return (
       <div className="space-y-2">
-        {options.map((option: { value: string; label: string }) => (
+        {choiceOptions.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => {
+              if (!isMultiple) {
+                onAnswerJsonChange({
+                  value: option.value,
+                  label: option.label,
+                });
+                onAnswerTextChange(option.label);
+                return;
+              }
+
+              const currentValues = Array.isArray(answerJson.values)
+                ? answerJson.values
+                : [];
+              const currentLabels = Array.isArray(answerJson.labels)
+                ? answerJson.labels
+                : [];
+              const nextValues = currentValues.includes(option.value)
+                ? currentValues.filter((value) => value !== option.value)
+                : [...currentValues, option.value];
+              const nextLabels = currentLabels.includes(option.label)
+                ? currentLabels.filter((label) => label !== option.label)
+                : [...currentLabels, option.label];
+
               onAnswerJsonChange({
-                value: option.value,
-                label: option.label,
+                values: nextValues,
+                labels: nextLabels,
               });
-              onAnswerTextChange(option.label);
+              onAnswerTextChange(nextLabels.join("、"));
             }}
             className={[
               "w-full rounded-md border px-4 py-3 text-left text-sm",
-              answerJson.value === option.value
+              answerJson.value === option.value ||
+              (Array.isArray(answerJson.values) &&
+                answerJson.values.includes(option.value))
                 ? "border-black bg-gray-50"
                 : "",
             ].join(" ")}
@@ -126,17 +166,41 @@ export function AnswerInput({
   }
 
   return (
-    <textarea
-      value={answerText}
-      onChange={(event) => {
-        onAnswerTextChange(event.target.value);
-        onAnswerJsonChange({
-          text: event.target.value,
-        });
-      }}
-      rows={5}
-      placeholder="ここに回答を書いてください"
-      className="w-full rounded-md border px-3 py-2"
-    />
+    <div className="space-y-3">
+      <div className="grid gap-2 sm:grid-cols-3">
+        {[
+          "まだ決めていない",
+          "候補を提案してほしい",
+          "あとで考える",
+        ].map((label) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => {
+              onAnswerTextChange(label);
+              onAnswerJsonChange({ text: label, assistedChoice: true });
+            }}
+            className={[
+              "rounded-md border px-3 py-2 text-left text-sm",
+              answerText === label ? "border-black bg-gray-50" : "",
+            ].join(" ")}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={answerText}
+        onChange={(event) => {
+          onAnswerTextChange(event.target.value);
+          onAnswerJsonChange({
+            text: event.target.value,
+          });
+        }}
+        rows={5}
+        placeholder="必要なら補足を書いてください"
+        className="w-full rounded-md border px-3 py-2"
+      />
+    </div>
   );
 }

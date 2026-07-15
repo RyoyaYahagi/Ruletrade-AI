@@ -1,0 +1,118 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { saveRuleAnswer } from "@/features/rules/services/rule-answer-service";
+
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
+}));
+
+vi.mock("@/features/rules/services/rule-draft-service", () => ({
+  applyAnswerToRuleJson: vi.fn(),
+}));
+
+import { createDatabaseClient } from "@/lib/db/database-client";
+import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
+
+const mockSingle = vi.fn();
+const mockEqB = vi.fn(() => ({ single: mockSingle }));
+const mockEqA = vi.fn(() => ({ eq: mockEqB }));
+const mockSelect = vi.fn(() => ({ eq: mockEqA }));
+const mockInsertSelect = vi.fn(() => ({ single: mockSingle }));
+const mockInsert = vi.fn(() => ({ select: mockInsertSelect }));
+const mockUpdateEqB = vi.fn();
+const mockUpdateEq = vi.fn(() => ({ eq: mockUpdateEqB }));
+const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }));
+const mockFrom = vi.fn(() => ({
+  select: mockSelect,
+  insert: mockInsert,
+  update: mockUpdate,
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockSingle.mockReset();
+  mockUpdateEqB.mockResolvedValue({ data: [], error: null });
+  vi.mocked(createDatabaseClient).mockResolvedValue({
+    from: mockFrom,
+  } as unknown);
+  vi.mocked(applyAnswerToRuleJson).mockResolvedValue({
+    investmentThesis: "test",
+  });
+});
+
+describe("saveRuleAnswer", () => {
+  it("saves answer and updates rule json", async () => {
+    mockSingle
+      .mockResolvedValueOnce({ data: { id: "answer-1" }, error: null })
+      .mockResolvedValueOnce({ data: { id: "question-1" }, error: null });
+
+    const result = await saveRuleAnswer({
+      userId: "user-1",
+      sessionId: "session-1",
+      questionId: "question-1",
+      questionKey: "investment_thesis",
+      answerText: "Growth",
+      answerJson: null,
+    });
+
+    expect(result.answerId).toBe("answer-1");
+    expect(result.sessionId).toBe("session-1");
+    expect(result.ruleJson).toEqual({ investmentThesis: "test" });
+    expect(mockFrom).toHaveBeenCalledWith("rule_answers");
+    expect(mockFrom).toHaveBeenCalledWith("rule_questions");
+  });
+
+  it("saves answer without questionId (no question update)", async () => {
+    mockSingle.mockResolvedValueOnce({ data: { id: "answer-2" }, error: null });
+
+    const result = await saveRuleAnswer({
+      userId: "user-1",
+      sessionId: "session-1",
+      questionKey: "custom_key",
+      answerText: "Note",
+      answerJson: null,
+    });
+
+    expect(result.answerId).toBe("answer-2");
+    expect(mockFrom).toHaveBeenCalledWith("rule_answers");
+  });
+
+  it("throws 500 when answer insert fails", async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: "insert failed" },
+    });
+
+    await expect(
+      saveRuleAnswer({
+        userId: "user-1",
+        sessionId: "session-1",
+        questionKey: "investment_thesis",
+        answerJson: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+      status: 500,
+    });
+  });
+
+  it("throws 500 when question status update fails", async () => {
+    mockSingle.mockResolvedValueOnce({ data: { id: "answer-3" }, error: null });
+    mockUpdateEqB.mockResolvedValueOnce({
+      data: null,
+      error: { message: "update failed" },
+    });
+
+    await expect(
+      saveRuleAnswer({
+        userId: "user-1",
+        sessionId: "session-1",
+        questionId: "question-1",
+        questionKey: "investment_thesis",
+        answerJson: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+      status: 500,
+    });
+  });
+});

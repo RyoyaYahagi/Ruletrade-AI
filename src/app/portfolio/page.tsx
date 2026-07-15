@@ -1,0 +1,14 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { PortfolioPage } from "@/features/portfolio/pages/portfolio-page";
+
+
+export default async function Page() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return <PortfolioPage />;
+}

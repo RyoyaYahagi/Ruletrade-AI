@@ -1,0 +1,69 @@
+name: AI Agent Task
+description: AIコーディングエージェントに依頼する小さな実装タスク
+title: "[Agent] "
+labels: ["agent:safe"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: このタスクで達成したいこと
+      value: |
+        このIssueでは、...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Agentが変更してよい範囲
+      value: |
+        変更してよい:
+        -
+
+        変更してはいけない:
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation_notes
+    attributes:
+      label: Implementation Notes
+      description: 既存pattern、参照ファイル、制約
+      value: |
+        参照する既存実装:
+        -
+
+        守るルール:
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required Tests
+      value: |
+        - [ ] Unit Test
+        - [ ] Component Test
+        - [ ] API Test
+        - [ ] E2E Test
+        - [ ] DB Ownership Test
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Done
+      value: |
+        - [ ] Scope内の実装が完了
+        - [ ] 型エラーなし
+        - [ ] Lint通過
+        - [ ] Test追加
+        - [ ] Docs更新
+        - [ ] PR本文に確認内容を記載
+    validations:
+      required: true

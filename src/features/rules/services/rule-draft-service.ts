@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 
@@ -11,8 +11,8 @@ export async function applyAnswerToRuleJson(params: {
   answerJson: unknown;
   answerText?: string;
 }) {
-  const supabase = await createClient();
-  const { data: session, error: sessionError } = await supabase
+  const db = await createDatabaseClient();
+  const { data: session, error: sessionError } = await db
     .from("rule_design_sessions")
     .select("id, rule_json, question_count")
     .eq("id", params.sessionId)
@@ -71,7 +71,7 @@ export async function applyAnswerToRuleJson(params: {
       break;
   }
   const parsed = TradeRuleSchema.parse(nextRule);
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("rule_design_sessions")
     .update({
       rule_json: parsed,

@@ -13,3 +13,18 @@ export function apiCreated<T>(data: T) {
     status: 201,
   });
 }
+
+export function apiError(
+  code: string,
+  message: string,
+  requestId: string,
+  status: number = 500,
+) {
+  return Response.json(
+    {
+      ok: false,
+      error: { code, message, requestId },
+    },
+    { status },
+  );
+}

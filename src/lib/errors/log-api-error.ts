@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createAdminClient } from "@/lib/db/supabase-admin";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
 import type { ErrorCode } from "@/lib/errors/error-codes";
 
@@ -17,9 +17,9 @@ export async function logApiError(params: {
   metadata?: Record<string, unknown>;
 }) {
   try {
-    const supabase = createAdminClient();
+    const db = await createDatabaseClient();
 
-    await supabase.from("api_error_logs").insert({
+    await db.from("api_error_logs").insert({
       user_id: params.userId ?? null,
       request_id: params.requestId,
       route: params.route ?? null,

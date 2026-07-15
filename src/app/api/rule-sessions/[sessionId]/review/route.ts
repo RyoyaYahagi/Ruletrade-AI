@@ -38,7 +38,11 @@ export async function POST(
       estimatedNextCostUsd: ESTIMATED_AI_RULE_REVIEW_COST_USD,
     });
 
-    const result = await runRuleReview({ userId: user.id, sessionId });
+    const result = await runRuleReview({
+      userId: user.id,
+      sessionId,
+      requestId,
+    });
 
     await incrementRateLimit({
       userId: user.id,

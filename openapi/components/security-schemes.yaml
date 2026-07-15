@@ -1,0 +1,5 @@
+cookieAuth:
+  type: apiKey
+  in: cookie
+  name: ruletrade_session
+  description: Ruletrade local session cookie.

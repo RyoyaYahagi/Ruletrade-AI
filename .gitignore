@@ -20,6 +20,12 @@
 # production
 /build
 
+# local sqlite data
+/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
 # misc
 .DS_Store
 *.pem
@@ -58,3 +64,7 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Local explainer artifacts
+/.feature-map/
+/explainer/

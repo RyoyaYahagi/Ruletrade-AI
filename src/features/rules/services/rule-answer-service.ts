@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
 
@@ -12,8 +12,8 @@ export async function saveRuleAnswer(params: {
   answerText?: string;
   answerJson: unknown;
 }) {
-  const supabase = await createClient();
-  const { data: answer, error: answerError } = await supabase
+  const db = await createDatabaseClient();
+  const { data: answer, error: answerError } = await db
     .from("rule_answers")
     .insert({
       user_id: params.userId,
@@ -34,11 +34,19 @@ export async function saveRuleAnswer(params: {
     );
   }
   if (params.questionId) {
-    await supabase
+    const { error: questionError } = await db
       .from("rule_questions")
       .update({ status: "answered", answered_at: new Date().toISOString() })
       .eq("id", params.questionId)
       .eq("user_id", params.userId);
+    if (questionError) {
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "質問の回答状態の更新に失敗しました。",
+        500,
+        questionError,
+      );
+    }
   }
   const ruleJson = await applyAnswerToRuleJson({
     userId: params.userId,
