@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 // ──────────────────────────────────────────────
 // Types
@@ -89,9 +89,9 @@ export type UpdateTradingRuleStatusInput = {
  * Returns the created trading rule record.
  */
 export async function createTradingRule(input: CreateTradingRuleInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("trading_rules")
     .insert({
       user_id: input.user_id,
@@ -127,12 +127,12 @@ export async function createTradingRule(input: CreateTradingRuleInput) {
 /**
  * Get a single trading rule by its `id`, scoped to the given `userId`.
  *
- * Performs RLS-style filtering by matching both `id` and `user_id`.
+ * Performs ownership filtering by matching both `id` and `user_id`.
  */
 export async function getTradingRuleById(id: string, userId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("trading_rules")
     .select("*")
     .eq("id", id)
@@ -152,16 +152,16 @@ export async function getTradingRuleById(id: string, userId: string) {
  * List trading rules with optional status and limit filtering.
  *
  * Supported filters:
- *   - userId (string, required — RLS scoping)
+ *   - userId (string, required — ownership scoping)
  *   - status (string, exact match, optional)
  *   - limit  (number, max results to return, optional)
  *
  * Results are ordered by `created_at` descending (newest first).
  */
 export async function listTradingRules(filters?: ListTradingRulesFilters) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  let query = supabase.from("trading_rules").select("*");
+  let query = db.from("trading_rules").select("*");
 
   // Apply filters
   if (filters) {
@@ -195,16 +195,16 @@ export async function listTradingRules(filters?: ListTradingRulesFilters) {
 /**
  * Update a trading rule's fields.
  *
- * Only the record matching `ruleId` AND `userId` (for RLS scoping) is
+ * Only the record matching `ruleId` AND `userId` (for ownership scoping) is
  * updated. Returns the updated record.
  *
  * The `version` column is automatically incremented on each update.
  */
 export async function updateTradingRule(input: UpdateTradingRuleInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current record to obtain the current version
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("trading_rules")
     .select("id, version")
     .eq("id", input.ruleId)
@@ -238,7 +238,7 @@ export async function updateTradingRule(input: UpdateTradingRuleInput) {
   // Auto-increment version
   payload.version = existing.version + 1;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("trading_rules")
     .update(payload)
     .eq("id", input.ruleId)
@@ -270,15 +270,15 @@ export async function updateTradingRule(input: UpdateTradingRuleInput) {
  *
  * The `version` column is automatically incremented on status changes.
  *
- * Lookup is performed by `id` AND `user_id` for RLS scoping.
+ * Lookup is performed by `id` AND `user_id` for ownership scoping.
  */
 export async function updateTradingRuleStatus(
   input: UpdateTradingRuleStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current record to capture existing state
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("trading_rules")
     .select("id, version, status")
     .eq("id", input.ruleId)
@@ -302,7 +302,7 @@ export async function updateTradingRuleStatus(
     payload.approved_at = new Date().toISOString();
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("trading_rules")
     .update(payload)
     .eq("id", input.ruleId)
@@ -333,10 +333,10 @@ export async function deleteTradingRule(
   id: string,
   userId: string,
 ): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // First verify the record exists and is accessible
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("trading_rules")
     .select("id")
     .eq("id", id)
@@ -349,7 +349,7 @@ export async function deleteTradingRule(
     );
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("trading_rules")
     .delete()
     .eq("id", id)

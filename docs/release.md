@@ -20,7 +20,7 @@ npm run test
 npm run build
 ```
 
-Also run DB/RLS and E2E smoke tests when relevant.
+Also run SQLite schema/ownership checks and E2E smoke tests when relevant.
 
 ## Release Steps
 

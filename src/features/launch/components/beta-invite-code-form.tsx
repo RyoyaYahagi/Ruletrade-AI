@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function BetaInviteCodeForm() {
+  const router = useRouter();
   const [inviteCode, setInviteCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,7 +24,7 @@ export function BetaInviteCodeForm() {
       setMessage(json.error?.message ?? "招待コードを確認できませんでした。");
       return;
     }
-    window.location.href = "/dashboard";
+    router.replace("/dashboard");
   }
 
   return (

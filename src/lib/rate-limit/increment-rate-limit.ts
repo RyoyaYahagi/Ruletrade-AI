@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import {
   RATE_LIMIT_CONFIGS,
   type RateLimitKey,
@@ -16,19 +16,42 @@ export async function incrementRateLimit(params: {
   const { periodStart, periodEnd } = getRateLimitPeriod(config.window);
   const incrementBy = params.incrementBy ?? 1;
 
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase.rpc("increment_rate_limit_counter", {
-    p_user_id: params.userId,
-    p_limit_key: params.key,
-    p_period_start: periodStart,
-    p_period_end: periodEnd,
-    p_increment_by: incrementBy,
-  });
+  const { data: existing, error: selectError } = await db
+    .from("rate_limit_counters")
+    .select("id, used_count")
+    .eq("user_id", params.userId)
+    .eq("limit_key", params.key)
+    .eq("period_start", periodStart)
+    .eq("period_end", periodEnd)
+    .maybeSingle();
 
-  if (error) {
-    throw error;
+  if (selectError) {
+    throw selectError;
   }
 
-  return data ?? incrementBy;
+  const nextCount = Number(existing?.used_count ?? 0) + incrementBy;
+
+  if (existing?.id) {
+    const { error: updateError } = await db
+      .from("rate_limit_counters")
+      .update({ used_count: nextCount })
+      .eq("id", existing.id)
+      .eq("user_id", params.userId);
+
+    if (updateError) throw updateError;
+  } else {
+    const { error: insertError } = await db.from("rate_limit_counters").insert({
+      user_id: params.userId,
+      limit_key: params.key,
+      period_start: periodStart,
+      period_end: periodEnd,
+      used_count: nextCount,
+    });
+
+    if (insertError) throw insertError;
+  }
+
+  return nextCount;
 }

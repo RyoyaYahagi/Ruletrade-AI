@@ -5,7 +5,7 @@ Ruletrade-AI engineering standards focus on safety, privacy, and operability.
 ## Required reviews
 
 - DB migration
-- RLS policy
+- ownership checks policy
 - AI prompt / schema
 - privacy deletion
 - billing / Stripe
@@ -20,6 +20,6 @@ Every PR must describe:
 - change area
 - risk
 - tests
-- RLS impact
+- ownership checks impact
 - privacy impact
 - rollback plan

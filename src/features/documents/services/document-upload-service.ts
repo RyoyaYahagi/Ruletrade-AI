@@ -1,7 +1,8 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
+import { writeLocalStorageFile } from "@/lib/storage/local-file-storage";
 
 export async function uploadDocument(params: {
   userId: string;
@@ -15,7 +16,7 @@ export async function uploadDocument(params: {
   companyName?: string;
   sourceUrl?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // ファイル名を安全化
   const safeFilename = params.originalFilename
@@ -23,7 +24,7 @@ export async function uploadDocument(params: {
     .slice(0, 200);
 
   // DBにmetadataを保存してdocument_idを取得
-  const { data: document, error: dbError } = await supabase
+  const { data: document, error: dbError } = await db
     .from("user_documents")
     .insert({
       user_id: params.userId,
@@ -54,20 +55,16 @@ export async function uploadDocument(params: {
 
   const documentId = document.id;
 
-  // Storage path
   const storagePath = `${params.userId}/${documentId}/${safeFilename}`;
 
-  // Storageにアップロード
-  const { error: storageError } = await supabase.storage
-    .from("documents")
-    .upload(storagePath, params.file, {
-      contentType: params.mimeType,
-      upsert: false,
+  try {
+    await writeLocalStorageFile({
+      bucket: "documents",
+      storagePath,
+      data: params.file,
     });
-
-  if (storageError) {
-    // Storage失敗時にDBを削除
-    await supabase
+  } catch (storageError) {
+    await db
       .from("user_documents")
       .delete()
       .eq("id", documentId)
@@ -81,8 +78,7 @@ export async function uploadDocument(params: {
     );
   }
 
-  // storage_pathを更新
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from("user_documents")
     .update({
       storage_path: storagePath,

@@ -7,6 +7,7 @@ import {
   createVirtualTrade,
   listVirtualTrades,
 } from "@/features/education/services/virtual-trade-service";
+import type { VirtualTradeStatus } from "@/schemas/education/practice-mode-schema";
 
 const CreateTradeRequestSchema = z.object({
   practice_session_id: z.string().uuid(),
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
     const result = await listVirtualTrades({
       practiceSessionId,
       userId: user.id,
-      status: status as any,
+      status: status as VirtualTradeStatus | undefined,
       limit,
     });
     return apiSuccess(result);

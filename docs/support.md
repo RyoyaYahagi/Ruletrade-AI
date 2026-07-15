@@ -21,4 +21,4 @@ Support infrastructure for Ruletrade-AI.
 
 - Support staff must not display investment memo content, AI output, or document text in admin UI.
 - Ticket body may contain personal content; handle with care.
-- Internal comments are hidden from users via RLS.
+- Internal comments are hidden from users via ownership checks.

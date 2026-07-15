@@ -6,21 +6,21 @@ import { AppError } from "@/lib/errors/app-error";
 // Module mocks
 // ---------------------------------------------------------------------------
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
 vi.mock("@/features/rules/services/rule-session-service", () => ({
   createRuleSession: vi.fn(),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { createRuleSession } from "@/features/rules/services/rule-session-service";
 
 // ---------------------------------------------------------------------------
-// Supabase query-builder mock chain
+// SQLite query-builder mock chain
 //
-// The source under test makes three calls via the supabase client:
+// The source under test makes three calls via the db client:
 //   1) from("watchlist_items").select("*").eq("id",…).eq("user_id",…).single()
 //   2) from("rule_design_sessions").update(…).eq("id",…).eq("user_id",…)
 //   3) from("watchlist_items").update(…).eq("id",…).eq("user_id",…)
@@ -42,12 +42,12 @@ const mockFrom = vi.fn(() => ({
   update: mockUpdate,
 }));
 
-const mockSupabase = { from: mockFrom };
+const mockDatabase = { from: mockFrom };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(createServerClient).mockResolvedValue(
-    mockSupabase as unknown as never,
+  vi.mocked(createDatabaseClient).mockResolvedValue(
+    mockDatabase as unknown as never,
   );
 });
 

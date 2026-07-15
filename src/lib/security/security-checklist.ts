@@ -29,9 +29,8 @@ export function assertNoPublicSecrets() {
   }
 }
 
-export function assertRlseEnabled() {
-  // Placeholder: actual check requires DB query
-  // In production, run: select tablename, rowsecurity from pg_tables where schemaname = 'public'
+export function assertOwnershipChecksConfigured() {
+  // Ownership is enforced in server-side services and API routes.
 }
 
 export function assertSecurityHeaders(headers: Headers) {

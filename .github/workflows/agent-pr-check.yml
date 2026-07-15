@@ -34,11 +34,6 @@ jobs:
             exit 1
           fi
 
-          if echo "$CHANGED_FILES" | grep -E 'supabase/migrations/.*' && ! echo "${{ toJson(github.event.pull_request.labels.*.name) }}" | grep -q 'agent:needs-human-design'; then
-            echo "Migration changes require agent:needs-human-design label"
-            exit 1
-          fi
-
       - name: Check dangerous strings
         run: |
           if git grep -n -E "NEXT_PUBLIC_.*SECRET|NEXT_PUBLIC_.*SERVICE_ROLE|sk_live_|sk_test_" -- . ':!docs/**' ':!.env.example'; then

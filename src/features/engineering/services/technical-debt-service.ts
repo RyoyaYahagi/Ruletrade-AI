@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { createTechnicalDebtEvent } from "@/features/engineering/services/technical-debt-event-service";
 
 /**
@@ -88,9 +88,9 @@ export type UpdateTechnicalDebtStatusInput = {
 export async function createTechnicalDebtItem(
   input: CreateTechnicalDebtItemInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("technical_debt_items")
     .insert({
       debt_key: input.debt_key,
@@ -162,7 +162,7 @@ export async function createTechnicalDebtItem(
 export async function listTechnicalDebtItems(
   filters?: ListTechnicalDebtItemsFilters,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Define priority ordering via a CASE expression
   const priorityOrder = `
@@ -175,7 +175,7 @@ export async function listTechnicalDebtItems(
     end
   `;
 
-  let query = supabase.from("technical_debt_items").select("*");
+  let query = db.from("technical_debt_items").select("*");
 
   // Apply filters
   if (filters) {
@@ -214,9 +214,9 @@ export async function listTechnicalDebtItems(
  * Get a single technical debt item by its unique `debt_key`.
  */
 export async function getTechnicalDebtItemByKey(debtKey: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("technical_debt_items")
     .select("*")
     .eq("debt_key", debtKey)
@@ -235,9 +235,9 @@ export async function getTechnicalDebtItemByKey(debtKey: string) {
  * Get a single technical debt item by its `id`.
  */
 export async function getTechnicalDebtItemById(id: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("technical_debt_items")
     .select("*")
     .eq("id", id)
@@ -267,10 +267,10 @@ export async function getTechnicalDebtItemById(id: string) {
 export async function updateTechnicalDebtStatus(
   input: UpdateTechnicalDebtStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Fetch current item to capture old status
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await db
     .from("technical_debt_items")
     .select("id, status")
     .eq("id", input.debtItemId)
@@ -297,7 +297,7 @@ export async function updateTechnicalDebtStatus(
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("technical_debt_items")
     .update(payload)
     .eq("id", input.debtItemId)
@@ -337,7 +337,7 @@ export async function deleteTechnicalDebtItem(
   id: string,
   actorUserId?: string | null,
 ): Promise<void> {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Record "deleted" event before removal
   await createTechnicalDebtEvent({
@@ -346,7 +346,7 @@ export async function deleteTechnicalDebtItem(
     event_type: "deleted",
   });
 
-  const { error } = await supabase
+  const { error } = await db
     .from("technical_debt_items")
     .delete()
     .eq("id", id);

@@ -1,19 +1,19 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 
 export async function getUserPlan(params: { userId: string }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: customer } = await supabase
+  const { data: customer } = await db
     .from("billing_customers")
     .select("*, billing_subscriptions(*, billing_plans(*))")
     .eq("user_id", params.userId)
     .maybeSingle();
 
   if (!customer) {
-    const { data: defaultPlan } = await supabase
+    const { data: defaultPlan } = await db
       .from("billing_plans")
       .select("*")
       .eq("slug", "free")
@@ -30,7 +30,7 @@ export async function getUserPlan(params: { userId: string }) {
     return { plan: activeSub.billing_plans, subscription: activeSub };
   }
 
-  const { data: defaultPlan } = await supabase
+  const { data: defaultPlan } = await db
     .from("billing_plans")
     .select("*")
     .eq("slug", "free")

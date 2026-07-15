@@ -40,4 +40,4 @@ Use when: feature has independent stop switch
 - DB schema changed
 - Data migration ran
 - External API contract changed
-- RLS policy changed
+- ownership checks policy changed

@@ -1,5 +1,5 @@
 ---
-applyTo: "src/**/*.ts,src/**/*.tsx,supabase/**"
+applyTo: "src/**/*.ts,src/**/*.tsx"
 ---
 
 # Security Instructions
@@ -11,4 +11,4 @@ applyTo: "src/**/*.ts,src/**/*.tsx,supabase/**"
 - Redact sensitive data before writing logs.
 - Destructive actions require ownership checks.
 - Cron endpoints must require `CRON_SECRET`.
-- Admin clients must be isolated in server-only files.
+- Admin database access must be isolated in server-only files.

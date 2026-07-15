@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
 import { WatchlistReviewSchema } from "@/schemas/watchlist/watchlist-review-schema";
 import {
@@ -15,9 +15,9 @@ export async function runWatchlistReview(params: {
   itemId?: string;
   requestId?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data: watchlist, error: watchlistError } = await supabase
+  const { data: watchlist, error: watchlistError } = await db
     .from("watchlists")
     .select("*")
     .eq("user_id", params.userId)
@@ -29,7 +29,7 @@ export async function runWatchlistReview(params: {
     throw new AppError("NOT_FOUND", "Watchlistが見つかりません。", 404);
   }
 
-  let query = supabase
+  let query = db
     .from("watchlist_items")
     .select("*")
     .eq("user_id", params.userId)
@@ -89,7 +89,7 @@ export async function runWatchlistReview(params: {
 
   const reviewWithSafety = { ...review, safety };
 
-  const { data: savedReview, error: reviewError } = await supabase
+  const { data: savedReview, error: reviewError } = await db
     .from("watchlist_reviews")
     .insert({
       user_id: params.userId,
@@ -125,13 +125,13 @@ export async function runWatchlistReview(params: {
     );
   }
 
-  await supabase
+  await db
     .from("watchlist_items")
     .update({ last_reviewed_at: new Date().toISOString() })
     .eq("user_id", params.userId)
     .in(
       "id",
-      items.map((item) => item.id),
+      items.map((item: { id: string }) => item.id),
     );
 
   if (!safety.passed) {
@@ -145,7 +145,7 @@ export async function runWatchlistReview(params: {
   }
 
   if (review.qualityChecks.length > 0) {
-    const { error: checksError } = await supabase
+    const { error: checksError } = await db
       .from("watchlist_quality_checks")
       .insert(
         review.qualityChecks.map((check) => ({

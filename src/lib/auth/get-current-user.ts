@@ -1,13 +1,23 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { cookies } from "next/headers";
+
+import {
+  AUTH_SESSION_COOKIE,
+  getUserBySessionToken,
+} from "@/lib/auth/local-auth";
+import {
+  createGuestUser,
+  GUEST_SESSION_COOKIE,
+  GUEST_SESSION_COOKIE_VALUE,
+} from "@/lib/auth/guest-session";
+import type { AppUser } from "@/lib/auth/types";
+import { logWarn } from "@/lib/observability/structured-logger";
 
 const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
 const MOCK_AUTH_USER_ID = process.env.MOCK_AUTH_USER_ID ?? "mock-user-id";
 
-export async function getCurrentUser() {
-  // Development mock: return mock user without hitting Supabase
-  // NEVER use in production — guard ensures this is safe
+export async function getCurrentUser(): Promise<AppUser | null> {
   if (MOCK_AUTH_EMAIL && process.env.NODE_ENV !== "production") {
     return {
       id: MOCK_AUTH_USER_ID,
@@ -16,26 +26,24 @@ export async function getCurrentUser() {
       user_metadata: {},
       aud: "authenticated",
       created_at: new Date().toISOString(),
-    } as unknown as import("@supabase/supabase-js").User;
+    };
   }
 
-  let supabase;
+  const cookieStore = await cookies();
+
+  if (process.env.NODE_ENV !== "production") {
+    if (
+      cookieStore.get(GUEST_SESSION_COOKIE)?.value ===
+      GUEST_SESSION_COOKIE_VALUE
+    ) {
+      return createGuestUser();
+    }
+  }
 
   try {
-    supabase = await createServerClient();
-  } catch (err) {
-    console.error("Failed to create supabase client:", err);
+    return getUserBySessionToken(cookieStore.get(AUTH_SESSION_COOKIE)?.value);
+  } catch {
+    logWarn("Failed to read local auth session");
     return null;
   }
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    return null;
-  }
-
-  return user;
 }

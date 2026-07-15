@@ -13,7 +13,7 @@ It does not provide investment advice, buy/sell recommendations, asset managemen
 - Do not expose secrets to the browser.
 - Do not use `NEXT_PUBLIC_` for server secrets.
 - Do not call AI providers directly from Client Components.
-- Do not bypass RLS in normal user APIs.
+- Do not bypass server-side ownership checks in normal user APIs.
 - Do not weaken financial safety or compliance checks.
 - Do not add buy/sell recommendation copy.
 - Keep changes small and scoped to the issue.
@@ -28,11 +28,8 @@ npm run lint
 npm run test
 ```
 
-If DB/RLS changed:
-
-```bash
-supabase test db
-```
+If database ownership or schema changed, add or update the corresponding SQLite
+service tests.
 
 If UI changed:
 
@@ -44,10 +41,10 @@ npm run test:e2e
 
 - Next.js App Router
 - TypeScript
-- Supabase Auth
-- Supabase Postgres
-- Supabase RLS
-- Supabase Storage
+- Local session authentication
+- SQLite database
+- Server-side ownership checks
+- Local file storage
 - AI Provider Gateway
 - Mock/OpenAI/Gemini provider switching
 - Safety Check before displaying AI output
@@ -58,6 +55,6 @@ npm run test:e2e
 - Do not edit `.env.local`.
 - Do not commit real secrets.
 - Do not disable tests to pass CI.
-- Do not remove RLS policies.
+- Do not remove ownership checks.
 - Do not change production deployment settings.
 - Do not make broad refactors unless explicitly requested.

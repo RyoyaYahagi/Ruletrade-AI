@@ -10,11 +10,11 @@ vi.mock("@/features/portfolio/services/portfolio-service", () => ({
   getOrCreateMainPortfolio: vi.fn(),
 }));
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { getOrCreateMainPortfolio } from "@/features/portfolio/services/portfolio-service";
 
 // ---- Chain for list (select -> eq -> neq -> order) ----
@@ -39,7 +39,7 @@ const mockFrom = vi.fn((table: string) => {
 beforeEach(() => {
   vi.clearAllMocks();
 
-  vi.mocked(createServerClient).mockResolvedValue({
+  vi.mocked(createDatabaseClient).mockResolvedValue({
     from: mockFrom,
   } as unknown);
 

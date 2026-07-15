@@ -8,7 +8,7 @@ Ruletrade-AI observability strategy:
 - secrets and investment content are never logged
 - AI payload logging is off by default in production
 - cron / webhook / privacy delete are always monitored
-- never weaken RLS or safety for observability
+- never weaken ownership checks or safety for observability
 
 ## Logs
 
@@ -122,7 +122,7 @@ Never log:
 ## Tools
 
 - Vercel Logs
-- Supabase Logs
-- Supabase Performance Advisor
+- Hosting logs
+- SQLite query metrics
 - Structured logs in DB
 - Health endpoints

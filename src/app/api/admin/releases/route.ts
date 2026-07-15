@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       milestone_key: input.milestoneKey,
       planned_release_at: input.plannedReleaseAt,
       includes_db_migration: input.includesDbMigration,
-      includes_rls_change: input.includesRlsChange,
+      includes_data_access_change: input.includesDataAccessChange,
       includes_env_change: input.includesEnvChange,
       includes_feature_flag_change: input.includesFeatureFlagChange,
       includes_ai_prompt_change: input.includesAiPromptChange,

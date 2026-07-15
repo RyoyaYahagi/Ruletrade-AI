@@ -10,7 +10,7 @@
 1. Spin up staging environment
 2. Restore backup to staging
 3. Run smoke tests
-4. Verify RLS policies
+4. Verify ownership checks policies
 5. Verify privacy delete consistency
 6. Record results
 
@@ -22,7 +22,7 @@
 | Backup source        |       |
 | Restore time         |       |
 | Smoke test result    |       |
-| RLS check result     |       |
+| ownership checks check result     |       |
 | Privacy check result |       |
 | Issues found         |       |
 | Next improvement     |       |

@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 const mockSingle = vi.fn();
 const mockSelect = vi.fn(() => ({ single: mockSingle }));
@@ -15,7 +15,7 @@ const mockFrom = vi.fn(() => ({ upsert: mockUpsert }));
 describe("ensureAppUser", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createServerClient).mockResolvedValue({
+    vi.mocked(createDatabaseClient).mockResolvedValue({
       from: mockFrom,
     } as unknown);
   });
@@ -29,7 +29,7 @@ describe("ensureAppUser", () => {
     const user = { id: "mock-id", email: "mock@example.com" };
     const result = await ensureAppUser(user as unknown);
     expect(result).toEqual({ id: "mock-id", email: "mock@example.com" });
-    expect(createServerClient).not.toHaveBeenCalled();
+    expect(createDatabaseClient).not.toHaveBeenCalled();
   });
 
   it("upserts app_user and returns data on success", async () => {
@@ -42,13 +42,13 @@ describe("ensureAppUser", () => {
     const result = await ensureAppUser(user as unknown);
     expect(mockFrom).toHaveBeenCalledWith("app_users");
     expect(mockUpsert).toHaveBeenCalledWith(
-      { id: "real-id", email: "real@example.com" },
+      { id: "real-id", email: "real@example.com", role: "user" },
       { onConflict: "id" },
     );
     expect(result).toEqual({ id: "real-id", email: "real@example.com" });
   });
 
-  it("throws when supabase returns error", async () => {
+  it("throws when db returns error", async () => {
     vi.stubEnv("MOCK_AUTH", "false");
     const user = { id: "real-id", email: "real@example.com" };
     mockSingle.mockResolvedValueOnce({

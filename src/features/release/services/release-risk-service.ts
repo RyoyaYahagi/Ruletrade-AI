@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 /**
  * release_risk_assessments テーブル CRUD
@@ -49,9 +49,9 @@ export type UpdateRiskAssessmentStatusInput = {
  * `status` defaults to `"open"` if not supplied. Returns the created record.
  */
 export async function createRiskAssessment(input: CreateRiskAssessmentInput) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_risk_assessments")
     .insert({
       release_plan_id: input.release_plan_id,
@@ -84,7 +84,7 @@ export async function createRiskAssessment(input: CreateRiskAssessmentInput) {
  * (critical → high → medium → low), then by `created_at` ascending.
  */
 export async function listRiskAssessmentsByReleasePlan(releasePlanId: string) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   // Define risk-level ordering via a CASE expression
   const riskLevelOrder = `
@@ -97,7 +97,7 @@ export async function listRiskAssessmentsByReleasePlan(releasePlanId: string) {
     end
   `;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_risk_assessments")
     .select("*")
     .eq("release_plan_id", releasePlanId)
@@ -126,7 +126,7 @@ export async function updateRiskAssessmentStatus(
   riskAssessmentId: string,
   input: UpdateRiskAssessmentStatusInput,
 ) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const payload: Record<string, unknown> = {
     status: input.status,
@@ -137,7 +137,7 @@ export async function updateRiskAssessmentStatus(
     payload.mitigation = input.mitigation;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("release_risk_assessments")
     .update(payload)
     .eq("id", riskAssessmentId)

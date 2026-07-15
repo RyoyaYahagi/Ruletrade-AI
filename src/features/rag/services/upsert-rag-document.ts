@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { hashContent } from "@/lib/rag/hash-content";
 import { chunkText } from "@/lib/rag/chunk-text";
 import { getEmbeddingProvider } from "@/lib/ai/embeddings/embedding-provider-factory";
@@ -24,11 +24,11 @@ export async function upsertRagDocument(params: {
   content: string;
   metadata?: Record<string, unknown>;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const contentHash = hashContent(params.content);
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("rag_documents")
     .select("id, content_hash")
     .eq("user_id", params.userId)
@@ -43,7 +43,7 @@ export async function upsertRagDocument(params: {
     };
   }
 
-  const { data: document, error: documentError } = await supabase
+  const { data: document, error: documentError } = await db
     .from("rag_documents")
     .upsert(
       {
@@ -95,7 +95,7 @@ async function embedRagDocument(params: {
   content: string;
   metadata: Record<string, unknown>;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
   const embeddingProvider = getEmbeddingProvider();
 
   const chunks = chunkText({
@@ -109,7 +109,7 @@ async function embedRagDocument(params: {
     taskType: "retrieval_document",
   });
 
-  await supabase
+  await db
     .from("rag_chunks")
     .delete()
     .eq("user_id", params.userId)
@@ -130,10 +130,10 @@ async function embedRagDocument(params: {
     metadata: params.metadata,
   }));
 
-  const { error: chunksError } = await supabase.from("rag_chunks").insert(rows);
+  const { error: chunksError } = await db.from("rag_chunks").insert(rows);
 
   if (chunksError) {
-    await supabase
+    await db
       .from("rag_documents")
       .update({
         embedding_status: "failed",
@@ -149,7 +149,7 @@ async function embedRagDocument(params: {
     );
   }
 
-  await supabase
+  await db
     .from("rag_documents")
     .update({
       embedding_status: "embedded",

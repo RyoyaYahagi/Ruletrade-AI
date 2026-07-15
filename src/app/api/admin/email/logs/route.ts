@@ -1,5 +1,5 @@
 import { requireAdminPermission } from "@/features/admin/services/admin-auth-service";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 
@@ -7,8 +7,8 @@ export async function GET() {
   const requestId = crypto.randomUUID();
   try {
     await requireAdminPermission("admin.email.read");
-    const supabase = await createServerClient();
-    const { data, error } = await supabase
+    const db = await createDatabaseClient();
+    const { data, error } = await db
       .from("email_send_logs")
       .select("*")
       .order("created_at", { ascending: false })

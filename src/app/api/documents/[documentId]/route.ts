@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { AppError } from "@/lib/errors/app-error";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { deleteDocument } from "@/features/documents/services/document-delete-service";
 
 export async function GET(
@@ -18,9 +18,9 @@ export async function GET(
 
     const { documentId } = await params;
 
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("user_documents")
       .select("*")
       .eq("id", documentId)

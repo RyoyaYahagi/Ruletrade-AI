@@ -1,13 +1,13 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function isBetaFeatureEnabled(params: {
   userId: string;
   flagKey: string;
 }) {
-  const supabase = await createServerClient();
-  const { data: flag, error: flagError } = await supabase
+  const db = await createDatabaseClient();
+  const { data: flag, error: flagError } = await db
     .from("beta_feature_flags")
     .select("*")
     .eq("flag_key", params.flagKey)
@@ -18,7 +18,7 @@ export async function isBetaFeatureEnabled(params: {
   if (flag.is_enabled_globally) return true;
   if ((flag.enabled_user_ids ?? []).includes(params.userId)) return true;
 
-  const { data: grant, error: grantError } = await supabase
+  const { data: grant, error: grantError } = await db
     .from("beta_access_grants")
     .select(`access_status, beta_cohorts(cohort_key)`)
     .eq("user_id", params.userId)

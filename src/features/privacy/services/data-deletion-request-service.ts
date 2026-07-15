@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { logPrivacyAudit } from "@/features/privacy/services/privacy-audit-service";
 
 export async function createDataDeletionRequest(params: {
@@ -10,9 +10,9 @@ export async function createDataDeletionRequest(params: {
   targetId?: string;
   reason?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("data_deletion_requests")
     .insert({
       user_id: params.userId,

@@ -1,10 +1,22 @@
-name: Deprecated CI
+name: CI
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
 
 jobs:
-  deprecated:
+  quality-gates:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Use the Check workflow for typecheck, lint, test, and build."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

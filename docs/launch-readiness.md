@@ -46,5 +46,5 @@
 |------|--------|------------|
 | AI output quality | High | Human review loop, safety checks |
 | Load spike | High | Rate limits, auto-scaling |
-| Data breach | Critical | RLS, encryption, audit logs |
+| Data breach | Critical | ownership checks, encryption, audit logs |
 | Stripe issues | Medium | Sandbox testing, webhook resilience |

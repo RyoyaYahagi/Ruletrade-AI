@@ -17,7 +17,7 @@ You are implementing a GitHub Issue in Ruletrade-AI.
 - Stay within scope.
 - Do not change unrelated files.
 - Do not expose secrets.
-- Do not weaken RLS.
+- Do not weaken ownership checks.
 - Do not bypass Safety or Compliance.
 - Do not add buy/sell recommendation wording.
 

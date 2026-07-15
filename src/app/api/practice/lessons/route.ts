@@ -8,6 +8,10 @@ import {
   listUserLessonProgress,
   upsertLessonProgress,
 } from "@/features/education/services/lesson-progress-service";
+import type {
+  LessonCategory,
+  LessonStatus,
+} from "@/schemas/education/practice-mode-schema";
 
 const CreateLessonProgressRequestSchema = z.object({
   lesson_id: z.string().min(1).max(200),
@@ -71,8 +75,8 @@ export async function GET(request: Request) {
 
     const result = await listUserLessonProgress({
       userId: user.id,
-      lesson_category: lessonCategory as any,
-      status: status as any,
+      lesson_category: lessonCategory as LessonCategory | undefined,
+      status: status as LessonStatus | undefined,
       limit,
     });
     return apiSuccess(result);

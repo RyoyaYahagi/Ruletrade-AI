@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { detectProhibitedPhrases } from "@/lib/safety/detect-prohibited-phrases";
 
 const FINANCIAL_ADVICE_PATTERNS = [
@@ -25,7 +25,7 @@ export async function runComplianceGate(params: {
   reviewType: string;
   text: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
   const detected = detectProhibitedPhrases(params.text);
   const adviceDetected = FINANCIAL_ADVICE_PATTERNS.some((pattern) =>
@@ -55,7 +55,7 @@ export async function runComplianceGate(params: {
       ? "high"
       : "medium";
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("compliance_review_logs")
     .insert({
       user_id: params.userId,

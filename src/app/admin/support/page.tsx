@@ -1,12 +1,10 @@
-export const dynamic = "force-dynamic";
-
 import { requireAdminPermission } from "@/features/admin/services/admin-auth-service";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export default async function Page() {
   await requireAdminPermission("admin.support.read");
-  const supabase = await createServerClient();
-  const { data: tickets } = await supabase
+  const db = await createDatabaseClient();
+  const { data: tickets } = await db
     .from("support_tickets")
     .select("*")
     .order("created_at", { ascending: false })

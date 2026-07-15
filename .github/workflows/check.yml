@@ -13,8 +13,6 @@ jobs:
 
     env:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
       AI_PROVIDER: mock
       EMBEDDING_PROVIDER: mock
       ENABLE_SAFETY_CHECK: true

@@ -18,8 +18,8 @@
 
 ### Added
 
-- Supabase Auth foundation
+- Local session authentication foundation
 - Initial database schema
-- RLS baseline
+- Ownership-check baseline
 - API response helpers
 - Local development setup

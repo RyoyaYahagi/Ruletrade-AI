@@ -1,5 +1,5 @@
 import "server-only";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export interface SystemEventInput {
   eventType: string;
@@ -15,9 +15,9 @@ export interface SystemEventInput {
 
 export async function logSystemEvent(params: SystemEventInput): Promise<void> {
   try {
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    await supabase.from("system_events").insert({
+    await db.from("system_events").insert({
       event_type: params.eventType,
       severity: params.severity,
       message: params.message,

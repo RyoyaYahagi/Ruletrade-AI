@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash } from "crypto";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export function hashInviteCode(code: string) {
   return createHash("sha256").update(code.trim()).digest("hex");
@@ -18,9 +18,9 @@ export async function redeemInviteCode(params: {
   userId: string;
   inviteCode: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
   const codeHash = hashInviteCode(params.inviteCode);
-  const { data: code, error } = await supabase
+  const { data: code, error } = await db
     .from("beta_invite_codes")
     .select("*")
     .eq("code_hash", codeHash)
@@ -43,7 +43,7 @@ export async function redeemInviteCode(params: {
     });
   }
 
-  const { data: existingGrant } = await supabase
+  const { data: existingGrant } = await db
     .from("beta_access_grants")
     .select("id")
     .eq("user_id", params.userId)
@@ -52,7 +52,7 @@ export async function redeemInviteCode(params: {
     return { granted: true, alreadyGranted: true };
   }
 
-  const { error: grantError } = await supabase
+  const { error: grantError } = await db
     .from("beta_access_grants")
     .insert({
       user_id: params.userId,
@@ -65,7 +65,7 @@ export async function redeemInviteCode(params: {
     });
   if (grantError) throw grantError;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from("beta_invite_codes")
     .update({ used_count: code.used_count + 1 })
     .eq("id", code.id);

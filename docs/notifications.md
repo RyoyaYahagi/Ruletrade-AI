@@ -95,4 +95,4 @@ Protected by `CRON_SECRET` via `Authorization: Bearer` header.
 - `notification_delivery_logs`
 - `notification_rules`
 
-All tables have RLS enabled.
+All user-owned tables are accessed through explicit ownership checks.

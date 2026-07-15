@@ -8,11 +8,11 @@ import {
 } from "@/features/watchlist/services/watchlist-item-service";
 import { AppError } from "@/lib/errors/app-error";
 
-vi.mock("@/lib/db/supabase-server", () => ({
-  createServerClient: vi.fn(),
+vi.mock("@/lib/db/database-client", () => ({
+  createDatabaseClient: vi.fn(),
 }));
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 // ── Shared terminal mocks ──
 const mockSingle = vi.fn();
@@ -73,7 +73,7 @@ const mockFrom = vi.fn((table: string) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(createServerClient).mockResolvedValue({
+  vi.mocked(createDatabaseClient).mockResolvedValue({
     from: mockFrom,
   } as unknown);
 });

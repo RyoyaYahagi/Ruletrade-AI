@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 import { apiSuccess, apiCreated } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { CreateSupportCommentSchema } from "@/schemas/support/support-schema";
@@ -14,10 +14,10 @@ export async function GET(
   try {
     const user = await requireUser();
     const { ticketId } = await params;
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
     // Verify ticket ownership before returning comments
-    const { data: ticket, error: ticketError } = await supabase
+    const { data: ticket, error: ticketError } = await db
       .from("support_tickets")
       .select("user_id")
       .eq("id", ticketId)
@@ -33,7 +33,7 @@ export async function GET(
       await requireAdmin();
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("support_ticket_comments")
       .select("*")
       .eq("ticket_id", ticketId)
@@ -62,9 +62,9 @@ export async function POST(
       request,
       CreateSupportCommentSchema,
     );
-    const supabase = await createServerClient();
+    const db = await createDatabaseClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("support_ticket_comments")
       .insert({
         ticket_id: ticketId,

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export async function trackProductEvent(params: {
   userId: string;
@@ -8,9 +8,9 @@ export async function trackProductEvent(params: {
   properties?: Record<string, unknown>;
   sessionId?: string;
 }) {
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { error } = await supabase.from("product_events").insert({
+  const { error } = await db.from("product_events").insert({
     user_id: params.userId,
     event_name: params.eventName,
     properties: JSON.stringify(sanitizeProperties(params.properties ?? {})),

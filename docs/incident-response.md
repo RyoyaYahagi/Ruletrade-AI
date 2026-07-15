@@ -4,7 +4,7 @@
 
 1. Check `/api/health/deep`
 2. Check Vercel Logs
-3. Check Supabase Logs
+3. Check hosting and application logs
 4. Check `system_events` table
 5. Check `api_request_logs` for error spikes
 6. Identify affected users via `user_id`
@@ -26,7 +26,7 @@
 
 ### DB slowness
 
-- Check Supabase Performance Advisor
+- Check SQLite query and hosting performance metrics
 - Run EXPLAIN on slow queries
 - Check index usage
 

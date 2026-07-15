@@ -33,6 +33,9 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
+exclude_docs: |
+  adr/README.md
+
 nav:
   - Home: index.md
 
@@ -46,7 +49,7 @@ nav:
       - developer-guide/index.md
       - Local Setup: developer-guide/local-setup.md
       - Adding API Route: developer-guide/adding-api-route.md
-      - Adding RLS Policy: developer-guide/adding-rls-policy.md
+      - Adding ownership checks: developer-guide/adding-ownership-check.md
 
   - Architecture:
       - architecture/index.md
@@ -56,7 +59,7 @@ nav:
   - Database:
       - database/index.md
       - Schema Overview: database/schema-overview.md
-      - RLS Overview: database/rls-overview.md
+      - Ownership model: database/ownership-overview.md
 
   - API:
       - api/index.md
@@ -81,5 +84,5 @@ nav:
 
   - ADR:
       - adr/index.md
-      - 0001 Use Supabase: adr/0001-use-supabase.md
+      - 0007 SQLite-only backend: adr/0007-sqlite-only.md
       - 0003 AI Provider Gateway: adr/0003-ai-provider-gateway.md

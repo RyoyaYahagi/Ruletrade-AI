@@ -31,7 +31,7 @@ What new operational burden exists?
 
 ## Security impact
 
-Does this affect auth, RLS, secrets, admin access, webhooks, cron, or dependency risk?
+Does this affect auth, ownership checks, secrets, admin access, webhooks, cron, or dependency risk?
 
 ## Privacy impact
 

@@ -1,21 +1,22 @@
 import "server-only";
 
-import type { User } from "@supabase/supabase-js";
-import { createServerClient } from "@/lib/db/supabase-server";
+import type { AppUser } from "@/lib/auth/types";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
-export async function ensureAppUser(user: User) {
+export async function ensureAppUser(user: AppUser) {
   if (process.env.MOCK_AUTH === "true") {
     return { id: user.id, email: user.email ?? null };
   }
 
-  const supabase = await createServerClient();
+  const db = await createDatabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("app_users")
     .upsert(
       {
         id: user.id,
         email: user.email ?? null,
+        role: user.app_metadata?.role ?? "user",
       },
       {
         onConflict: "id",

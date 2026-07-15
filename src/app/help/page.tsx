@@ -1,10 +1,8 @@
-export const dynamic = "force-dynamic";
-
-import { createServerClient } from "@/lib/db/supabase-server";
+import { createDatabaseClient } from "@/lib/db/database-client";
 
 export default async function HelpPage() {
-  const supabase = await createServerClient();
-  const { data: articles } = await supabase
+  const db = await createDatabaseClient();
+  const { data: articles } = await db
     .from("support_help_articles")
     .select("slug, title, category")
     .eq("is_published", true)
