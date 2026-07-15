@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { MockProvider } from "@/lib/ai/providers/mock-provider";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
+import { PortfolioRuleGuidanceResponseSchema } from "@/schemas/portfolio/portfolio-rule-guidance-schema";
 
 describe("MockProvider", () => {
   const provider = new MockProvider();
@@ -56,6 +57,20 @@ describe("MockProvider", () => {
 
       expect(result.data.passed).toBe(true);
       expect(result.data.riskLevel).toBe("low");
+    });
+
+    it("portfolio_rule_guidance taskType で段階的なガイドを返す", async () => {
+      const result = await provider.generateObject({
+        taskType: "portfolio_rule_guidance",
+        schema: PortfolioRuleGuidanceResponseSchema,
+        schemaName: "PortfolioRuleGuidance",
+        messages: [
+          { role: "user", content: "現在のターン: 0" },
+        ],
+      });
+
+      expect(result.data.question?.key).toBe("purpose");
+      expect(result.data.readyToReview).toBe(false);
     });
 
     it("未定義の schemaName/taskType は空オブジェクトを返す", async () => {

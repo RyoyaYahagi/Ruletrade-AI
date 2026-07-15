@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PortfolioRuleGuide } from "@/features/portfolio/components/portfolio-rule-guide";
+import type { PortfolioRuleGuidanceDraft } from "@/schemas/portfolio/portfolio-rule-guidance-schema";
 
 type TargetAllocation = {
   key: string;
@@ -146,6 +148,27 @@ export function PortfolioCommonRulesPanel() {
     );
   }
 
+  function applyGuidanceSuggestion(suggestion: PortfolioRuleGuidanceDraft) {
+    setForm((current) => ({
+      maxPositionPercent:
+        suggestion.maxPositionPercent?.toString() ?? current.maxPositionPercent,
+      maxSectorPercent:
+        suggestion.maxSectorPercent?.toString() ?? current.maxSectorPercent,
+      maxThemePercent:
+        suggestion.maxThemePercent?.toString() ?? current.maxThemePercent,
+      minCashPercent:
+        suggestion.minCashPercent?.toString() ?? current.minCashPercent,
+      maxSingleTradeLossPercent:
+        suggestion.maxSingleTradeLossPercent?.toString() ??
+        current.maxSingleTradeLossPercent,
+      notes: suggestion.notes ?? current.notes,
+    }));
+
+    if (suggestion.targetAllocations !== undefined) {
+      setAllocations(suggestion.targetAllocations);
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="rounded-lg border p-6 text-sm text-muted-foreground">
@@ -177,6 +200,21 @@ export function PortfolioCommonRulesPanel() {
       <p className="mt-1 text-sm text-muted-foreground">
         全銘柄に共通する上限・下限です。ここで決めた項目は、銘柄別ルール作成時に重複して質問されません。
       </p>
+
+      <PortfolioRuleGuide
+        currentDraft={{
+          maxPositionPercent: toOptionalNumber(form.maxPositionPercent),
+          maxSectorPercent: toOptionalNumber(form.maxSectorPercent),
+          maxThemePercent: toOptionalNumber(form.maxThemePercent),
+          minCashPercent: toOptionalNumber(form.minCashPercent),
+          maxSingleTradeLossPercent: toOptionalNumber(
+            form.maxSingleTradeLossPercent,
+          ),
+          targetAllocations: allocations,
+          notes: form.notes.trim() === "" ? undefined : form.notes.trim(),
+        }}
+        onApplySuggestion={applyGuidanceSuggestion}
+      />
 
       {violations.length > 0 ? (
         <div

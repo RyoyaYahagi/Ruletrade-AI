@@ -27,5 +27,6 @@ test.describe("Portfolio", () => {
       page.getByTestId("portfolio-common-rules-panel"),
     ).toBeVisible();
     await expect(page.getByTestId("save-common-rules")).toBeVisible();
+    await expect(page.getByTestId("start-portfolio-rule-guide")).toBeVisible();
   });
 });
