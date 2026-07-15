@@ -7,6 +7,7 @@ type DbPosition = {
   ticker: string;
   company_name: string | null;
   market: string | null;
+  currency: string | null;
   asset_type: string | null;
   sector: string | null;
   market_value: number | string | null;
@@ -39,6 +40,8 @@ const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
   { value: "nameAsc", label: "銘柄名順" },
 ];
 
+const DEFAULT_USD_JPY_RATE = 150;
+
 function getAssetTypeLabel(assetType: string | null) {
   return ASSET_TYPE_LABELS[assetType ?? "unknown"] ?? assetType ?? "未分類";
 }
@@ -59,6 +62,8 @@ export function PortfolioPositionTable() {
   const [assetTypeFilter, setAssetTypeFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("marketValueDesc");
+  const [showJpy, setShowJpy] = useState(false);
+  const [usdJpyRate, setUsdJpyRate] = useState(DEFAULT_USD_JPY_RATE);
 
   useEffect(() => {
     async function load() {
@@ -156,6 +161,10 @@ export function PortfolioPositionTable() {
     assetTypeFilter !== "all" ||
     sectorFilter !== "all";
 
+  const hasUsdPositions = positions.some(
+    (position) => position.currency === "USD",
+  );
+
   return (
     <section className="rounded-lg border p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -164,6 +173,38 @@ export function PortfolioPositionTable() {
           {filteredPositions.length} / {positions.length}件表示
         </p>
       </div>
+
+      {hasUsdPositions && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <label className="flex items-center gap-1.5" htmlFor="portfolio-jpy-toggle">
+            <input
+              id="portfolio-jpy-toggle"
+              type="checkbox"
+              checked={showJpy}
+              onChange={(event) => setShowJpy(event.target.checked)}
+              data-testid="portfolio-jpy-toggle"
+            />
+            米国株を円換算で表示
+          </label>
+
+          {showJpy && (
+            <label className="flex items-center gap-1.5 text-muted-foreground">
+              為替レート(USD/JPY)
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={usdJpyRate}
+                onChange={(event) =>
+                  setUsdJpyRate(Number(event.target.value) || 0)
+                }
+                className="w-20 rounded-md border px-2 py-1 text-right"
+                data-testid="portfolio-jpy-rate-input"
+              />
+            </label>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="xl:col-span-2">
@@ -304,7 +345,21 @@ export function PortfolioPositionTable() {
                   </td>
                   <td className="py-2">{position.sector ?? "未設定"}</td>
                   <td className="py-2 text-right">
-                    {getMarketValue(position).toLocaleString()}
+                    {showJpy && position.currency === "USD" ? (
+                      <>
+                        <div>
+                          {Math.round(
+                            getMarketValue(position) * usdJpyRate,
+                          ).toLocaleString()}{" "}
+                          円
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          ${getMarketValue(position).toLocaleString()}
+                        </div>
+                      </>
+                    ) : (
+                      getMarketValue(position).toLocaleString()
+                    )}
                   </td>
                   <td className="py-2 text-right">
                     {position.rule_session_id ? "あり" : "未設定"}
