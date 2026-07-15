@@ -15,7 +15,14 @@ export function PortfolioPage() {
     <main className="mx-auto max-w-6xl p-6" data-testid="portfolio-page">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="portfolio-title">Portfolio</h1>
+          <a
+            href="/dashboard"
+            className="text-sm text-muted-foreground hover:underline"
+            data-testid="portfolio-back-to-dashboard-link"
+          >
+            &larr; ダッシュボードに戻る
+          </a>
+          <h1 className="mt-2 text-2xl font-bold" data-testid="portfolio-title">Portfolio</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             保有銘柄の偏り、集中リスク、未設定ルールを確認します。
           </p>
