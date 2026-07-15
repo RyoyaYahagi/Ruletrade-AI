@@ -130,10 +130,18 @@ export class CodexProvider implements AIProvider {
 }
 
 function buildInput(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | Array<{ type: string; text?: string }> }>,
   schemaName?: string,
 ): string {
-  const parts = messages.map((m) => `${m.role.toUpperCase()}:\n${m.content}`);
+  const parts = messages.map((m) => {
+    const content =
+      typeof m.content === "string"
+        ? m.content
+        : m.content
+            .map((part) => part.text ?? "[画像入力]")
+            .join("\n");
+    return `${m.role.toUpperCase()}:\n${content}`;
+  });
   if (schemaName) {
     parts.push(`Return only valid JSON matching the ${schemaName} schema.`);
   }

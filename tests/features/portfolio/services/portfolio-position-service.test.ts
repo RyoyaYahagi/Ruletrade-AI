@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   listPortfolioPositions,
   createPortfolioPosition,
+  createPortfolioPositions,
 } from "@/features/portfolio/services/portfolio-position-service";
 import { AppError } from "@/lib/errors/app-error";
 
@@ -222,5 +223,31 @@ describe("createPortfolioPosition", () => {
     mockSingleCreate.mockResolvedValue({ data: null, error: null });
 
     await expect(createPortfolioPosition(baseParams)).rejects.toThrow(AppError);
+  });
+
+  it("一括追加では投資信託のコードがない行にも内部識別子を付ける", async () => {
+    mockInsert.mockResolvedValueOnce({ data: null, error: null });
+
+    const result = await createPortfolioPositions({
+      userId: "user-1",
+      positions: [
+        {
+          companyName: "国内株式インデックスファンド",
+          currency: "JPY",
+          assetType: "fund",
+          marketValue: 30000,
+        },
+      ],
+    });
+
+    expect(result.count).toBe(1);
+    expect(mockInsert).toHaveBeenLastCalledWith([
+      expect.objectContaining({
+        ticker: expect.stringMatching(/^FUND-[a-f0-9]{16}$/),
+        company_name: "国内株式インデックスファンド",
+        asset_type: "fund",
+        market_value: 30000,
+      }),
+    ]);
   });
 });

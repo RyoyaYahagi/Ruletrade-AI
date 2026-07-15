@@ -15,6 +15,8 @@ test.describe("Portfolio", () => {
   test("has add position link", async ({ page }) => {
     await expect(page.getByTestId("portfolio-add-position-link")).toBeVisible();
     await expect(page.getByTestId("portfolio-add-position-link")).toContainText("保有銘柄を追加");
+    await expect(page.getByTestId("portfolio-import-position-link")).toBeVisible();
+    await expect(page.getByTestId("portfolio-import-position-link")).toContainText("画像から一括追加");
   });
 
   test("displays portfolio content sections", async ({ page }) => {

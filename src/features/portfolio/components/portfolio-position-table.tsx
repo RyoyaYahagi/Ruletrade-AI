@@ -7,6 +7,7 @@ type DbPosition = {
   ticker: string;
   company_name: string | null;
   market: string | null;
+  asset_type: string | null;
   sector: string | null;
   market_value: number;
   rule_session_id: string | null;
@@ -62,6 +63,7 @@ export function PortfolioPositionTable() {
             <tr className="border-b text-left">
               <th className="py-2">銘柄</th>
               <th className="py-2">市場</th>
+              <th className="py-2">種類</th>
               <th className="py-2">セクター</th>
               <th className="py-2 text-right">評価額</th>
               <th className="py-2 text-right">ルール</th>
@@ -78,6 +80,13 @@ export function PortfolioPositionTable() {
                   </div>
                 </td>
                 <td className="py-2">{position.market ?? "—"}</td>
+                <td className="py-2">
+                  {position.asset_type === "fund"
+                    ? "投資信託"
+                    : position.asset_type === "stock"
+                      ? "個別株"
+                      : position.asset_type ?? "—"}
+                </td>
                 <td className="py-2">{position.sector ?? "未設定"}</td>
                 <td className="py-2 text-right">
                   {Number(position.market_value).toLocaleString()}

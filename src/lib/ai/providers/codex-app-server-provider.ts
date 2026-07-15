@@ -407,12 +407,18 @@ function runTurn(
 }
 
 function buildUserText(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | Array<{ type: string; text?: string }> }>,
   schemaName?: string,
 ): string {
-  const parts = messages.map((message) =>
-    `${message.role.toUpperCase()}:\n${message.content}`,
-  );
+  const parts = messages.map((message) => {
+    const content =
+      typeof message.content === "string"
+        ? message.content
+        : message.content
+            .map((part) => part.text ?? "[画像入力]")
+            .join("\n");
+    return `${message.role.toUpperCase()}:\n${content}`;
+  });
 
   if (schemaName) {
     parts.push(`Return only valid JSON matching the ${schemaName} schema.`);
@@ -566,9 +572,11 @@ export class CodexAppServerProvider implements AIProvider {
 
     try {
       const text = await withCodexAppServer(async (client) => {
-        const systemPrompt = params.messages.find(
+        const systemContent = params.messages.find(
           (message) => message.role === "system",
         )?.content;
+        const systemPrompt =
+          typeof systemContent === "string" ? systemContent : undefined;
         const threadId = await startThread(client, this.model, systemPrompt);
         const outputSchema = toCodexOutputSchema(params.schema);
         const result = await runTurn(
@@ -620,9 +628,11 @@ export class CodexAppServerProvider implements AIProvider {
 
     try {
       const text = await withCodexAppServer(async (client) => {
-        const systemPrompt = params.messages.find(
+        const systemContent = params.messages.find(
           (message) => message.role === "system",
         )?.content;
+        const systemPrompt =
+          typeof systemContent === "string" ? systemContent : undefined;
         const threadId = await startThread(client, this.model, systemPrompt);
         const result = await runTurn(
           client,

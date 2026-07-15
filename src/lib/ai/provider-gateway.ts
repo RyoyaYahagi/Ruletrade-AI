@@ -7,7 +7,12 @@ import {
   getConfiguredAIProvider,
 } from "@/lib/ai/model-config";
 import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
-import type { AITaskType, AIAgentName, AIProvider } from "@/lib/ai/provider";
+import type {
+  AIMessage,
+  AITaskType,
+  AIAgentName,
+  AIProvider,
+} from "@/lib/ai/provider";
 import type { AiRunSourceType } from "@/lib/ai/logs/ai-run-log-types";
 import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
 import { MockProvider } from "@/lib/ai/providers/mock-provider";
@@ -52,6 +57,11 @@ export type AiCallOptions<TOutput> = {
   sessionId?: string;
   ruleReviewId?: string;
   inputJson?: unknown;
+  images?: Array<{
+    data: string;
+    mimeType: string;
+    detail?: "low" | "high" | "auto";
+  }>;
 };
 
 export type AiUsage = {
@@ -157,12 +167,7 @@ async function callAiWithLogging<TOutput>(
           promptVersion: options.promptVersion,
           temperature,
           maxOutputTokens,
-          messages: [
-            ...(options.system
-              ? [{ role: "system" as const, content: options.system }]
-              : []),
-            { role: "user" as const, content: options.prompt },
-          ],
+          messages: buildMessages(options),
         });
         const latencyMs = Math.round(performance.now() - start);
 
@@ -246,12 +251,7 @@ async function callAiWithoutLogging<TOutput>(
         promptVersion: options.promptVersion,
         temperature,
         maxOutputTokens,
-        messages: [
-          ...(options.system
-            ? [{ role: "system" as const, content: options.system }]
-            : []),
-          { role: "user" as const, content: options.prompt },
-        ],
+        messages: buildMessages(options),
       });
       const latencyMs = Math.round(performance.now() - start);
       recordProviderSuccess(candidate, latencyMs);
@@ -287,6 +287,29 @@ async function callAiWithoutLogging<TOutput>(
       resolvedConfig?.model ??
       defaultModelByWeight[options.weight],
   };
+}
+
+function buildMessages<TOutput>(options: AiCallOptions<TOutput>): AIMessage[] {
+  const userContent = [
+    { type: "text" as const, text: options.prompt },
+    ...(options.images ?? []).map((image) => ({
+      type: "image_url" as const,
+      image_url: {
+        url: `data:${image.mimeType};base64,${image.data}`,
+        detail: image.detail ?? "high",
+      },
+    })),
+  ];
+
+  return [
+    ...(options.system
+      ? [{ role: "system" as const, content: options.system }]
+      : []),
+    {
+      role: "user" as const,
+      content: options.images?.length ? userContent : options.prompt,
+    },
+  ];
 }
 
 function getProviderForCall(provider?: AiProvider): AIProvider {

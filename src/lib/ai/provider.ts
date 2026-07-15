@@ -19,6 +19,7 @@ export type AITaskType =
   | "compliance_check"
   | "eval_judge"
   | "document_rag_review"
+  | "portfolio_position_import"
   | "embedding";
 
 export type AIAgentName =
@@ -33,7 +34,8 @@ export type AIAgentName =
   | "memory_agent"
   | "safety_agent"
   | "compliance_agent"
-  | "eval_agent";
+  | "eval_agent"
+  | "portfolio_import_agent";
 
 export type AIModelCostTier =
   | "free_mock"
@@ -44,8 +46,18 @@ export type AIModelCostTier =
 
 export type AIMessage = {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | AIMessagePart[];
 };
+
+export type AIMessagePart =
+  | { type: "text"; text: string }
+  | {
+      type: "image_url";
+      image_url: {
+        url: string;
+        detail?: "low" | "high" | "auto";
+      };
+    };
 
 export type AIUsage = {
   inputTokens?: number;
