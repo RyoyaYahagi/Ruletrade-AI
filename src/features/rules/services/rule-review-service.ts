@@ -21,6 +21,12 @@ import {
   selectNewReviewQuestions,
   type ReviewNextQuestionCandidate,
 } from "@/features/rules/services/rule-review-question-selection";
+import { getPortfolioCommonRule } from "@/features/portfolio/services/portfolio-rule-service";
+import {
+  buildCommonRuleContextText,
+  filterQuestionsCoveredByCommonRule,
+  getCoveredRuleFields,
+} from "@/features/rules/services/common-rule-context";
 
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
@@ -260,6 +266,12 @@ export async function runRuleReview(params: {
   const { RuleReviewSchema } =
     await import("@/schemas/rules/rule-review-schema");
 
+  const { rule: commonRule } = await getPortfolioCommonRule({
+    userId: params.userId,
+  });
+  const commonRuleContextText = buildCommonRuleContextText(commonRule);
+  const coveredRuleFields = getCoveredRuleFields(commonRule);
+
   const ragQueryText = JSON.stringify({
     task: "rule_review",
     ticker: session.ticker,
@@ -296,6 +308,7 @@ export async function runRuleReview(params: {
       ticker: session.ticker,
       companyName: session.company_name,
       rule: session.rule_json,
+      portfolioCommonRules: commonRuleContextText,
       ragContext: ragContext.contextText,
     },
     run: async () => {
@@ -310,6 +323,7 @@ export async function runRuleReview(params: {
               role: "system",
               content: [
                 "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
+                "portfolioCommonRulesが与えられている場合、そこで既に決まっている項目（最大保有比率、許容損失、現金比率、目標配分など）は銘柄別ルールで重複して質問しないでください。銘柄固有の事情で共通ルールより厳しくする必要があるときだけ質問し、qualityChecksでも共通ルールでカバー済みの項目はpass扱いにしてください。",
                 RULE_REVIEW_JSON_FORMAT,
               ].join("\n\n"),
             },
@@ -321,6 +335,7 @@ export async function runRuleReview(params: {
                   companyName: session.company_name,
                   rule: session.rule_json,
                 },
+                portfolioCommonRules: commonRuleContextText,
                 ragContext: ragContext.contextText,
               }),
             },
@@ -482,10 +497,13 @@ export async function runRuleReview(params: {
     status: string;
   }>;
   const maxQuestionCount = Number(session.max_question_count ?? 12);
-  const reviewQuestionCandidates = [
-    ...(review.nextQuestions as ReviewNextQuestionCandidate[]),
-    ...buildQuestionsFromQualityChecks(review.qualityChecks),
-  ];
+  const reviewQuestionCandidates = filterQuestionsCoveredByCommonRule(
+    [
+      ...(review.nextQuestions as ReviewNextQuestionCandidate[]),
+      ...buildQuestionsFromQualityChecks(review.qualityChecks),
+    ],
+    coveredRuleFields,
+  );
   const questionsToInsert = selectNewReviewQuestions({
     nextQuestions: reviewQuestionCandidates,
     existingQuestions: existingQuestionList,

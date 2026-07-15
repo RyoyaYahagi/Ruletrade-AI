@@ -20,4 +20,12 @@ test.describe("Portfolio", () => {
   test("displays portfolio content sections", async ({ page }) => {
     await expect(page.getByTestId("portfolio-content")).toBeVisible();
   });
+
+  test("displays funds plan card and common rules panel", async ({ page }) => {
+    await expect(page.getByTestId("funds-plan-card")).toBeVisible();
+    await expect(
+      page.getByTestId("portfolio-common-rules-panel"),
+    ).toBeVisible();
+    await expect(page.getByTestId("save-common-rules")).toBeVisible();
+  });
 });
