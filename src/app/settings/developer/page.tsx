@@ -1,9 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { DeveloperAiSettingsForm } from "@/features/ai/components/developer-ai-settings-form";
+import { isAiDeveloperSettingsEnabled } from "@/features/ai/services/ai-developer-settings-service";
+
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  if (process.env.NODE_ENV === "production") notFound();
+  if (!isAiDeveloperSettingsEnabled()) notFound();
 
   const user = await getCurrentUser();
   if (!user) redirect("/login");

@@ -10,6 +10,6 @@ export default defineConfig({
   },
   test: {
     globals: false,
-    exclude: ["tests/e2e/**", "**/node_modules/**"],
+    exclude: ["tests/e2e/**", "**/.claude/**", "**/node_modules/**"],
   },
 });

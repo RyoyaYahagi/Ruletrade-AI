@@ -50,6 +50,37 @@ npm run test:e2e
 - Safety Check before displaying AI output
 - Compliance Gate before displaying financial output
 
+## Comment rules
+
+Write comments only for intent that cannot be derived from the code itself:
+
+- Why this approach was chosen, especially when a simpler-looking alternative
+  was deliberately rejected (so a later reader does not "simplify" it back).
+- External constraints being worked around (SQLite behavior, Next.js App
+  Router quirks, AI provider API limitations).
+- Domain or compliance reasons (e.g. why wording avoids buy/sell
+  recommendations, why the Compliance Gate runs at this point).
+- Preconditions and invariants the code relies on (e.g. "caller has already
+  verified ownership").
+
+Do not write comments that restate what the code does. If a function has no
+non-derivable intent, it needs no comment. For module-level "why does this
+exist" context, use a short comment at the top of the file or a doc under
+`docs/`.
+
+## Fallback rules
+
+Do not add fallbacks casually:
+
+- When an operation fails or required data is missing, fail explicitly
+  (throw or return an error) instead of silently falling back to a default
+  value, an empty result, or an alternate code path. Silent fallbacks hide
+  bugs and corrupt downstream state.
+- Add a fallback only when it is an explicit requirement, and document at
+  the fallback site why it is safe and what triggers it.
+- Never use a fallback to bypass Safety Check, Compliance Gate, or
+  ownership checks.
+
 ## Forbidden
 
 - Do not edit `.env.local`.

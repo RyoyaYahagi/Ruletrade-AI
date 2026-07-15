@@ -8,8 +8,13 @@ export default async function Page() {
   if (!user) redirect("/login");
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="text-2xl font-bold">Accessibility Settings</h1>
+    <main
+      className="mx-auto max-w-3xl p-6"
+      data-testid="accessibility-settings-page"
+    >
+      <h1 data-testid="accessibility-page-title" className="text-2xl font-bold">
+        Accessibility Settings
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         表示、動き、読みやすさに関する設定を変更できます。
       </p>
@@ -22,7 +27,10 @@ export default async function Page() {
           <p className="mt-1 text-muted-foreground">
             AI Providerと使用モデルを切り替えられます。
           </p>
-          <Link className="mt-3 inline-block underline" href="/settings/developer">
+          <Link
+            className="mt-3 inline-block underline"
+            href="/settings/developer"
+          >
             Developer Settingsを開く
           </Link>
         </div>

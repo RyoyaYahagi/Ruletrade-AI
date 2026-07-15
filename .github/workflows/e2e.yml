@@ -22,6 +22,7 @@ jobs:
       MOCK_AUTH_EMAIL: e2e@example.com
       MOCK_AUTH_USER_ID: e2e-test-user
       MOCK_AUTH_ROLE: user
+      E2E_TEST_AUTH: true
       AI_PROVIDER: mock
     steps:
       - uses: actions/checkout@v4

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("言語切替UIが表示される", async ({ page }) => {
+test("設定画面がロケールに依存せず表示される", async ({ page }) => {
   await page.goto("/settings/accessibility");
-  await expect(page.locator("text=Accessibility Settings")).toBeVisible();
+  await expect(page.getByTestId("accessibility-page-title")).toBeVisible();
 });

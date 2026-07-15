@@ -23,6 +23,22 @@ const schemaStatements = [
     expires_at text not null,
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists user_ui_preferences (
+    id text primary key,
+    user_id text not null unique,
+    locale text not null default 'ja',
+    timezone text not null default 'Asia/Tokyo',
+    color_scheme text not null default 'system',
+    reduced_motion integer not null default 0,
+    high_contrast integer not null default 0,
+    larger_text integer not null default 0,
+    compact_mode integer not null default 0,
+    show_advanced_fields integer not null default 0,
+    ai_provider text,
+    ai_model text,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now'))
+  )`,
   `create table if not exists rule_design_sessions (
     id text primary key,
     user_id text not null,
@@ -137,6 +153,8 @@ export function initializeSqliteSchema(db: Database.Database) {
 
   migrate();
   ensureColumn(db, "app_users", "role", "text not null default 'user'");
+  ensureColumn(db, "user_ui_preferences", "ai_provider", "text");
+  ensureColumn(db, "user_ui_preferences", "ai_model", "text");
 }
 
 function ensureColumn(

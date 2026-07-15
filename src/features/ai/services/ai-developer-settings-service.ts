@@ -28,7 +28,10 @@ const PROVIDER_LABELS: Record<AIProviderKey, string> = {
 };
 
 export function isAiDeveloperSettingsEnabled() {
-  return process.env.NODE_ENV !== "production";
+  return (
+    process.env.NODE_ENV !== "production" ||
+    (process.env.E2E_TEST_AUTH === "true" && process.env.CI === "true")
+  );
 }
 
 export function assertAiDeveloperSettingsEnabled() {
@@ -141,6 +144,7 @@ export async function updateAiDeveloperSettings(params: {
 
   return {
     provider: params.settings.provider,
-    model: typeof data.ai_model === "string" ? data.ai_model : params.settings.model,
+    model:
+      typeof data.ai_model === "string" ? data.ai_model : params.settings.model,
   };
 }
