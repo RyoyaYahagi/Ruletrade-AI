@@ -159,12 +159,10 @@ export function PortfolioRuleGuide({
           {response.question ? (
             <div className="rounded-md border bg-white p-3">
               <p className="text-sm font-medium">{response.question.text}</p>
-              {response.question.explanation ? (
-                <details className="mt-2 text-xs text-muted-foreground">
-                  <summary className="cursor-pointer">なぜ聞くのか</summary>
-                  <p className="mt-1">{response.question.explanation}</p>
-                </details>
-              ) : null}
+              <p className="mt-2 text-xs text-muted-foreground">
+                <span className="font-medium text-slate-700">考え方：</span>
+                {response.question.explanation}
+              </p>
             </div>
           ) : null}
 

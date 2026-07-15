@@ -144,8 +144,8 @@ function getMockObject(
         message: "まずは損失への向き合い方を整理します。",
         question: {
           key: "risk_tolerance",
-          text: "資産全体が一時的に下がる場合、どの程度までなら受け入れやすいですか？",
-          explanation: "損失への許容度は、現金比率や1回あたりの許容損失を考える材料になります。",
+          text: "資産全体が下がっても、どの程度なら慌てず持ち続けられそうですか？",
+          explanation: "例えば100万円が90万円になっても続けられるか、のように考えます。",
         },
         suggestions: [],
         progress: 0,
@@ -161,7 +161,7 @@ function getMockObject(
         question: {
           key: "investment_horizon",
           text: "この資金を使う予定は、いつ頃ありますか？",
-          explanation: "投資期間が短いほど、値下がり時に待てる時間が限られます。",
+          explanation: "使う時期までに値下がりしても、待てる期間があるかを考えます。",
         },
         suggestions: [],
         progress: 35,
@@ -176,8 +176,8 @@ function getMockObject(
         message: "最後に、値動きへの向き合い方を確認します。",
         question: {
           key: "volatility_tolerance",
-          text: "値動きが大きい資産を、どの程度まで含めたいですか？",
-          explanation: "損切りを考えるときも、値動きの大きさと待てる期間を合わせて見ます。",
+          text: "値下がりしても、前提が変わらなければ持ち続けられそうですか？",
+          explanation: "例えば大きく下がった日に、慌ててルールを変えずにいられるかを考えます。",
         },
         suggestions: [],
         progress: 65,

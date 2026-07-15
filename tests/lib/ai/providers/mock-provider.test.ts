@@ -70,6 +70,7 @@ describe("MockProvider", () => {
       });
 
       expect(result.data.question?.key).toBe("risk_tolerance");
+      expect(result.data.question?.explanation).toContain("例えば");
       expect(result.data.suggestions).toEqual([]);
       expect(result.data.readyToReview).toBe(false);
     });

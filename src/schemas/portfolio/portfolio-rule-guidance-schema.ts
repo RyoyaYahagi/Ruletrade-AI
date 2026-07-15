@@ -24,7 +24,7 @@ export const PortfolioRuleGuidanceRequestSchema = z.object({
 export const PortfolioRuleGuidanceQuestionSchema = z.object({
   key: z.string().min(1).max(80),
   text: z.string().min(1).max(240),
-  explanation: z.string().max(320).optional(),
+  explanation: z.string().min(1).max(160),
 });
 
 export const PortfolioRuleGuidanceSuggestionSchema = z.object({

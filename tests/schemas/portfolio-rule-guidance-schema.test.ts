@@ -19,6 +19,7 @@ describe("PortfolioRuleGuidanceSchema", () => {
       question: {
         key: "purpose",
         text: "このポートフォリオの目的は何ですか？",
+        explanation: "目的により考える項目が変わります。",
       },
       suggestions: [
         {

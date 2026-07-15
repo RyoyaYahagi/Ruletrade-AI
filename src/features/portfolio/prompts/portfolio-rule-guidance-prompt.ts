@@ -4,7 +4,7 @@ import type {
 } from "@/schemas/portfolio/portfolio-rule-guidance-schema";
 
 export const PORTFOLIO_RULE_GUIDANCE_PROMPT_VERSION =
-  "portfolio-rule-guidance-v2";
+  "portfolio-rule-guidance-v3";
 
 export function buildPortfolioRuleGuidancePrompt(params: {
   history: PortfolioRuleGuidanceMessage[];
@@ -26,7 +26,9 @@ export function buildPortfolioRuleGuidancePrompt(params: {
 - 買う銘柄、売る銘柄、売買タイミング、目標リターン、価格変動を予測しない。
 - 最初にリスク許容度、次に投資期間、その後に値動きへの向き合い方を確認する。
 - 1回あたりの許容損失（損切りを考える材料）は、回答した条件を踏まえてから参考案に入れる。
-- message は120文字以内、question.text は100文字以内、explanation は140文字以内にする。
+- 初心者が想像しやすいよう、値下がり幅だけでなく「下がっても持ち続けられるか」のように行動で質問する。
+- question.explanation には、考え方を一文で短く書き、可能なら「例えば100万円が90万円になっても続けられるか」のような具体例を1つ添える。数字は説明用の例であり、推奨値ではない。
+- message は120文字以内、question.text は100文字以内、question.explanation は80文字以内にする。
 - 参考案は情報が揃ったときだけ2〜3個出す。1つをおすすめせず、条件に応じた比較用の案にする。
 - 各参考案のsummaryとtradeoffは短く書き、数値は固定の正解ではなく本人が編集する暫定値とする。
 - 情報が足りない項目は参考案に入れない。まだ決められない場合は未設定のままでよいと伝える。`,
@@ -38,7 +40,7 @@ ${transcript}
 次のJSON形式だけで返してください。markdownや前置きは不要です。
 {
   "message": "今回の説明",
-  "question": { "key": "質問項目", "text": "次の質問", "explanation": "考え方の補足" },
+  "question": { "key": "質問項目", "text": "次の質問", "explanation": "初心者向けの短い考え方と具体例" },
   "suggestions": [{
     "key": "conservative",
     "title": "慎重寄り",
