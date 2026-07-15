@@ -41,6 +41,17 @@ export function buildCommonRuleContextText(
 
   const lines: string[] = [];
 
+  if (rule.riskTolerance != null) {
+    const riskToleranceLabels = {
+      conservative: "慎重寄り",
+      balanced: "バランス",
+      aggressive: "変動許容寄り",
+    } as const;
+    lines.push(`リスク許容度: ${riskToleranceLabels[rule.riskTolerance]}`);
+  }
+  if (rule.maxPositionCount != null) {
+    lines.push(`保有銘柄数の上限: ${rule.maxPositionCount}銘柄`);
+  }
   if (rule.maxPositionPercent != null) {
     lines.push(`1銘柄の最大比率: ${rule.maxPositionPercent}%`);
   }
@@ -50,8 +61,14 @@ export function buildCommonRuleContextText(
   if (rule.maxThemePercent != null) {
     lines.push(`1テーマの最大比率: ${rule.maxThemePercent}%`);
   }
+  if (rule.maxMarketPercent != null) {
+    lines.push(`1市場の最大比率: ${rule.maxMarketPercent}%`);
+  }
   if (rule.minCashPercent != null) {
     lines.push(`現金比率の下限: ${rule.minCashPercent}%`);
+  }
+  if (rule.excludedAssetTypes.length > 0) {
+    lines.push(`買わないと決めているもの: ${rule.excludedAssetTypes.join("、")}`);
   }
   if (rule.maxSingleTradeLossPercent != null) {
     lines.push(

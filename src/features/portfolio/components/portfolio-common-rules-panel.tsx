@@ -12,11 +12,15 @@ type TargetAllocation = {
 };
 
 type CommonRuleForm = {
+  riskTolerance: string;
+  maxPositionCount: string;
   maxPositionPercent: string;
   maxSectorPercent: string;
   maxThemePercent: string;
+  maxMarketPercent: string;
   minCashPercent: string;
   maxSingleTradeLossPercent: string;
+  excludedAssetTypes: string[];
   notes: string;
 };
 
@@ -38,12 +42,29 @@ const ALLOCATION_KEYS = [
   { value: "other", label: "その他" },
 ];
 
+const RISK_TOLERANCE_OPTIONS = [
+  { value: "", label: "未設定" },
+  { value: "conservative", label: "慎重寄り" },
+  { value: "balanced", label: "バランス" },
+  { value: "aggressive", label: "変動許容寄り" },
+];
+
+const EXCLUDED_ASSET_TYPE_OPTIONS = [
+  "レバレッジ型商品",
+  "暗号資産",
+  "FX・信用取引",
+];
+
 const EMPTY_FORM: CommonRuleForm = {
+  riskTolerance: "",
+  maxPositionCount: "",
   maxPositionPercent: "",
   maxSectorPercent: "",
   maxThemePercent: "",
+  maxMarketPercent: "",
   minCashPercent: "",
   maxSingleTradeLossPercent: "",
+  excludedAssetTypes: [],
   notes: "",
 };
 
@@ -80,12 +101,16 @@ export function PortfolioCommonRulesPanel() {
         if (json.ok && json.data.rule) {
           const rule = json.data.rule;
           setForm({
+            riskTolerance: rule.riskTolerance ?? "",
+            maxPositionCount: rule.maxPositionCount?.toString() ?? "",
             maxPositionPercent: rule.maxPositionPercent?.toString() ?? "",
             maxSectorPercent: rule.maxSectorPercent?.toString() ?? "",
             maxThemePercent: rule.maxThemePercent?.toString() ?? "",
+            maxMarketPercent: rule.maxMarketPercent?.toString() ?? "",
             minCashPercent: rule.minCashPercent?.toString() ?? "",
             maxSingleTradeLossPercent:
               rule.maxSingleTradeLossPercent?.toString() ?? "",
+            excludedAssetTypes: rule.excludedAssetTypes ?? [],
             notes: rule.notes ?? "",
           });
           setAllocations(rule.targetAllocations ?? []);
@@ -106,13 +131,18 @@ export function PortfolioCommonRulesPanel() {
     setErrorMessage(null);
 
     const payload = {
+      riskTolerance:
+        form.riskTolerance === "" ? undefined : form.riskTolerance,
+      maxPositionCount: toOptionalNumber(form.maxPositionCount),
       maxPositionPercent: toOptionalNumber(form.maxPositionPercent),
       maxSectorPercent: toOptionalNumber(form.maxSectorPercent),
       maxThemePercent: toOptionalNumber(form.maxThemePercent),
+      maxMarketPercent: toOptionalNumber(form.maxMarketPercent),
       minCashPercent: toOptionalNumber(form.minCashPercent),
       maxSingleTradeLossPercent: toOptionalNumber(
         form.maxSingleTradeLossPercent,
       ),
+      excludedAssetTypes: form.excludedAssetTypes,
       targetAllocations: allocations,
       notes: form.notes.trim() === "" ? undefined : form.notes.trim(),
     };
@@ -150,17 +180,24 @@ export function PortfolioCommonRulesPanel() {
 
   function applyGuidanceSuggestion(suggestion: PortfolioRuleGuidanceDraft) {
     setForm((current) => ({
+      riskTolerance: suggestion.riskTolerance ?? current.riskTolerance,
+      maxPositionCount:
+        suggestion.maxPositionCount?.toString() ?? current.maxPositionCount,
       maxPositionPercent:
         suggestion.maxPositionPercent?.toString() ?? current.maxPositionPercent,
       maxSectorPercent:
         suggestion.maxSectorPercent?.toString() ?? current.maxSectorPercent,
       maxThemePercent:
         suggestion.maxThemePercent?.toString() ?? current.maxThemePercent,
+      maxMarketPercent:
+        suggestion.maxMarketPercent?.toString() ?? current.maxMarketPercent,
       minCashPercent:
         suggestion.minCashPercent?.toString() ?? current.minCashPercent,
       maxSingleTradeLossPercent:
         suggestion.maxSingleTradeLossPercent?.toString() ??
         current.maxSingleTradeLossPercent,
+      excludedAssetTypes:
+        suggestion.excludedAssetTypes ?? current.excludedAssetTypes,
       notes: suggestion.notes ?? current.notes,
     }));
 
@@ -178,12 +215,24 @@ export function PortfolioCommonRulesPanel() {
   }
 
   const limitFields: Array<{
-    key: keyof CommonRuleForm;
+    key: "maxPositionPercent"
+      | "maxSectorPercent"
+      | "maxThemePercent"
+      | "maxMarketPercent"
+      | "minCashPercent"
+      | "maxSingleTradeLossPercent";
     label: string;
   }> = [
-    { key: "maxPositionPercent", label: "1銘柄の最大比率 (%)" },
+    {
+      key: "maxPositionPercent",
+      label: "1銘柄の最大比率 (%・投信/ETF除く)",
+    },
     { key: "maxSectorPercent", label: "1セクターの最大比率 (%)" },
     { key: "maxThemePercent", label: "1テーマの最大比率 (%)" },
+    {
+      key: "maxMarketPercent",
+      label: "1市場の最大比率（個別株のみ, %）",
+    },
     { key: "minCashPercent", label: "現金比率の下限 (%)" },
     {
       key: "maxSingleTradeLossPercent",
@@ -203,13 +252,20 @@ export function PortfolioCommonRulesPanel() {
 
       <PortfolioRuleGuide
         currentDraft={{
+          riskTolerance:
+            form.riskTolerance === ""
+              ? undefined
+              : (form.riskTolerance as "conservative" | "balanced" | "aggressive"),
+          maxPositionCount: toOptionalNumber(form.maxPositionCount),
           maxPositionPercent: toOptionalNumber(form.maxPositionPercent),
           maxSectorPercent: toOptionalNumber(form.maxSectorPercent),
           maxThemePercent: toOptionalNumber(form.maxThemePercent),
+          maxMarketPercent: toOptionalNumber(form.maxMarketPercent),
           minCashPercent: toOptionalNumber(form.minCashPercent),
           maxSingleTradeLossPercent: toOptionalNumber(
             form.maxSingleTradeLossPercent,
           ),
+          excludedAssetTypes: form.excludedAssetTypes,
           targetAllocations: allocations,
           notes: form.notes.trim() === "" ? undefined : form.notes.trim(),
         }}
@@ -239,6 +295,47 @@ export function PortfolioCommonRulesPanel() {
       ) : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium">リスク許容度</label>
+          <select
+            value={form.riskTolerance}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                riskTolerance: event.target.value,
+              }))
+            }
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            data-testid="common-rule-riskTolerance"
+          >
+            {RISK_TOLERANCE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium">
+            保有銘柄数の上限 (銘柄)
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={500}
+            step="1"
+            value={form.maxPositionCount}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                maxPositionCount: event.target.value,
+              }))
+            }
+            placeholder="未設定"
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            data-testid="common-rule-maxPositionCount"
+          />
+        </div>
         {limitFields.map((field) => (
           <div key={field.key}>
             <label className="block text-sm font-medium">{field.label}</label>
@@ -260,6 +357,40 @@ export function PortfolioCommonRulesPanel() {
             />
           </div>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold">買わないと決めているもの</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          チェックした種類の商品を保有すると、ルール違反として表示されます。
+        </p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {[...new Set([...EXCLUDED_ASSET_TYPE_OPTIONS, ...form.excludedAssetTypes])].map(
+            (assetType) => (
+              <label
+                key={assetType}
+                className="flex items-center gap-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.excludedAssetTypes.includes(assetType)}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      excludedAssetTypes: event.target.checked
+                        ? [...current.excludedAssetTypes, assetType]
+                        : current.excludedAssetTypes.filter(
+                            (item) => item !== assetType,
+                          ),
+                    }))
+                  }
+                  data-testid={`common-rule-excluded-${assetType}`}
+                />
+                {assetType}
+              </label>
+            ),
+          )}
+        </div>
       </div>
 
       <div className="mt-6">
