@@ -157,32 +157,32 @@ function getMockObject(
 
     if (turn === 1) {
       return {
-        message: "次に、使う予定の時期を確認します。",
-        question: {
-          key: "investment_horizon",
-          text: "この資金を使う予定は、いつ頃ありますか？",
-          explanation: "使う時期までに値下がりしても、待てる期間があるかを考えます。",
-        },
-        suggestions: [],
-        progress: 35,
-        readyToReview: false,
-        guidance: ["投資期間", "資金を使う時期"],
-        disclaimer,
-      };
-    }
-
-    if (turn === 2) {
-      return {
-        message: "最後に、値動きへの向き合い方を確認します。",
+        message: "次に、値動きが大きい場面での向き合い方を確認します。",
         question: {
           key: "volatility_tolerance",
           text: "値下がりしても、前提が変わらなければ持ち続けられそうですか？",
           explanation: "例えば大きく下がった日に、慌ててルールを変えずにいられるかを考えます。",
         },
         suggestions: [],
-        progress: 65,
+        progress: 35,
         readyToReview: false,
-        guidance: ["値動きの大きさ", "現金比率", "1回あたりの許容損失"],
+        guidance: ["値動きの大きさ", "ルールを続ける条件"],
+        disclaimer,
+      };
+    }
+
+    if (turn === 2) {
+      return {
+        message: "最後に、1回の取引で許容できる損失を考えます。",
+        question: {
+          key: "single_trade_loss_tolerance",
+          text: "1回の取引での損失は、どの程度までなら許容できそうですか？",
+          explanation: "金額ではなく資産全体に対する割合で、1回で立て直せる範囲を考えます。",
+        },
+        suggestions: [],
+        progress: 70,
+        readyToReview: false,
+        guidance: ["1回あたりの許容損失", "資産全体に対する割合"],
         disclaimer,
       };
     }
@@ -218,8 +218,8 @@ function getMockObject(
         {
           key: "flexible",
           title: "変動許容寄り",
-          summary: "値動きと長い投資期間を前提に、投資比率を高めにする案です。",
-          tradeoff: "待てる期間と大きな含み損への備えが必要です。",
+          summary: "値動きを広く受け入れる前提で、投資比率を高めにする案です。",
+          tradeoff: "大きな含み損に備え、事前の見直し基準が必要です。",
           draft: {
             maxPositionPercent: 18,
             maxSectorPercent: 45,

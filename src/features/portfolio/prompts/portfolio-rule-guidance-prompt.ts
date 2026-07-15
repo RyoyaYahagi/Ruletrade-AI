@@ -4,7 +4,7 @@ import type {
 } from "@/schemas/portfolio/portfolio-rule-guidance-schema";
 
 export const PORTFOLIO_RULE_GUIDANCE_PROMPT_VERSION =
-  "portfolio-rule-guidance-v3";
+  "portfolio-rule-guidance-v4";
 
 export function buildPortfolioRuleGuidancePrompt(params: {
   history: PortfolioRuleGuidanceMessage[];
@@ -24,8 +24,9 @@ export function buildPortfolioRuleGuidancePrompt(params: {
 必ず守ること:
 - 一度に一つだけ質問する。
 - 買う銘柄、売る銘柄、売買タイミング、目標リターン、価格変動を予測しない。
-- 最初にリスク許容度、次に投資期間、その後に値動きへの向き合い方を確認する。
-- 1回あたりの許容損失（損切りを考える材料）は、回答した条件を踏まえてから参考案に入れる。
+- 最初にリスク許容度、次に値動きへの向き合い方、最後に1回あたりの許容損失を確認する。
+- 投資期間や資金を使う時期は銘柄や目的ごとに変わるため、この共通ルールでは質問しない。銘柄別ルールで扱う。
+- 1回あたりの許容損失（損切りを考える材料）は、他の条件を確認した最後に質問する。
 - 初心者が想像しやすいよう、値下がり幅だけでなく「下がっても持ち続けられるか」のように行動で質問する。
 - question.explanation には、考え方を一文で短く書き、可能なら「例えば100万円が90万円になっても続けられるか」のような具体例を1つ添える。数字は説明用の例であり、推奨値ではない。
 - message は120文字以内、question.text は100文字以内、question.explanation は80文字以内にする。

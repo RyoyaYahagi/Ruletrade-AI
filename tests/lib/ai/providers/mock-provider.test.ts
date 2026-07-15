@@ -75,6 +75,26 @@ describe("MockProvider", () => {
       expect(result.data.readyToReview).toBe(false);
     });
 
+    it("共通ルールでは投資期間を質問しない", async () => {
+      const volatilityResult = await provider.generateObject({
+        taskType: "portfolio_rule_guidance",
+        schema: PortfolioRuleGuidanceResponseSchema,
+        schemaName: "PortfolioRuleGuidance",
+        messages: [{ role: "user", content: "現在のターン: 1" }],
+      });
+      const lossResult = await provider.generateObject({
+        taskType: "portfolio_rule_guidance",
+        schema: PortfolioRuleGuidanceResponseSchema,
+        schemaName: "PortfolioRuleGuidance",
+        messages: [{ role: "user", content: "現在のターン: 2" }],
+      });
+
+      expect(volatilityResult.data.question?.key).toBe("volatility_tolerance");
+      expect(lossResult.data.question?.key).toBe("single_trade_loss_tolerance");
+      expect(volatilityResult.data.question?.text).not.toContain("投資期間");
+      expect(lossResult.data.question?.text).not.toContain("投資期間");
+    });
+
     it("条件整理後に複数の参考案を返す", async () => {
       const result = await provider.generateObject({
         taskType: "portfolio_rule_guidance",
