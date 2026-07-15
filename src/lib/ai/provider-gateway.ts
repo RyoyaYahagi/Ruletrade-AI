@@ -335,12 +335,12 @@ function instantiateProvider(provider: AiProvider): AIProvider {
 }
 
 function getProviderCandidates(preferred?: AiProvider): HealthAiProvider[] {
-  const all: HealthAiProvider[] = [
-    "openai",
-    "gemini",
-    "codex-app-server",
-    "mock",
-  ];
+  const configured = getConfiguredAIProvider();
+  const all: HealthAiProvider[] = ["openai", "gemini"];
+  if (preferred === "codex-app-server" || configured === "codex-app-server") {
+    all.push("codex-app-server");
+  }
+  all.push("mock");
   if (!preferred) return all;
   // Put preferred first, then others
   return [preferred, ...all.filter((p) => p !== preferred)];
