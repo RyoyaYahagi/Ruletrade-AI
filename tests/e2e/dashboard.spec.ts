@@ -19,6 +19,17 @@ test.describe("Dashboard", () => {
     await expect(page.getByTestId("dashboard-new-rule-button")).toContainText("New rule");
   });
 
+  test("has portfolio link", async ({ page }) => {
+    await expect(page.getByTestId("dashboard-portfolio-link")).toBeVisible();
+    await expect(page.getByTestId("dashboard-portfolio-link")).toContainText("ポートフォリオ");
+  });
+
+  test("navigates to portfolio from dashboard", async ({ page }) => {
+    await page.getByTestId("dashboard-portfolio-link").click();
+    await expect(page).toHaveURL(/.*portfolio/);
+    await expect(page.getByTestId("portfolio-page")).toBeVisible();
+  });
+
   test("navigates to new rule page from dashboard", async ({ page }) => {
     await page.getByTestId("dashboard-new-rule-button").click();
     await expect(page).toHaveURL(/.*rules\/new/);

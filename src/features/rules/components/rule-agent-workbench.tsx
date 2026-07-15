@@ -99,6 +99,14 @@ export function AgentWorkbench({
                 <ClipboardCheck />
                 New rule
               </Link>
+              <Link
+                href="/portfolio"
+                className={buttonVariants({ variant: "outline" })}
+                data-testid="dashboard-portfolio-link"
+              >
+                <Database />
+                ポートフォリオ
+              </Link>
             </div>
           </div>
 
