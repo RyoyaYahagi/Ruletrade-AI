@@ -17,6 +17,10 @@ It does not provide investment advice, buy/sell recommendations, asset managemen
 - Do not weaken financial safety or compliance checks.
 - Do not add buy/sell recommendation copy.
 - Keep changes small and scoped to the issue.
+- Enforce server-side ownership checks in every new API route or service
+  that touches user-owned data, not only preserve existing ones.
+- Before writing new logic, search for existing similar implementations and
+  shared utilities; reuse or extend them instead of duplicating.
 
 ## Required checks before completing a task
 
@@ -36,6 +40,16 @@ If UI changed:
 ```bash
 npm run test:e2e
 ```
+
+## Testing rules
+
+- When a test fails, suspect the implementation first. Change a test's
+  expectations only when the intended behavior changed, and state that
+  change and its reason when reporting the task.
+- Do not commit `.skip` or `.only` in test files. CI rejects them via
+  `npm run check:test-hygiene`.
+- Every new API route or service that reads or writes user-owned data must
+  ship with a test proving access with another user's ID fails.
 
 ## Architecture rules
 
