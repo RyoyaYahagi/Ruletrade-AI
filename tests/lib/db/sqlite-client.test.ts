@@ -58,4 +58,20 @@ describe("createSqliteClient", () => {
       answered_at: "2026-07-04T03:21:03.000Z",
     });
   });
+
+  it("initializes UI preferences before the first read", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ruletrade-sqlite-"));
+    tempDirs.push(tempDir);
+    process.env.SQLITE_DATABASE_PATH = path.join(tempDir, "test.sqlite");
+
+    const { createSqliteClient } = await import("@/lib/db/sqlite-client");
+    const result = await createSqliteClient()
+      .from("user_ui_preferences")
+      .select("ai_provider, ai_model")
+      .eq("user_id", "user-1")
+      .maybeSingle();
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeNull();
+  });
 });

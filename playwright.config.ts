@@ -24,9 +24,7 @@ export default defineConfig({
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
   ],
   webServer: {
-    command: process.env.CI
-      ? "npm run build && npm start"
-      : "npm run dev",
+    command: process.env.CI ? "npm start" : "npm run dev",
     url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -29,7 +29,8 @@ describe("getCurrentUser", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns mock user when MOCK_AUTH_EMAIL is set", async () => {
+  it("returns mock user when E2E_TEST_AUTH is enabled", async () => {
+    process.env.E2E_TEST_AUTH = "true";
     process.env.MOCK_AUTH_EMAIL = "mock@example.com";
     process.env.MOCK_AUTH_USER_ID = "mock-id-123";
     process.env.MOCK_AUTH_ROLE = "admin";
@@ -45,7 +46,8 @@ describe("getCurrentUser", () => {
     expect(mockGetUserBySessionToken).not.toHaveBeenCalled();
   });
 
-  it("returns mock user with default id when MOCK_AUTH_USER_ID is not set", async () => {
+  it("returns mock user with default id when E2E_TEST_AUTH is enabled", async () => {
+    process.env.E2E_TEST_AUTH = "true";
     process.env.MOCK_AUTH_EMAIL = "mock@example.com";
     delete process.env.MOCK_AUTH_USER_ID;
 
@@ -54,6 +56,17 @@ describe("getCurrentUser", () => {
 
     expect(user?.id).toBe("mock-user-id");
     expect(user?.email).toBe("mock@example.com");
+  });
+
+  it("does not enable mock auth without the explicit E2E flag", async () => {
+    delete process.env.E2E_TEST_AUTH;
+    process.env.MOCK_AUTH_EMAIL = "mock@example.com";
+
+    const { getCurrentUser } = await import("@/lib/auth/get-current-user");
+    const user = await getCurrentUser();
+
+    expect(user).toBeNull();
+    expect(mockGetUserBySessionToken).toHaveBeenCalledWith(undefined);
   });
 
   it("returns null when the local session lookup throws", async () => {

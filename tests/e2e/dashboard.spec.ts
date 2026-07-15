@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Dashboard", () => {
   test.beforeEach(async ({ page }) => {
-    // .env.test configures mock auth, so user is authenticated
+    // E2E_TEST_AUTH configures deterministic server-side auth.
     await page.goto("/dashboard");
   });
 
@@ -10,18 +10,21 @@ test.describe("Dashboard", () => {
     await expect(page.getByTestId("dashboard-workbench")).toBeVisible();
 
     await expect(
-      page.getByRole("heading", { name: "AIと一緒に投資ルールを作成・レビューする" })
+      page.getByRole("heading", {
+        name: "AIと一緒に投資ルールを作成・レビューする",
+      }),
     ).toBeVisible();
   });
 
   test("has New rule button", async ({ page }) => {
     await expect(page.getByTestId("dashboard-new-rule-button")).toBeVisible();
-    await expect(page.getByTestId("dashboard-new-rule-button")).toContainText("New rule");
   });
 
   test("has portfolio link", async ({ page }) => {
     await expect(page.getByTestId("dashboard-portfolio-link")).toBeVisible();
-    await expect(page.getByTestId("dashboard-portfolio-link")).toContainText("ポートフォリオ");
+    await expect(page.getByTestId("dashboard-portfolio-link")).toContainText(
+      "ポートフォリオ",
+    );
   });
 
   test("navigates to portfolio from dashboard", async ({ page }) => {

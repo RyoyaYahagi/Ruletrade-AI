@@ -16,9 +16,13 @@ import { logWarn } from "@/lib/observability/structured-logger";
 
 const MOCK_AUTH_EMAIL = process.env.MOCK_AUTH_EMAIL;
 const MOCK_AUTH_USER_ID = process.env.MOCK_AUTH_USER_ID ?? "mock-user-id";
+const E2E_TEST_AUTH_ENABLED = process.env.E2E_TEST_AUTH === "true";
+const MOCK_AUTH_ALLOWED =
+  E2E_TEST_AUTH_ENABLED &&
+  (process.env.NODE_ENV !== "production" || process.env.CI === "true");
 
 export async function getCurrentUser(): Promise<AppUser | null> {
-  if (MOCK_AUTH_EMAIL && process.env.NODE_ENV !== "production") {
+  if (MOCK_AUTH_EMAIL && MOCK_AUTH_ALLOWED) {
     return {
       id: MOCK_AUTH_USER_ID,
       email: MOCK_AUTH_EMAIL,
