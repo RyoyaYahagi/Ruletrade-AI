@@ -141,82 +141,99 @@ function getMockObject(
 
     if (turn === 0) {
       return {
-        message:
-          "最初に、数値を決める前にポートフォリオの目的を整理します。目的が明確になると、許容する偏りや現金の置き方を考えやすくなります。",
+        message: "まずは損失への向き合い方を整理します。",
         question: {
-          key: "purpose",
-          text: "このポートフォリオは、主にどのような目的で使いますか？",
-          explanation:
-            "生活費に近い資金か、長期的に使う予定のない資金かで、考えるべきルールが変わります。",
+          key: "risk_tolerance",
+          text: "資産全体が一時的に下がる場合、どの程度までなら受け入れやすいですか？",
+          explanation: "損失への許容度は、現金比率や1回あたりの許容損失を考える材料になります。",
         },
-        suggestion: {},
-        progress: 10,
+        suggestions: [],
+        progress: 0,
         readyToReview: false,
-        guidance: ["目的", "使う予定のある時期", "現金が必要になる可能性"],
+        guidance: ["損失への許容度"],
         disclaimer,
       };
     }
 
     if (turn === 1) {
       return {
-        message:
-          "次は、1つの銘柄に偏ることをどの程度まで許容するかを考えます。上限を設けると、1銘柄の影響が大きくなりすぎたときに見直すきっかけになります。",
+        message: "次に、使う予定の時期を確認します。",
         question: {
-          key: "concentration",
-          text: "1銘柄への偏りについて、どの考え方が近いですか？",
-          explanation:
-            "上限を低くすると偏りは抑えやすくなりますが、管理対象は増えます。",
+          key: "investment_horizon",
+          text: "この資金を使う予定は、いつ頃ありますか？",
+          explanation: "投資期間が短いほど、値下がり時に待てる時間が限られます。",
         },
-        suggestion: { maxPositionPercent: 10 },
+        suggestions: [],
         progress: 35,
         readyToReview: false,
-        guidance: ["1銘柄の最大比率を決める", "セクターの偏りは後で考える"],
+        guidance: ["投資期間", "資金を使う時期"],
         disclaimer,
       };
     }
 
     if (turn === 2) {
       return {
-        message:
-          "次に、資産全体に対して1回の取引で許容できる影響と、手元に残したい現金を整理します。どちらも未設定のままでも構いません。",
+        message: "最後に、値動きへの向き合い方を確認します。",
         question: {
-          key: "cash_and_loss",
-          text: "急な支出や追加投資に備えて、現金と1回の損失上限をどう考えますか？",
-          explanation:
-            "必要な現金を先に確保し、1回の判断が資産全体に与える影響を小さくする考え方です。",
+          key: "volatility_tolerance",
+          text: "値動きが大きい資産を、どの程度まで含めたいですか？",
+          explanation: "損切りを考えるときも、値動きの大きさと待てる期間を合わせて見ます。",
         },
-        suggestion: {
-          maxPositionPercent: 10,
-          minCashPercent: 10,
-          maxSingleTradeLossPercent: 1,
-        },
+        suggestions: [],
         progress: 65,
         readyToReview: false,
-        guidance: ["現金比率の下限", "1取引あたりの許容損失", "未設定でもよい項目"],
+        guidance: ["値動きの大きさ", "現金比率", "1回あたりの許容損失"],
         disclaimer,
       };
     }
 
     return {
-      message:
-        "ここまでの回答から、フォームに反映して確認できる参考候補をまとめました。数値は固定の正解ではないため、必ず自分の考えに合わせて編集してください。",
+      message: "回答した条件から、比較用の参考案を3つ作りました。",
       question: null,
-      suggestion: {
-        maxPositionPercent: 10,
-        maxSectorPercent: 30,
-        minCashPercent: 10,
-        maxSingleTradeLossPercent: 1,
-        targetAllocations: [
-          { key: "stock", targetPercent: 80, tolerancePercent: 5 },
-          { key: "cash", targetPercent: 20, tolerancePercent: 5 },
-        ],
-      },
+      suggestions: [
+        {
+          key: "conservative",
+          title: "慎重寄り",
+          summary: "現金を厚めに残し、1回あたりの損失を小さくする案です。",
+          tradeoff: "守りやすい一方、値上がり局面への参加は抑えめです。",
+          draft: {
+            maxPositionPercent: 8,
+            maxSectorPercent: 25,
+            minCashPercent: 20,
+            maxSingleTradeLossPercent: 0.5,
+          },
+        },
+        {
+          key: "balanced",
+          title: "中間の案",
+          summary: "現金と投資のバランスを取り、管理しやすくする案です。",
+          tradeoff: "極端な偏りは抑えますが、両方の妥協が必要です。",
+          draft: {
+            maxPositionPercent: 12,
+            maxSectorPercent: 35,
+            minCashPercent: 10,
+            maxSingleTradeLossPercent: 1,
+          },
+        },
+        {
+          key: "flexible",
+          title: "変動許容寄り",
+          summary: "値動きと長い投資期間を前提に、投資比率を高めにする案です。",
+          tradeoff: "待てる期間と大きな含み損への備えが必要です。",
+          draft: {
+            maxPositionPercent: 18,
+            maxSectorPercent: 45,
+            minCashPercent: 5,
+            maxSingleTradeLossPercent: 2,
+          },
+        },
+      ],
       progress: 100,
       readyToReview: true,
       guidance: [
-        "候補をフォームへ反映する",
-        "不要な項目は未設定に戻す",
-        "最後に本人の言葉でメモを残す",
+        "3案から選ぶ",
+        "フォームで数値を編集する",
+        "未設定の項目は残してよい",
       ],
       disclaimer,
     };

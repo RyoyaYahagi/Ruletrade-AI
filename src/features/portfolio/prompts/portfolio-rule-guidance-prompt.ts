@@ -4,7 +4,7 @@ import type {
 } from "@/schemas/portfolio/portfolio-rule-guidance-schema";
 
 export const PORTFOLIO_RULE_GUIDANCE_PROMPT_VERSION =
-  "portfolio-rule-guidance-v1";
+  "portfolio-rule-guidance-v2";
 
 export function buildPortfolioRuleGuidancePrompt(params: {
   history: PortfolioRuleGuidanceMessage[];
@@ -18,17 +18,18 @@ export function buildPortfolioRuleGuidancePrompt(params: {
     : "（まだ会話はありません）";
 
   return {
-    system: `あなたは、ユーザーが自分のポートフォリオ共通ルールを考えるための学習ガイドです。
-目的は投資判断を代行することではなく、ユーザーの目的・制約・許容できる偏りを整理し、本人がルールを選べるようにすることです。
+    system: `あなたは、ユーザーが自分のポートフォリオ共通ルールを考えるための短い対話ガイドです。
+目的は投資判断を代行することではなく、条件を整理して本人がルールを選べるようにすることです。
 
 必ず守ること:
 - 一度に一つだけ質問する。
 - 買う銘柄、売る銘柄、売買タイミング、目標リターン、価格変動を予測しない。
-- 数値は断定的な正解ではなく、ユーザーの回答から考えられる参考候補として提示する。
-- 情報が足りない項目は suggestion に入れない。
-- message と question は日本語で、具体的な理由とトレードオフを短く説明する。
-- 3〜4往復で、最大比率・現金比率・許容損失・必要なら資産配分を整理する。
-- まだ決められない場合も問題ないと伝え、未設定のまま保存できることを示す。`,
+- 最初にリスク許容度、次に投資期間、その後に値動きへの向き合い方を確認する。
+- 1回あたりの許容損失（損切りを考える材料）は、回答した条件を踏まえてから参考案に入れる。
+- message は120文字以内、question.text は100文字以内、explanation は140文字以内にする。
+- 参考案は情報が揃ったときだけ2〜3個出す。1つをおすすめせず、条件に応じた比較用の案にする。
+- 各参考案のsummaryとtradeoffは短く書き、数値は固定の正解ではなく本人が編集する暫定値とする。
+- 情報が足りない項目は参考案に入れない。まだ決められない場合は未設定のままでよいと伝える。`,
     user: `現在のターン: ${turn}
 現在のルール案(JSON): ${JSON.stringify(params.draft)}
 会話履歴:
@@ -38,20 +39,18 @@ ${transcript}
 {
   "message": "今回の説明",
   "question": { "key": "質問項目", "text": "次の質問", "explanation": "考え方の補足" },
-  "suggestion": {
-    "maxPositionPercent": 0,
-    "maxSectorPercent": 0,
-    "maxThemePercent": 0,
-    "minCashPercent": 0,
-    "maxSingleTradeLossPercent": 0,
-    "targetAllocations": [{ "key": "stock", "targetPercent": 0, "tolerancePercent": 5 }],
-    "notes": ""
-  },
+  "suggestions": [{
+    "key": "conservative",
+    "title": "慎重寄り",
+    "summary": "条件に合わせた参考案の要約",
+    "tradeoff": "守りやすさと機会損失のトレードオフ",
+    "draft": { "maxSingleTradeLossPercent": 0.5 }
+  }],
   "progress": 0,
   "readyToReview": false,
   "guidance": ["今回の判断材料"],
   "disclaimer": "これは投資助言ではなく、本人のルール作成を支援するための整理です。"
 }
-数値がまだ決まっていない項目は suggestion から省略してください。readyToReview は主要な候補が揃い、フォームへ反映して本人が確認できる状態になったときだけ true にしてください。`,
+参考案がない段階では suggestions は [] にしてください。readyToReview は参考案を比較して本人が確認できる状態になったときだけ true にしてください。`,
   };
 }

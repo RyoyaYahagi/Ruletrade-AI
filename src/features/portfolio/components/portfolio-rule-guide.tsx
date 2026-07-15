@@ -13,13 +13,7 @@ type PortfolioRuleGuideProps = {
 };
 
 function responseToMessage(response: PortfolioRuleGuidanceResponse) {
-  return [
-    response.message,
-    response.question?.text,
-    response.question?.explanation,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return [response.message, response.question?.text].filter(Boolean).join("\n");
 }
 
 export function PortfolioRuleGuide({
@@ -95,7 +89,7 @@ export function PortfolioRuleGuide({
       <div className="mt-5 rounded-md border border-dashed p-4">
         <p className="text-sm font-medium">数値を一人で決めなくても大丈夫です</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          AIが目的や許容できる偏りを一つずつ質問し、参考候補をフォームに反映します。保存前に自分で編集できます。
+          条件を整理し、比較できる参考案を最大3つ表示します。反映後も編集できます。
         </p>
         <button
           type="button"
@@ -110,20 +104,17 @@ export function PortfolioRuleGuide({
   }
 
   const previousMessages = history.slice(0, -1);
-  const hasSuggestion = response
-    ? Object.values(response.suggestion).some((value) => value !== undefined)
-    : false;
 
   return (
     <div
-      className="mt-5 rounded-md border bg-slate-50 p-4"
+      className="mt-5 rounded-md border bg-slate-50 p-3"
       data-testid="portfolio-rule-guide"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold">AIと一緒に共通ルールを考える</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            AIは数値を決定せず、考えるための材料と参考候補を提示します。
+            条件に合わせた参考案を比べて、自分で選べます。
           </p>
         </div>
         <button
@@ -136,20 +127,25 @@ export function PortfolioRuleGuide({
       </div>
 
       {previousMessages.length > 0 ? (
-        <div className="mt-4 space-y-2" aria-label="AIガイドの会話履歴">
-          {previousMessages.map((message, index) => (
-            <p
-              key={`${message.role}-${index}`}
-              className={
-                message.role === "user"
-                  ? "rounded-md bg-white p-2 text-sm"
-                  : "rounded-md border border-slate-200 p-2 text-sm text-muted-foreground"
-              }
-            >
-              {message.content}
-            </p>
-          ))}
-        </div>
+        <details className="mt-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer">
+            これまでの回答を見る（{previousMessages.filter((message) => message.role === "user").length}件）
+          </summary>
+          <div className="mt-2 space-y-2" aria-label="AIガイドの会話履歴">
+            {previousMessages.map((message, index) => (
+              <p
+                key={`${message.role}-${index}`}
+                className={
+                  message.role === "user"
+                    ? "rounded-md bg-white p-2"
+                    : "rounded-md border border-slate-200 p-2"
+                }
+              >
+                {message.content}
+              </p>
+            ))}
+          </div>
+        </details>
       ) : null}
 
       {isRequesting && !response ? (
@@ -164,42 +160,71 @@ export function PortfolioRuleGuide({
             <div className="rounded-md border bg-white p-3">
               <p className="text-sm font-medium">{response.question.text}</p>
               {response.question.explanation ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {response.question.explanation}
-                </p>
+                <details className="mt-2 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer">なぜ聞くのか</summary>
+                  <p className="mt-1">{response.question.explanation}</p>
+                </details>
               ) : null}
             </div>
           ) : null}
 
-          {response.guidance.length > 0 ? (
-            <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-              {response.guidance.map((item) => (
-                <li key={item}>{item}</li>
+          {response.suggestions.length > 0 ? (
+            <div
+              className="space-y-2"
+              aria-label="ポートフォリオ共通ルールの参考案"
+              data-testid="portfolio-rule-guide-suggestions"
+            >
+              <p className="text-xs font-medium text-muted-foreground">
+                条件から考えられる参考案
+              </p>
+              {response.suggestions.map((suggestion) => (
+                <article
+                  key={suggestion.key}
+                  className="rounded-md border bg-white p-3"
+                  data-testid={`portfolio-rule-guide-suggestion-${suggestion.key}`}
+                >
+                  <p className="text-sm font-medium">{suggestion.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {suggestion.summary}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    トレードオフ: {suggestion.tradeoff}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onApplySuggestion(suggestion.draft);
+                      setAppliedMessage(
+                        `${suggestion.title}をフォームに反映しました。内容を確認して編集できます。`,
+                      );
+                    }}
+                    className="mt-2 rounded-md bg-black px-3 py-2 text-xs text-white"
+                    data-testid={`apply-portfolio-rule-guide-suggestion-${suggestion.key}`}
+                  >
+                    この案をフォームに反映
+                  </button>
+                </article>
               ))}
-            </ul>
+            </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>進捗 {response.progress}%</span>
-            {response.readyToReview ? <span>候補が揃いました</span> : null}
-          </div>
-
-          {hasSuggestion ? (
-            <button
-              type="button"
-              onClick={() => {
-                onApplySuggestion(response.suggestion);
-                setAppliedMessage("参考候補をフォームに反映しました。内容を確認して編集できます。");
-              }}
-              className="rounded-md bg-black px-3 py-2 text-sm text-white"
-              data-testid="apply-portfolio-rule-guide-suggestion"
-            >
-              参考候補をフォームに反映
-            </button>
+          {response.readyToReview ? (
+            <p className="text-xs text-muted-foreground">参考案を比較できます。</p>
           ) : null}
 
           {appliedMessage ? (
             <p className="text-xs text-green-700">{appliedMessage}</p>
+          ) : null}
+
+          {response.guidance.length > 0 ? (
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">判断材料を見る</summary>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {response.guidance.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </details>
           ) : null}
 
           {response.question ? (

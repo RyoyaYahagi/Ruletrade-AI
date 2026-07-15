@@ -69,8 +69,26 @@ describe("MockProvider", () => {
         ],
       });
 
-      expect(result.data.question?.key).toBe("purpose");
+      expect(result.data.question?.key).toBe("risk_tolerance");
+      expect(result.data.suggestions).toEqual([]);
       expect(result.data.readyToReview).toBe(false);
+    });
+
+    it("条件整理後に複数の参考案を返す", async () => {
+      const result = await provider.generateObject({
+        taskType: "portfolio_rule_guidance",
+        schema: PortfolioRuleGuidanceResponseSchema,
+        schemaName: "PortfolioRuleGuidance",
+        messages: [{ role: "user", content: "現在のターン: 3" }],
+      });
+
+      expect(result.data.question).toBeNull();
+      expect(result.data.suggestions).toHaveLength(3);
+      expect(result.data.suggestions.map((item) => item.title)).toEqual([
+        "慎重寄り",
+        "中間の案",
+        "変動許容寄り",
+      ]);
     });
 
     it("未定義の schemaName/taskType は空オブジェクトを返す", async () => {

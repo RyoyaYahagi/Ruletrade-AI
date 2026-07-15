@@ -30,7 +30,15 @@ const guidance = {
     text: "このポートフォリオの目的は何ですか？",
     explanation: "目的により考える項目が変わります。",
   },
-  suggestion: { maxPositionPercent: 10 },
+  suggestions: [
+    {
+      key: "balanced",
+      title: "中間の案",
+      summary: "条件に合わせた参考案です。",
+      tradeoff: "両方の妥協が必要です。",
+      draft: { maxPositionPercent: 10 },
+    },
+  ],
   progress: 25,
   readyToReview: false,
   guidance: ["目的"],

@@ -20,7 +20,15 @@ describe("PortfolioRuleGuidanceSchema", () => {
         key: "purpose",
         text: "このポートフォリオの目的は何ですか？",
       },
-      suggestion: { maxPositionPercent: 10 },
+      suggestions: [
+        {
+          key: "balanced",
+          title: "中間の案",
+          summary: "バランスを取る参考案です。",
+          tradeoff: "両方の妥協が必要です。",
+          draft: { maxPositionPercent: 10 },
+        },
+      ],
       progress: 25,
       readyToReview: false,
       guidance: ["目的", "資金の使う時期"],
@@ -28,14 +36,22 @@ describe("PortfolioRuleGuidanceSchema", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.data?.suggestion.maxPositionPercent).toBe(10);
+    expect(result.data?.suggestions[0]?.draft.maxPositionPercent).toBe(10);
   });
 
   it("rejects a guidance response with an invalid percentage", () => {
     const result = PortfolioRuleGuidanceResponseSchema.safeParse({
       message: "説明",
       question: null,
-      suggestion: { minCashPercent: 101 },
+      suggestions: [
+        {
+          key: "invalid",
+          title: "不正な案",
+          summary: "説明",
+          tradeoff: "トレードオフ",
+          draft: { minCashPercent: 101 },
+        },
+      ],
       progress: 100,
       readyToReview: true,
       disclaimer: "これは投資助言ではありません。",

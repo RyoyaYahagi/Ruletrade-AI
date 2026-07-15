@@ -23,18 +23,26 @@ export const PortfolioRuleGuidanceRequestSchema = z.object({
 
 export const PortfolioRuleGuidanceQuestionSchema = z.object({
   key: z.string().min(1).max(80),
-  text: z.string().min(1).max(800),
-  explanation: z.string().max(1200).optional(),
+  text: z.string().min(1).max(240),
+  explanation: z.string().max(320).optional(),
+});
+
+export const PortfolioRuleGuidanceSuggestionSchema = z.object({
+  key: z.string().min(1).max(40),
+  title: z.string().min(1).max(40),
+  summary: z.string().min(1).max(180),
+  tradeoff: z.string().min(1).max(180),
+  draft: PortfolioRuleGuidanceDraftSchema,
 });
 
 export const PortfolioRuleGuidanceResponseSchema = z.object({
-  message: z.string().min(1).max(2000),
+  message: z.string().min(1).max(500),
   question: PortfolioRuleGuidanceQuestionSchema.nullable(),
-  suggestion: PortfolioRuleGuidanceDraftSchema.default({}),
+  suggestions: z.array(PortfolioRuleGuidanceSuggestionSchema).max(3).default([]),
   progress: z.number().int().min(0).max(100),
   readyToReview: z.boolean(),
-  guidance: z.array(z.string().min(1).max(500)).max(5).default([]),
-  disclaimer: z.string().min(1).max(600),
+  guidance: z.array(z.string().min(1).max(180)).max(3).default([]),
+  disclaimer: z.string().min(1).max(200),
 });
 
 export type PortfolioRuleGuidanceDraft = z.infer<
@@ -48,4 +56,7 @@ export type PortfolioRuleGuidanceRequest = z.infer<
 >;
 export type PortfolioRuleGuidanceResponse = z.infer<
   typeof PortfolioRuleGuidanceResponseSchema
+>;
+export type PortfolioRuleGuidanceSuggestion = z.infer<
+  typeof PortfolioRuleGuidanceSuggestionSchema
 >;
