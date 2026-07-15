@@ -2,6 +2,7 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
 import { WatchlistReviewSchema } from "@/schemas/watchlist/watchlist-review-schema";
 import {
   buildWatchlistReviewPrompt,
@@ -64,7 +65,8 @@ export async function runWatchlistReview(params: {
     scope,
   });
 
-  const ai = getAIProvider();
+  const aiSettings = await getAiDeveloperSettings({ userId: params.userId });
+  const ai = getAIProvider(aiSettings);
 
   const aiResult = await ai.generateObject({
     taskType: "watchlist_review",

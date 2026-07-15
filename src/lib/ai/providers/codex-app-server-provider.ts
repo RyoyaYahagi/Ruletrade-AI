@@ -466,8 +466,8 @@ function normalizeProviderError(error: unknown): AIProviderError {
 export class CodexAppServerProvider implements AIProvider {
   private readonly model: string;
 
-  constructor() {
-    this.model = getCodexAppServerModel();
+  constructor(model?: string) {
+    this.model = model ?? getCodexAppServerModel();
   }
 
   async generateObject<TSchema extends z.ZodType>(

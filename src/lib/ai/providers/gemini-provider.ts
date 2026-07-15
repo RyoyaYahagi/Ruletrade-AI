@@ -31,8 +31,10 @@ const GEMINI_RETRY_DELAYS_MS = [500, 1500] as const;
 
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
+  private readonly selectedModel?: string;
 
-  constructor() {
+  constructor(model?: string) {
+    this.selectedModel = model;
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -49,7 +51,7 @@ export class GeminiProvider implements AIProvider {
     params: GenerateObjectParams<TSchema>,
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
-    const model = getGeminiModel();
+    const model = this.selectedModel ?? getGeminiModel();
 
     try {
       const response = await this.generateContent(model, {
@@ -92,7 +94,7 @@ export class GeminiProvider implements AIProvider {
 
   async generateText(params: GenerateTextParams): Promise<GenerateTextResult> {
     const startedAt = Date.now();
-    const model = getGeminiModel();
+    const model = this.selectedModel ?? getGeminiModel();
 
     try {
       const response = await this.generateContent(model, {

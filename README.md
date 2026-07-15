@@ -236,6 +236,12 @@ CODEX_APP_SERVER_URL=ws://127.0.0.1:8765
 CODEX_APP_SERVER_MODEL=gpt-5.4-mini
 ```
 
+In development, the same settings can be changed from
+`/settings/developer`. Selecting `Codex App Server (ChatGPT)` checks the
+account status and requests a ChatGPT login URL when the account is not
+authenticated. The save button remains disabled until the account is logged
+in.
+
 After signing into the app, start the ChatGPT login flow with:
 
 ```bash

@@ -17,8 +17,10 @@ import { withTimeout } from "@/lib/ai/with-timeout";
 
 export class OpenAIProvider implements AIProvider {
   private client: OpenAI;
+  private readonly selectedModel?: string;
 
-  constructor() {
+  constructor(model?: string) {
+    this.selectedModel = model;
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
@@ -35,7 +37,7 @@ export class OpenAIProvider implements AIProvider {
     params: GenerateObjectParams<TSchema>,
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
-    const model = getOpenAIModel();
+    const model = this.selectedModel ?? getOpenAIModel();
 
     try {
       const response = await withTimeout(
@@ -85,7 +87,7 @@ export class OpenAIProvider implements AIProvider {
 
   async generateText(params: GenerateTextParams): Promise<GenerateTextResult> {
     const startedAt = Date.now();
-    const model = getOpenAIModel();
+    const model = this.selectedModel ?? getOpenAIModel();
 
     try {
       const response = await withTimeout(

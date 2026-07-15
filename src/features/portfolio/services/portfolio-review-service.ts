@@ -2,6 +2,7 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
 import { PortfolioReviewSchema } from "@/schemas/portfolio/portfolio-review-schema";
 import { calculatePortfolioSummary } from "@/features/portfolio/services/portfolio-aggregation-service";
 import {
@@ -56,7 +57,8 @@ export async function runPortfolioReview(params: {
     summary,
   });
 
-  const ai = getAIProvider();
+  const aiSettings = await getAiDeveloperSettings({ userId: params.userId });
+  const ai = getAIProvider(aiSettings);
 
   const aiResult = await ai.generateObject({
     taskType: "portfolio_review",

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { AppError } from "@/lib/errors/app-error";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
@@ -10,12 +11,6 @@ import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
 import { updateAiRunLog } from "@/lib/ai/logs/update-ai-run-log";
 import { logAiRunEvent } from "@/lib/ai/logs/log-ai-run-event";
 import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
-import {
-  getConfiguredAIProvider,
-  getCodexAppServerModel,
-  getOpenAIModel,
-  getGeminiModel,
-} from "@/lib/ai/model-config";
 import { zeroAIUsage } from "@/lib/ai/usage/token-usage";
 import {
   buildQuestionsFromQualityChecks,
@@ -32,14 +27,6 @@ import {
 function mapQuestionType(type: string): string {
   if (type === "multi_choice") return "multiple_choice";
   return type;
-}
-
-function getConfiguredModelForLog(): string {
-  const provider = getConfiguredAIProvider();
-  if (provider === "openai") return getOpenAIModel();
-  if (provider === "gemini") return getGeminiModel();
-  if (provider === "codex-app-server") return getCodexAppServerModel();
-  return "mock-model";
 }
 
 const RULE_REVIEW_JSON_FORMAT = `
@@ -264,7 +251,8 @@ export async function runRuleReview(params: {
     );
   }
 
-  const ai = getAIProvider();
+  const aiSettings = await getAiDeveloperSettings({ userId: params.userId });
+  const ai = getAIProvider(aiSettings);
   const { RuleReviewSchema } =
     await import("@/schemas/rules/rule-review-schema");
 
@@ -303,8 +291,8 @@ export async function runRuleReview(params: {
     sourceType: "rule_session",
     sourceId: params.sessionId,
     sessionId: params.sessionId,
-    provider: getConfiguredAIProvider(),
-    model: getConfiguredModelForLog(),
+    provider: aiSettings.provider,
+    model: aiSettings.model,
     promptVersion: "rule-reviewer-v1",
     inputJson: {
       ticker: session.ticker,

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
 import { DocumentSummarySchema } from "@/schemas/documents/document-summary-schema";
 import {
   buildDocumentSummaryPrompt,
@@ -39,7 +40,8 @@ export async function summarizeDocument(params: {
     extractedText: document.extracted_text,
   });
 
-  const ai = getAIProvider();
+  const aiSettings = await getAiDeveloperSettings({ userId: params.userId });
+  const ai = getAIProvider(aiSettings);
 
   const aiResult = await ai.generateObject({
     taskType: "document_rag_review",

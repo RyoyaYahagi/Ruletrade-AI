@@ -12,6 +12,10 @@ vi.mock("@/lib/ai/provider-factory", () => ({
   getAIProvider: vi.fn(),
 }));
 
+vi.mock("@/features/ai/services/ai-developer-settings-service", () => ({
+  getAiDeveloperSettings: vi.fn(),
+}));
+
 vi.mock("@/lib/safety/safety-check-service", () => ({
   runSafetyCheck: vi.fn(),
 }));
@@ -23,6 +27,7 @@ vi.mock("@/features/watchlist/prompts/watchlist-review-prompt", () => ({
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { getAIProvider } from "@/lib/ai/provider-factory";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { buildWatchlistReviewPrompt } from "@/features/watchlist/prompts/watchlist-review-prompt";
 
@@ -212,6 +217,10 @@ beforeEach(() => {
   vi.mocked(getAIProvider).mockReturnValue({
     generateObject: mockGenerateObject,
   } as unknown);
+  vi.mocked(getAiDeveloperSettings).mockResolvedValue({
+    provider: "mock",
+    model: "mock-model",
+  });
 });
 
 // ── Tests ────────────────────────────────────────────────────────────────────
