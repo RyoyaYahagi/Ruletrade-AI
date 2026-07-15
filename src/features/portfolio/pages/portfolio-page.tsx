@@ -5,6 +5,8 @@ import { PortfolioSummaryCard } from "@/features/portfolio/components/portfolio-
 import { PortfolioPositionTable } from "@/features/portfolio/components/portfolio-position-table";
 import { PortfolioReviewPanel } from "@/features/portfolio/components/portfolio-review-panel";
 import { PortfolioAllocationCharts } from "@/features/portfolio/components/portfolio-allocation-charts";
+import { PortfolioCommonRulesPanel } from "@/features/portfolio/components/portfolio-common-rules-panel";
+import { FundsPlanCard } from "@/features/portfolio/components/funds-plan-card";
 
 export function PortfolioPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -30,6 +32,8 @@ export function PortfolioPage() {
 
       <div className="mt-6 space-y-6" data-testid="portfolio-content">
         <PortfolioSummaryCard key={`summary-${refreshKey}`} />
+        <FundsPlanCard />
+        <PortfolioCommonRulesPanel key={`rules-${refreshKey}`} />
         <PortfolioAllocationCharts key={`charts-${refreshKey}`} />
         <PortfolioPositionTable key={`positions-${refreshKey}`} />
         <PortfolioReviewPanel
