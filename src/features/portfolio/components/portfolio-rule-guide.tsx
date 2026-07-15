@@ -149,7 +149,14 @@ export function PortfolioRuleGuide({
       ) : null}
 
       {isRequesting && !response ? (
-        <p className="mt-4 text-sm text-muted-foreground">AIガイドを準備中...</p>
+        <p
+          className="mt-4 text-sm text-muted-foreground"
+          role="status"
+          aria-live="polite"
+          data-testid="portfolio-rule-guide-loading"
+        >
+          最初の質問を生成中…
+        </p>
       ) : null}
 
       {response ? (
@@ -164,6 +171,17 @@ export function PortfolioRuleGuide({
                 {response.question.explanation}
               </p>
             </div>
+          ) : null}
+
+          {isRequesting && response.question ? (
+            <p
+              className="rounded-md bg-slate-100 px-3 py-2 text-xs text-muted-foreground"
+              role="status"
+              aria-live="polite"
+              data-testid="portfolio-rule-guide-loading"
+            >
+              次の質問を生成中…
+            </p>
           ) : null}
 
           {response.suggestions.length > 0 ? (
@@ -226,16 +244,21 @@ export function PortfolioRuleGuide({
           ) : null}
 
           {response.question ? (
-            <form onSubmit={handleSubmit} className="space-y-2">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-2"
+              aria-busy={isRequesting}
+            >
               <label className="block text-xs font-medium">
                 あなたの考え
                 <textarea
                   value={answer}
                   onChange={(event) => setAnswer(event.target.value)}
+                  disabled={isRequesting}
                   rows={3}
                   maxLength={2000}
                   placeholder="まだ決めていない場合は、そのまま書いてください"
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
                   data-testid="portfolio-rule-guide-answer"
                 />
               </label>
