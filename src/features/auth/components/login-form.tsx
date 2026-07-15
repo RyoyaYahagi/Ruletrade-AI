@@ -21,6 +21,12 @@ export function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    if (submitter?.getAttribute("data-testid") === "guest-login-button") {
+      await handleGuestLogin();
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -69,7 +75,11 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4"
+      data-testid="login-form"
+    >
       <label className="block text-sm font-medium">
         メールアドレス
         <Input
@@ -97,21 +107,31 @@ export function LoginForm() {
       </label>
 
       {errorMessage ? (
-        <p data-testid="login-error-message" className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p
+          data-testid="login-error-message"
+          className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           {errorMessage}
         </p>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={isLoading} data-testid="login-submit-button">
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={isLoading}
+        data-testid="login-submit-button"
+      >
         {isLoading ? "ログイン中..." : "ログイン"}
       </Button>
 
       <Button
-        type="button"
+        type="submit"
         variant="outline"
         className="w-full"
         disabled={isLoading}
-        onClick={handleGuestLogin}
+        formAction="/api/auth/guest?redirect=/dashboard"
+        formMethod="post"
+        formNoValidate
         data-testid="guest-login-button"
       >
         {isLoading ? "処理中..." : "ゲストで試す"}

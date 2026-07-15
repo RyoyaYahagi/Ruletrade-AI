@@ -26,10 +26,69 @@ const CURRENCIES = [
   { value: "OTHER", label: "その他" },
 ];
 
+type PositionCheckResult = {
+  ruleConfigured: boolean;
+  tickerPercentAfter: number;
+  sectorPercentAfter: number | null;
+  themePercentAfter: number | null;
+  insufficientCash: boolean;
+  newViolations: Array<{
+    ruleKey: string;
+    subject: string;
+    message: string;
+  }>;
+};
+
 export function NewPositionPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checkResult, setCheckResult] = useState<PositionCheckResult | null>(
+    null,
+  );
+
+  async function handlePreCheck(form: HTMLFormElement) {
+    setIsChecking(true);
+    setErrorMessage(null);
+    setCheckResult(null);
+
+    const formData = new FormData(form);
+    const payload = {
+      ticker: String(formData.get("ticker") || ""),
+      marketValue: Number(formData.get("marketValue") || 0),
+      sector: String(formData.get("sector") || "") || undefined,
+      theme: String(formData.get("theme") || "") || undefined,
+      assetType: String(formData.get("assetType") || "") || undefined,
+      market: String(formData.get("market") || "") || undefined,
+    };
+
+    if (!payload.ticker) {
+      setErrorMessage("事前チェックには銘柄コードと評価額が必要です。");
+      setIsChecking(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/portfolio/positions/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await response.json();
+
+      if (!response.ok || !json.ok) {
+        setErrorMessage(json.error?.message ?? "事前チェックに失敗しました。");
+        return;
+      }
+
+      setCheckResult(json.data);
+    } catch {
+      setErrorMessage("通信に失敗しました。");
+    } finally {
+      setIsChecking(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -253,7 +312,61 @@ export function NewPositionPage() {
           />
         </div>
 
+        {checkResult ? (
+          <div
+            className={`rounded-md p-3 text-sm ${
+              checkResult.newViolations.length > 0
+                ? "bg-red-50 text-red-700"
+                : "bg-green-50 text-green-700"
+            }`}
+            data-testid="position-check-result"
+          >
+            <p className="font-medium">
+              {checkResult.newViolations.length > 0
+                ? `この追加で共通ルール違反が${checkResult.newViolations.length}件発生します。`
+                : checkResult.ruleConfigured
+                  ? "この追加による共通ルール違反はありません。"
+                  : "共通ルールが未設定のため、比率のみ表示します。"}
+            </p>
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>追加後のこの銘柄の比率: {checkResult.tickerPercentAfter}%</li>
+              {checkResult.sectorPercentAfter !== null ? (
+                <li>
+                  追加後のこのセクターの比率: {checkResult.sectorPercentAfter}%
+                </li>
+              ) : null}
+              {checkResult.themePercentAfter !== null ? (
+                <li>
+                  追加後のこのテーマの比率: {checkResult.themePercentAfter}%
+                </li>
+              ) : null}
+              {checkResult.newViolations.map((violation) => (
+                <li key={`${violation.ruleKey}-${violation.subject}`}>
+                  {violation.message}
+                </li>
+              ))}
+            </ul>
+            {checkResult.insufficientCash ? (
+              <p className="mt-1">
+                登録済みの現金より評価額が大きいため、現金比率は0%として計算しています。
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="flex gap-4">
+          <button
+            type="button"
+            disabled={isChecking}
+            onClick={(event) =>
+              handlePreCheck(event.currentTarget.form as HTMLFormElement)
+            }
+            className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+            data-testid="position-pre-check"
+          >
+            {isChecking ? "チェック中..." : "共通ルールと照合"}
+          </button>
+
           <button
             type="submit"
             disabled={isSubmitting}
