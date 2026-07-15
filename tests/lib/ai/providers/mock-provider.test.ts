@@ -59,57 +59,48 @@ describe("MockProvider", () => {
       expect(result.data.riskLevel).toBe("low");
     });
 
-    it("portfolio_rule_guidance taskType で段階的なガイドを返す", async () => {
+    it("portfolio_rule_guidance taskType で追加質問なしに未定項目の目安を返す", async () => {
       const result = await provider.generateObject({
         taskType: "portfolio_rule_guidance",
         schema: PortfolioRuleGuidanceResponseSchema,
         schemaName: "PortfolioRuleGuidance",
-        messages: [
-          { role: "user", content: "現在のターン: 0" },
-        ],
-      });
-
-      expect(result.data.question?.key).toBe("risk_tolerance");
-      expect(result.data.question?.explanation).toContain("例えば");
-      expect(result.data.suggestions).toEqual([]);
-      expect(result.data.readyToReview).toBe(false);
-    });
-
-    it("共通ルールでは投資期間を質問しない", async () => {
-      const volatilityResult = await provider.generateObject({
-        taskType: "portfolio_rule_guidance",
-        schema: PortfolioRuleGuidanceResponseSchema,
-        schemaName: "PortfolioRuleGuidance",
-        messages: [{ role: "user", content: "現在のターン: 1" }],
-      });
-      const lossResult = await provider.generateObject({
-        taskType: "portfolio_rule_guidance",
-        schema: PortfolioRuleGuidanceResponseSchema,
-        schemaName: "PortfolioRuleGuidance",
-        messages: [{ role: "user", content: "現在のターン: 2" }],
-      });
-
-      expect(volatilityResult.data.question?.key).toBe("volatility_tolerance");
-      expect(lossResult.data.question?.key).toBe("single_trade_loss_tolerance");
-      expect(volatilityResult.data.question?.text).not.toContain("投資期間");
-      expect(lossResult.data.question?.text).not.toContain("投資期間");
-    });
-
-    it("条件整理後に複数の参考案を返す", async () => {
-      const result = await provider.generateObject({
-        taskType: "portfolio_rule_guidance",
-        schema: PortfolioRuleGuidanceResponseSchema,
-        schemaName: "PortfolioRuleGuidance",
-        messages: [{ role: "user", content: "現在のターン: 3" }],
+        messages: [{ role: "user", content: "ユーザーの回答一覧:" }],
       });
 
       expect(result.data.question).toBeNull();
-      expect(result.data.suggestions).toHaveLength(3);
+      expect(result.data.readyToReview).toBe(true);
+      expect(result.data.progress).toBe(100);
+      expect(result.data.suggestions).toHaveLength(2);
       expect(result.data.suggestions.map((item) => item.title)).toEqual([
         "慎重寄り",
         "中間の案",
-        "変動許容寄り",
       ]);
+    });
+
+    it("参考案は未定項目のみを含み、確定済み項目を含まない", async () => {
+      const result = await provider.generateObject({
+        taskType: "portfolio_rule_guidance",
+        schema: PortfolioRuleGuidanceResponseSchema,
+        schemaName: "PortfolioRuleGuidance",
+        messages: [{ role: "user", content: "ユーザーの回答一覧:" }],
+      });
+
+      for (const suggestion of result.data.suggestions) {
+        expect(suggestion.draft.riskTolerance).toBeUndefined();
+        expect(suggestion.draft.maxPositionCount).toBeUndefined();
+        expect(Object.keys(suggestion.draft)).toEqual(["minCashPercent"]);
+      }
+    });
+
+    it("回答間の矛盾を consistencyNotes として返す", async () => {
+      const result = await provider.generateObject({
+        taskType: "portfolio_rule_guidance",
+        schema: PortfolioRuleGuidanceResponseSchema,
+        schemaName: "PortfolioRuleGuidance",
+        messages: [{ role: "user", content: "ユーザーの回答一覧:" }],
+      });
+
+      expect(result.data.consistencyNotes.length).toBeGreaterThan(0);
     });
 
     it("未定義の schemaName/taskType は空オブジェクトを返す", async () => {

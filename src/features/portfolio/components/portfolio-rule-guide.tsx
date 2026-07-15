@@ -1,61 +1,84 @@
 "use client";
 
 import { useState } from "react";
+import {
+  PORTFOLIO_RULE_QUESTIONS,
+  type PortfolioRuleQuestion,
+} from "@/features/portfolio/constants/portfolio-rule-questions";
+import { buildDraftFromAnswers } from "@/features/portfolio/services/portfolio-rule-answer-mapping";
 import type {
+  PortfolioRuleGuidanceAnswer,
   PortfolioRuleGuidanceDraft,
-  PortfolioRuleGuidanceMessage,
   PortfolioRuleGuidanceResponse,
 } from "@/schemas/portfolio/portfolio-rule-guidance-schema";
+import type { RiskTolerance } from "@/schemas/portfolio/portfolio-rule-schema";
 
 type PortfolioRuleGuideProps = {
   currentDraft: PortfolioRuleGuidanceDraft;
   onApplySuggestion: (suggestion: PortfolioRuleGuidanceDraft) => void;
 };
 
-function responseToMessage(response: PortfolioRuleGuidanceResponse) {
-  return [response.message, response.question?.text].filter(Boolean).join("\n");
-}
+const RISK_TOLERANCE_LABELS: Record<RiskTolerance, string> = {
+  conservative: "慎重寄り",
+  balanced: "バランス",
+  aggressive: "変動許容寄り",
+};
 
 export function PortfolioRuleGuide({
   currentDraft,
   onApplySuggestion,
 }: PortfolioRuleGuideProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [history, setHistory] = useState<PortfolioRuleGuidanceMessage[]>([]);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<PortfolioRuleGuidanceAnswer[]>([]);
+  const [multiSelection, setMultiSelection] = useState<string[]>([]);
+  const [freeText, setFreeText] = useState("");
   const [response, setResponse] =
     useState<PortfolioRuleGuidanceResponse | null>(null);
-  const [answer, setAnswer] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [appliedMessage, setAppliedMessage] = useState<string | null>(null);
 
-  async function requestGuidance(nextHistory: PortfolioRuleGuidanceMessage[]) {
-    setIsRequesting(true);
+  const questions = PORTFOLIO_RULE_QUESTIONS;
+  const currentQuestion: PortfolioRuleQuestion | null =
+    stepIndex < questions.length ? questions[stepIndex] : null;
+  const isFinished = stepIndex >= questions.length;
+  const mapping = isFinished ? buildDraftFromAnswers(answers) : null;
+
+  function startGuide() {
+    setIsOpen(true);
+    setStepIndex(0);
+    setAnswers([]);
+    setMultiSelection([]);
+    setFreeText("");
+    setResponse(null);
     setErrorMessage(null);
     setAppliedMessage(null);
+  }
+
+  async function requestSuggestions(
+    finalAnswers: PortfolioRuleGuidanceAnswer[],
+  ) {
+    setIsRequesting(true);
+    setErrorMessage(null);
 
     try {
       const result = await fetch("/api/portfolio/rules/guide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          history: nextHistory,
+          answers: finalAnswers,
           draft: currentDraft,
         }),
       });
       const json = await result.json();
 
       if (!result.ok || !json.ok) {
-        setErrorMessage(json.error?.message ?? "AIガイドを取得できませんでした。");
+        setErrorMessage(json.error?.message ?? "AIの確認を取得できませんでした。");
         return;
       }
 
-      const nextResponse = json.data as PortfolioRuleGuidanceResponse;
-      setResponse(nextResponse);
-      setHistory([
-        ...nextHistory,
-        { role: "assistant", content: responseToMessage(nextResponse) },
-      ]);
+      setResponse(json.data as PortfolioRuleGuidanceResponse);
     } catch {
       setErrorMessage("通信に失敗しました。もう一度お試しください。");
     } finally {
@@ -63,25 +86,46 @@ export function PortfolioRuleGuide({
     }
   }
 
-  async function startGuide() {
-    setIsOpen(true);
-    setHistory([]);
-    setResponse(null);
-    setAnswer("");
-    await requestGuidance([]);
+  async function recordAnswer(
+    question: PortfolioRuleQuestion,
+    answer: string,
+    value: string,
+  ) {
+    const nextAnswers = [
+      ...answers,
+      { key: question.key, question: question.text, answer, value },
+    ];
+    setAnswers(nextAnswers);
+    setMultiSelection([]);
+    setFreeText("");
+
+    const nextStep = stepIndex + 1;
+    setStepIndex(nextStep);
+
+    if (nextStep >= questions.length) {
+      await requestSuggestions(nextAnswers);
+    }
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedAnswer = answer.trim();
-    if (!trimmedAnswer || isRequesting) return;
+  function goBack() {
+    if (stepIndex === 0 || isRequesting) return;
+    setAnswers((current) => current.slice(0, -1));
+    setStepIndex((current) => current - 1);
+    setMultiSelection([]);
+    setFreeText("");
+    setResponse(null);
+  }
 
-    const nextHistory = [
-      ...history,
-      { role: "user" as const, content: trimmedAnswer },
-    ];
-    setAnswer("");
-    await requestGuidance(nextHistory);
+  function toggleMultiSelection(value: string) {
+    setMultiSelection((current) => {
+      if (value === "none") {
+        return current.includes("none") ? [] : ["none"];
+      }
+      const withoutNone = current.filter((item) => item !== "none");
+      return withoutNone.includes(value)
+        ? withoutNone.filter((item) => item !== value)
+        : [...withoutNone, value];
+    });
   }
 
   if (!isOpen) {
@@ -89,7 +133,8 @@ export function PortfolioRuleGuide({
       <div className="mt-5 rounded-md border border-dashed p-4">
         <p className="text-sm font-medium">数値を一人で決めなくても大丈夫です</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          条件を整理し、比較できる参考案を最大3つ表示します。反映後も編集できます。
+          {questions.length}
+          個の質問に答えると、回答からそのまま案を組み立てます。反映後も編集できます。
         </p>
         <button
           type="button"
@@ -103,8 +148,6 @@ export function PortfolioRuleGuide({
     );
   }
 
-  const previousMessages = history.slice(0, -1);
-
   return (
     <div
       className="mt-5 rounded-md border bg-slate-50 p-3"
@@ -114,7 +157,9 @@ export function PortfolioRuleGuide({
         <div>
           <h3 className="text-sm font-semibold">AIと一緒に共通ルールを考える</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            条件に合わせた参考案を比べて、自分で選べます。
+            {currentQuestion
+              ? `質問 ${stepIndex + 1} / ${questions.length}`
+              : "回答から組み立てた案を確認できます。"}
           </p>
         </div>
         <button
@@ -126,36 +171,180 @@ export function PortfolioRuleGuide({
         </button>
       </div>
 
-      {previousMessages.length > 0 ? (
+      {answers.length > 0 ? (
         <details className="mt-3 text-xs text-muted-foreground">
           <summary className="cursor-pointer">
-            これまでの回答を見る（{previousMessages.filter((message) => message.role === "user").length}件）
+            これまでの回答を見る（{answers.length}件）
           </summary>
-          <div className="mt-2 space-y-2" aria-label="AIガイドの会話履歴">
-            {previousMessages.map((message, index) => (
-              <p
-                key={`${message.role}-${index}`}
-                className={
-                  message.role === "user"
-                    ? "rounded-md bg-white p-2"
-                    : "rounded-md border border-slate-200 p-2"
-                }
-              >
-                {message.content}
+          <div className="mt-2 space-y-2" aria-label="AIガイドの回答一覧">
+            {answers.map((answer) => (
+              <p key={answer.key} className="rounded-md bg-white p-2">
+                {answer.question}
+                <span className="mt-1 block font-medium text-slate-700">
+                  → {answer.answer}
+                </span>
               </p>
             ))}
           </div>
         </details>
       ) : null}
 
-      {isRequesting && !response ? (
+      {currentQuestion ? (
+        <div className="mt-4 space-y-3">
+          <div className="rounded-md border bg-white p-3">
+            <p className="text-sm font-medium">{currentQuestion.text}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              <span className="font-medium text-slate-700">考え方：</span>
+              {currentQuestion.explanation}
+            </p>
+          </div>
+
+          <div
+            className="flex flex-wrap gap-2"
+            data-testid="portfolio-rule-guide-options"
+          >
+            {currentQuestion.options.map((option) =>
+              currentQuestion.multiSelect ? (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => toggleMultiSelection(option.value)}
+                  className={`rounded-md border px-3 py-2 text-sm ${
+                    multiSelection.includes(option.value)
+                      ? "border-black bg-black text-white"
+                      : "bg-white"
+                  }`}
+                  data-testid={`portfolio-rule-guide-option-${option.value}`}
+                >
+                  {option.label}
+                </button>
+              ) : (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    void recordAnswer(currentQuestion, option.label, option.value)
+                  }
+                  className="rounded-md border bg-white px-3 py-2 text-sm"
+                  data-testid={`portfolio-rule-guide-option-${option.value}`}
+                >
+                  {option.label}
+                </button>
+              ),
+            )}
+          </div>
+
+          {currentQuestion.multiSelect ? (
+            <button
+              type="button"
+              disabled={multiSelection.length === 0}
+              onClick={() => {
+                const labels = currentQuestion.options
+                  .filter((option) => multiSelection.includes(option.value))
+                  .map((option) => option.label);
+                void recordAnswer(
+                  currentQuestion,
+                  labels.join("、"),
+                  multiSelection.join(","),
+                );
+              }}
+              className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+              data-testid="portfolio-rule-guide-submit"
+            >
+              選んで次へ
+            </button>
+          ) : (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const trimmed = freeText.trim();
+                if (!trimmed) return;
+                void recordAnswer(currentQuestion, trimmed, "free_text");
+              }}
+              className="space-y-2"
+            >
+              <label className="block text-xs font-medium">
+                選択肢に当てはまらない場合は、自分の言葉で書けます
+                <textarea
+                  value={freeText}
+                  onChange={(event) => setFreeText(event.target.value)}
+                  rows={2}
+                  maxLength={2000}
+                  placeholder="例：迷っているので、まずは小さく始めたい"
+                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  data-testid="portfolio-rule-guide-answer"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={freeText.trim() === ""}
+                className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                data-testid="portfolio-rule-guide-submit"
+              >
+                この回答で次へ
+              </button>
+            </form>
+          )}
+
+          {stepIndex > 0 ? (
+            <button
+              type="button"
+              onClick={goBack}
+              className="text-xs text-muted-foreground underline"
+            >
+              1つ前の質問に戻る
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {mapping ? (
+        <div className="mt-4 space-y-3">
+          <article
+            className="rounded-md border-2 border-black bg-white p-3"
+            data-testid="portfolio-rule-guide-primary-draft"
+          >
+            <p className="text-sm font-medium">
+              あなたの回答から組み立てた案
+              {mapping.draft.riskTolerance
+                ? `（${RISK_TOLERANCE_LABELS[mapping.draft.riskTolerance]}）`
+                : ""}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              回答した内容がそのまま反映されます。未定のままにした項目は含まれません。
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                onApplySuggestion(mapping.draft);
+                setAppliedMessage(
+                  "回答から組み立てた案をフォームに反映しました。内容を確認して編集できます。",
+                );
+              }}
+              className="mt-2 rounded-md bg-black px-3 py-2 text-xs text-white"
+              data-testid="apply-portfolio-rule-guide-primary-draft"
+            >
+              この案をフォームに反映
+            </button>
+          </article>
+
+          {mapping.undecidedKeys.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              まだ決めていない項目: {mapping.undecidedKeys.length}件
+              （AIの確認結果で目安が届きます）
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isRequesting ? (
         <p
           className="mt-4 text-sm text-muted-foreground"
           role="status"
           aria-live="polite"
           data-testid="portfolio-rule-guide-loading"
         >
-          最初の質問を生成中…
+          AIが回答の整合性を確認中…
         </p>
       ) : null}
 
@@ -163,35 +352,30 @@ export function PortfolioRuleGuide({
         <div className="mt-4 space-y-3">
           <p className="whitespace-pre-wrap text-sm">{response.message}</p>
 
-          {response.question ? (
-            <div className="rounded-md border bg-white p-3">
-              <p className="text-sm font-medium">{response.question.text}</p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                <span className="font-medium text-slate-700">考え方：</span>
-                {response.question.explanation}
-              </p>
-            </div>
-          ) : null}
-
-          {isRequesting && response.question ? (
-            <p
-              className="rounded-md bg-slate-100 px-3 py-2 text-xs text-muted-foreground"
-              role="status"
-              aria-live="polite"
-              data-testid="portfolio-rule-guide-loading"
+          {response.consistencyNotes.length > 0 ? (
+            <div
+              className="space-y-1 rounded-md border border-amber-200 bg-amber-50 p-3"
+              data-testid="portfolio-rule-guide-consistency-notes"
             >
-              次の質問を生成中…
-            </p>
+              <p className="text-xs font-medium text-amber-800">
+                回答の整合性チェック
+              </p>
+              <ul className="list-disc space-y-1 pl-5 text-xs text-amber-800">
+                {response.consistencyNotes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            </div>
           ) : null}
 
           {response.suggestions.length > 0 ? (
             <div
               className="space-y-2"
-              aria-label="ポートフォリオ共通ルールの参考案"
+              aria-label="まだ決めていない項目の目安"
               data-testid="portfolio-rule-guide-suggestions"
             >
               <p className="text-xs font-medium text-muted-foreground">
-                条件から考えられる参考案
+                まだ決めていない項目の目安
               </p>
               {response.suggestions.map((suggestion) => (
                 <article
@@ -224,14 +408,6 @@ export function PortfolioRuleGuide({
             </div>
           ) : null}
 
-          {response.readyToReview ? (
-            <p className="text-xs text-muted-foreground">参考案を比較できます。</p>
-          ) : null}
-
-          {appliedMessage ? (
-            <p className="text-xs text-green-700">{appliedMessage}</p>
-          ) : null}
-
           {response.guidance.length > 0 ? (
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer">判断材料を見る</summary>
@@ -243,46 +419,31 @@ export function PortfolioRuleGuide({
             </details>
           ) : null}
 
-          {response.question ? (
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-2"
-              aria-busy={isRequesting}
-            >
-              <label className="block text-xs font-medium">
-                あなたの考え
-                <textarea
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  disabled={isRequesting}
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="まだ決めていない場合は、そのまま書いてください"
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
-                  data-testid="portfolio-rule-guide-answer"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={isRequesting || answer.trim() === ""}
-                className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
-                data-testid="portfolio-rule-guide-submit"
-              >
-                {isRequesting ? "考え中..." : "回答して次へ"}
-              </button>
-            </form>
-          ) : null}
-
           <p className="border-t pt-3 text-xs text-muted-foreground">
             {response.disclaimer}
           </p>
         </div>
       ) : null}
 
+      {appliedMessage ? (
+        <p className="mt-3 text-xs text-green-700">{appliedMessage}</p>
+      ) : null}
+
       {errorMessage ? (
-        <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
-          {errorMessage}
-        </p>
+        <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <p>{errorMessage}</p>
+          {isFinished && !response ? (
+            <button
+              type="button"
+              onClick={() => void requestSuggestions(answers)}
+              disabled={isRequesting}
+              className="mt-2 rounded-md border border-red-300 px-3 py-1 text-xs disabled:opacity-50"
+              data-testid="portfolio-rule-guide-retry"
+            >
+              AIの確認をやり直す
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <button

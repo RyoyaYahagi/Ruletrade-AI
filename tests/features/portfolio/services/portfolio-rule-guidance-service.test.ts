@@ -5,10 +5,12 @@ const {
   mockCallAi,
   mockGetAiDeveloperSettings,
   mockRunComplianceGate,
+  mockLoadPortfolioState,
 } = vi.hoisted(() => ({
   mockCallAi: vi.fn(),
   mockGetAiDeveloperSettings: vi.fn(),
   mockRunComplianceGate: vi.fn(),
+  mockLoadPortfolioState: vi.fn(),
 }));
 
 vi.mock("@/lib/ai/provider-gateway", () => ({
@@ -23,13 +25,13 @@ vi.mock("@/features/legal/services/compliance-gate-service", () => ({
   runComplianceGate: mockRunComplianceGate,
 }));
 
+vi.mock("@/features/portfolio/services/portfolio-compliance-service", () => ({
+  loadPortfolioState: mockLoadPortfolioState,
+}));
+
 const guidance = {
   message: "目的を整理します。",
-  question: {
-    key: "purpose",
-    text: "このポートフォリオの目的は何ですか？",
-    explanation: "目的により考える項目が変わります。",
-  },
+  question: null,
   suggestions: [
     {
       key: "balanced",
@@ -39,8 +41,9 @@ const guidance = {
       draft: { maxPositionPercent: 10 },
     },
   ],
-  progress: 25,
-  readyToReview: false,
+  consistencyNotes: ["回答間に注意したい点があります。"],
+  progress: 100,
+  readyToReview: true,
   guidance: ["目的"],
   disclaimer: "これは投資助言ではありません。",
 };
@@ -62,6 +65,10 @@ beforeEach(() => {
     riskLevel: "low",
     violations: [],
   });
+  mockLoadPortfolioState.mockResolvedValue({
+    cashAmount: 0,
+    positions: [],
+  });
 });
 
 describe("guidePortfolioCommonRule", () => {
@@ -69,7 +76,7 @@ describe("guidePortfolioCommonRule", () => {
     const result = await guidePortfolioCommonRule({
       userId: "user-1",
       requestId: "request-1",
-      input: { history: [], draft: {} },
+      input: { answers: [], draft: {} },
     });
 
     expect(result).toEqual(guidance);
@@ -87,6 +94,49 @@ describe("guidePortfolioCommonRule", () => {
         reviewType: "portfolio_rule_guidance",
       }),
     );
+    expect(mockRunComplianceGate.mock.calls[0]?.[0].text).toContain(
+      "回答間に注意したい点があります。",
+    );
+  });
+
+  it("includes holdings summary and decided draft in the prompt", async () => {
+    mockLoadPortfolioState.mockResolvedValue({
+      cashAmount: 100000,
+      positions: [
+        {
+          ticker: "5803",
+          market_value: 900000,
+          asset_type: "stock",
+          market: "JP",
+        },
+      ],
+    });
+
+    await guidePortfolioCommonRule({
+      userId: "user-1",
+      input: {
+        answers: [
+          {
+            key: "max_position_count",
+            question: "値動きやニュースを無理なく追える銘柄数は、いくつくらいですか？",
+            answer: "10銘柄くらいまで",
+            value: "10",
+          },
+          {
+            key: "risk_tolerance",
+            question: "資産全体が2割下がったとき、あなたの気持ちに一番近いのはどれですか？",
+            answer: "まだわからない",
+            value: "undecided",
+          },
+        ],
+        draft: {},
+      },
+    });
+
+    const promptArg = mockCallAi.mock.calls[0]?.[0].prompt as string;
+    expect(promptArg).toContain("保有銘柄数: 1銘柄");
+    expect(promptArg).toContain("maxPositionCount");
+    expect(promptArg).toContain("risk_tolerance");
   });
 
   it("does not return AI guidance when compliance blocks it", async () => {
@@ -99,7 +149,7 @@ describe("guidePortfolioCommonRule", () => {
     await expect(
       guidePortfolioCommonRule({
         userId: "user-1",
-        input: { history: [], draft: {} },
+        input: { answers: [], draft: {} },
       }),
     ).rejects.toMatchObject({ code: "SAFETY_FAILED", status: 422 });
   });
@@ -113,7 +163,7 @@ describe("guidePortfolioCommonRule", () => {
     await expect(
       guidePortfolioCommonRule({
         userId: "user-1",
-        input: { history: [], draft: {} },
+        input: { answers: [], draft: {} },
       }),
     ).rejects.toMatchObject({
       code: "AI_PROVIDER_ERROR",

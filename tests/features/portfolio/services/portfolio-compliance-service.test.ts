@@ -47,6 +47,61 @@ describe("evaluatePortfolioCompliance", () => {
     expect(sonyViolation?.actualPercent).toBe(30);
   });
 
+  it("excludes fund and etf positions from maxPositionPercent concentration checks", () => {
+    const rule = buildRule({ maxPositionPercent: 10 });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 100,
+      positions: [
+        { ticker: "ORACLE", market_value: 400, asset_type: "fund" },
+        { ticker: "VOO", market_value: 400, asset_type: "etf" },
+        { ticker: "5803", market_value: 100, asset_type: "stock" },
+      ],
+    });
+
+    expect(
+      result.violations.find((v) => v.subject === "ORACLE"),
+    ).toBeUndefined();
+    expect(result.violations.find((v) => v.subject === "VOO")).toBeUndefined();
+  });
+
+  it("still flags individual stocks exceeding maxPositionPercent alongside funds", () => {
+    const rule = buildRule({ maxPositionPercent: 10 });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 100,
+      positions: [
+        { ticker: "ORACLE", market_value: 400, asset_type: "fund" },
+        { ticker: "5803", market_value: 200, asset_type: "stock" },
+      ],
+    });
+
+    const violation = result.violations.find((v) => v.subject === "5803");
+    expect(violation).toBeDefined();
+    expect(violation?.actualPercent).toBe(28.57);
+  });
+
+  it("counts fund/etf positions toward maxPositionCount but excludes them from maxMarketPercent", () => {
+    const rule = buildRule({ maxPositionCount: 1, maxMarketPercent: 10 });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 100,
+      positions: [
+        { ticker: "ORACLE", market_value: 800, asset_type: "fund", market: "JP" },
+        { ticker: "VOO", market_value: 100, asset_type: "etf", market: "JP" },
+        { ticker: "5803", market_value: 100, asset_type: "stock", market: "US" },
+      ],
+    });
+
+    expect(
+      result.violations.find((v) => v.ruleKey === "max_position_count"),
+    ).toBeDefined();
+    expect(result.violations.find((v) => v.ruleKey === "max_market_percent")).toBeUndefined();
+  });
+
   it("aggregates multiple positions with the same ticker", () => {
     const rule = buildRule({ maxPositionPercent: 15 });
 
@@ -80,6 +135,94 @@ describe("evaluatePortfolioCompliance", () => {
     );
     expect(violation?.subject).toBe("データセンター");
     expect(violation?.actualPercent).toBe(40);
+  });
+
+  it("detects too many positions for maxPositionCount", () => {
+    const rule = buildRule({ maxPositionCount: 2 });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 100,
+      positions: [
+        { ticker: "5803", market_value: 100 },
+        { ticker: "5803", market_value: 100 },
+        { ticker: "6758", market_value: 100 },
+        { ticker: "7203", market_value: 100 },
+      ],
+    });
+
+    const violation = result.violations.find(
+      (v) => v.ruleKey === "max_position_count",
+    );
+    expect(violation).toBeDefined();
+    expect(violation?.limitPercent).toBe(2);
+    expect(violation?.actualPercent).toBe(3);
+  });
+
+  it("counts the same ticker once for maxPositionCount", () => {
+    const rule = buildRule({ maxPositionCount: 2 });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 100,
+      positions: [
+        { ticker: "5803", market_value: 100 },
+        { ticker: "5803", market_value: 100 },
+      ],
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("detects market concentration beyond maxMarketPercent", () => {
+    const rule = buildRule({ maxMarketPercent: 50 });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 200,
+      positions: [
+        { ticker: "AAPL", market_value: 400, market: "US", asset_type: "stock" },
+        { ticker: "MSFT", market_value: 200, market: "US", asset_type: "stock" },
+        { ticker: "5803", market_value: 200, market: "JP", asset_type: "stock" },
+      ],
+    });
+
+    const violation = result.violations.find(
+      (v) => v.ruleKey === "max_market_percent",
+    );
+    expect(violation?.subject).toBe("US");
+    expect(violation?.actualPercent).toBe(60);
+  });
+
+  it("flags holdings of an excluded asset type", () => {
+    const rule = buildRule({ excludedAssetTypes: ["暗号資産"] });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 500,
+      positions: [
+        { ticker: "BTC", market_value: 500, asset_type: "暗号資産" },
+      ],
+    });
+
+    const violation = result.violations.find(
+      (v) => v.ruleKey === "excluded_asset_type",
+    );
+    expect(violation?.subject).toBe("暗号資産");
+    expect(violation?.severity).toBe("high");
+    expect(violation?.actualPercent).toBe(50);
+  });
+
+  it("stays quiet when no excluded asset type is held", () => {
+    const rule = buildRule({ excludedAssetTypes: ["暗号資産"] });
+
+    const result = evaluatePortfolioCompliance({
+      rule,
+      cashAmount: 500,
+      positions: [{ ticker: "5803", market_value: 500, asset_type: "stock" }],
+    });
+
+    expect(result.violations).toEqual([]);
   });
 
   it("detects cash below minCashPercent", () => {
@@ -163,6 +306,26 @@ describe("simulatePositionImpact", () => {
     expect(result.newViolations).toHaveLength(1);
     expect(result.newViolations[0]?.ruleKey).toBe("max_theme_percent");
     expect(result.themePercentAfter).toBe(50);
+  });
+
+  it("flags a candidate whose asset type is excluded", () => {
+    const rule = buildRule({ excludedAssetTypes: ["暗号資産"] });
+
+    const result = simulatePositionImpact({
+      rule,
+      cashAmount: 500,
+      positions: [{ ticker: "5803", market_value: 500, asset_type: "stock" }],
+      candidate: {
+        ticker: "BTC",
+        marketValue: 200,
+        assetType: "暗号資産",
+        fundedFromCash: true,
+      },
+    });
+
+    expect(result.before.violations).toEqual([]);
+    expect(result.newViolations).toHaveLength(1);
+    expect(result.newViolations[0]?.ruleKey).toBe("excluded_asset_type");
   });
 
   it("keeps total value stable when funded from cash", () => {

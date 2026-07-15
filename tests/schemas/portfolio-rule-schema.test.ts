@@ -15,11 +15,15 @@ describe("PortfolioCommonRuleSchema", () => {
 
   it("accepts a full common rule", () => {
     const result = PortfolioCommonRuleSchema.safeParse({
+      riskTolerance: "balanced",
+      maxPositionCount: 10,
       maxPositionPercent: 10,
       maxSectorPercent: 25,
       maxThemePercent: 20,
+      maxMarketPercent: 60,
       minCashPercent: 10,
       maxSingleTradeLossPercent: 2,
+      excludedAssetTypes: ["レバレッジ型商品", "暗号資産"],
       targetAllocations: [
         { key: "stock", targetPercent: 80 },
         { key: "cash", targetPercent: 15, tolerancePercent: 3 },
@@ -30,6 +34,42 @@ describe("PortfolioCommonRuleSchema", () => {
     expect(result.success).toBe(true);
     expect(result.data?.targetAllocations[0]?.tolerancePercent).toBe(5);
     expect(result.data?.targetAllocations[1]?.tolerancePercent).toBe(3);
+    expect(result.data?.riskTolerance).toBe("balanced");
+    expect(result.data?.maxPositionCount).toBe(10);
+    expect(result.data?.excludedAssetTypes).toEqual([
+      "レバレッジ型商品",
+      "暗号資産",
+    ]);
+  });
+
+  it("parses a rule saved before the new fields existed", () => {
+    const result = PortfolioCommonRuleSchema.safeParse({
+      maxPositionPercent: 10,
+      minCashPercent: 10,
+      targetAllocations: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.riskTolerance).toBeUndefined();
+    expect(result.data?.maxPositionCount).toBeUndefined();
+    expect(result.data?.maxMarketPercent).toBeUndefined();
+    expect(result.data?.excludedAssetTypes).toEqual([]);
+  });
+
+  it("rejects an unknown risk tolerance", () => {
+    const result = PortfolioCommonRuleSchema.safeParse({
+      riskTolerance: "extreme",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a non-integer position count", () => {
+    const result = PortfolioCommonRuleSchema.safeParse({
+      maxPositionCount: 5.5,
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("rejects percentages over 100", () => {
