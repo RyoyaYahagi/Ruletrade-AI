@@ -1,6 +1,10 @@
 import "server-only";
 
-export type HealthAiProvider = "mock" | "openai" | "gemini";
+export type HealthAiProvider =
+  | "mock"
+  | "openai"
+  | "gemini"
+  | "codex-app-server";
 
 export type ProviderHealth = {
   provider: HealthAiProvider;

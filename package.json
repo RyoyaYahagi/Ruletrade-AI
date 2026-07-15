@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:eval": "tsx scripts/run-evals.ts",
-    "codex:smoke": "tsx scripts/codex-ai-smoke.ts"
+    "codex:smoke": "tsx scripts/codex-ai-smoke.ts",
+    "codex:app-server": "codex app-server --listen ws://127.0.0.1:8765"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

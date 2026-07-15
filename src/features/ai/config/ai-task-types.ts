@@ -28,7 +28,7 @@ export type AIAgentName =
   | "compliance_agent"
   | "eval_agent";
 
-export type AIProviderKey = "mock" | "openai" | "gemini";
+export type AIProviderKey = "mock" | "openai" | "gemini" | "codex-app-server";
 
 export type AIModelCostTier =
   | "free_mock"

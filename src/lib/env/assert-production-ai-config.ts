@@ -1,6 +1,7 @@
 import "server-only";
 
 import { AppError } from "@/lib/errors/app-error";
+import { assertCodexAppServerLocalOnly } from "@/lib/ai/codex-app-server-access";
 
 export function assertProductionAiConfig() {
   if (process.env.NODE_ENV !== "production") {
@@ -15,6 +16,10 @@ export function assertProductionAiConfig() {
       "AI_PROVIDER must not be mock in production.",
       500,
     );
+  }
+
+  if (provider === "codex-app-server") {
+    assertCodexAppServerLocalOnly();
   }
 
   if (provider === "openai" && !process.env.OPENAI_API_KEY) {

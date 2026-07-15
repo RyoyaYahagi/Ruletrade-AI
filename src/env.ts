@@ -11,12 +11,16 @@ const EnvSchema = z.object({
   LOCAL_STORAGE_PATH: z.string().default("./data/storage"),
 
   AI_PROVIDER: z
-    .enum(["mock", "openai", "gemini", "anthropic"])
+    .enum(["mock", "openai", "gemini", "anthropic", "codex-app-server"])
     .default("mock"),
 
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   OPENAI_CODEX_MODEL: z.string().optional(),
+
+  CODEX_APP_SERVER_URL: z.string().url().optional(),
+  CODEX_APP_SERVER_PORT: z.coerce.number().int().positive().default(8765),
+  CODEX_APP_SERVER_MODEL: z.string().default("gpt-5.4-mini"),
 
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default("gemini-2.0-flash"),
@@ -75,6 +79,10 @@ export const env = EnvSchema.parse({
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   OPENAI_MODEL: process.env.OPENAI_MODEL,
   OPENAI_CODEX_MODEL: process.env.OPENAI_CODEX_MODEL,
+
+  CODEX_APP_SERVER_URL: process.env.CODEX_APP_SERVER_URL,
+  CODEX_APP_SERVER_PORT: process.env.CODEX_APP_SERVER_PORT,
+  CODEX_APP_SERVER_MODEL: process.env.CODEX_APP_SERVER_MODEL,
 
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   GEMINI_MODEL: process.env.GEMINI_MODEL,

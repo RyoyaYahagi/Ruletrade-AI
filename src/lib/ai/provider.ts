@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-export type AIProviderKey = "mock" | "openai" | "gemini";
+export type AIProviderKey = "mock" | "openai" | "gemini" | "codex-app-server";
 
 export type AITaskType =
   | "intake_question"

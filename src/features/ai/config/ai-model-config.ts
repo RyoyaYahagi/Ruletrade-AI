@@ -24,7 +24,12 @@ function envModel(taskType: AITaskType, fallback: string): string {
 
 function getConfiguredProvider(): AIProviderKey {
   const provider = process.env.AI_PROVIDER;
-  if (provider === "openai" || provider === "gemini" || provider === "mock") {
+  if (
+    provider === "openai" ||
+    provider === "gemini" ||
+    provider === "mock" ||
+    provider === "codex-app-server"
+  ) {
     return provider;
   }
   return "mock";

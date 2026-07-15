@@ -37,6 +37,12 @@ describe("provider-factory", () => {
     expect(provider.constructor.name).toBe("GeminiProvider");
   });
 
+  it("codex-app-server 設定時に CodexAppServerProvider を返す", () => {
+    vi.stubEnv("AI_PROVIDER", "codex-app-server");
+    const provider = getAIProvider();
+    expect(provider.constructor.name).toBe("CodexAppServerProvider");
+  });
+
   it("無効な値の場合は MockProvider にフォールバックする", () => {
     vi.stubEnv("AI_PROVIDER", "unknown");
     const provider = getAIProvider();

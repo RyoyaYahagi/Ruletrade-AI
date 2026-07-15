@@ -13,7 +13,12 @@ export type { AIProviderKey } from "./provider";
 export function getConfiguredAIProvider(): AIProviderKey {
   const provider = process.env.AI_PROVIDER;
 
-  if (provider === "openai" || provider === "gemini" || provider === "mock") {
+  if (
+    provider === "openai" ||
+    provider === "gemini" ||
+    provider === "mock" ||
+    provider === "codex-app-server"
+  ) {
     return provider;
   }
 
@@ -26,6 +31,10 @@ export function getOpenAIModel(): string {
 
 export function getGeminiModel(): string {
   return process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+}
+
+export function getCodexAppServerModel(): string {
+  return process.env.CODEX_APP_SERVER_MODEL ?? "gpt-5.4-mini";
 }
 
 export function getAITimeoutMs(): number {
@@ -293,7 +302,8 @@ export function resolveAIModelConfig(
     providerOverride &&
     (providerOverride === "openai" ||
       providerOverride === "gemini" ||
-      providerOverride === "mock")
+      providerOverride === "mock" ||
+      providerOverride === "codex-app-server")
   ) {
     return {
       ...config,

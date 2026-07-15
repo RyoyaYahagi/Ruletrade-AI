@@ -12,6 +12,7 @@ import type { AiRunSourceType } from "@/lib/ai/logs/ai-run-log-types";
 import { GeminiProvider } from "@/lib/ai/providers/gemini-provider";
 import { MockProvider } from "@/lib/ai/providers/mock-provider";
 import { OpenAIProvider } from "@/lib/ai/providers/openai-provider";
+import { CodexAppServerProvider } from "@/lib/ai/providers/codex-app-server-provider";
 import {
   recordProviderSuccess,
   recordProviderFailure,
@@ -28,7 +29,7 @@ const defaultModelByWeight: Record<TaskWeight, string> = {
   heavy: "gpt-4.1",
 };
 
-export type AiProvider = "mock" | "openai" | "gemini";
+export type AiProvider = "mock" | "openai" | "gemini" | "codex-app-server";
 
 export type AiCallOptions<TOutput> = {
   provider?: AiProvider;
@@ -292,7 +293,21 @@ function getProviderForCall(provider?: AiProvider): AIProvider {
   if (provider) {
     return instantiateProvider(provider);
   }
-  const best = pickBestProvider(["openai", "gemini", "mock"]);
+  const configured = process.env.AI_PROVIDER;
+  if (
+    configured === "mock" ||
+    configured === "openai" ||
+    configured === "gemini" ||
+    configured === "codex-app-server"
+  ) {
+    return instantiateProvider(configured);
+  }
+  const best = pickBestProvider([
+    "openai",
+    "gemini",
+    "codex-app-server",
+    "mock",
+  ]);
   if (!best) {
     throw new AIProviderError(
       "AI_PROVIDER_REQUEST_FAILED",
@@ -310,6 +325,8 @@ function instantiateProvider(provider: AiProvider): AIProvider {
       return new OpenAIProvider();
     case "gemini":
       return new GeminiProvider();
+    case "codex-app-server":
+      return new CodexAppServerProvider();
     default: {
       const configured = getConfiguredAIProvider();
       return instantiateProvider(configured as AiProvider);
@@ -318,7 +335,12 @@ function instantiateProvider(provider: AiProvider): AIProvider {
 }
 
 function getProviderCandidates(preferred?: AiProvider): HealthAiProvider[] {
-  const all: HealthAiProvider[] = ["openai", "gemini", "mock"];
+  const all: HealthAiProvider[] = [
+    "openai",
+    "gemini",
+    "codex-app-server",
+    "mock",
+  ];
   if (!preferred) return all;
   // Put preferred first, then others
   return [preferred, ...all.filter((p) => p !== preferred)];

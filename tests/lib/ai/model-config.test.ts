@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   getConfiguredAIProvider,
+  getCodexAppServerModel,
   getOpenAIModel,
   getGeminiModel,
   getAITimeoutMs,
@@ -28,6 +29,11 @@ describe("model-config", () => {
     it("gemini を返す", () => {
       vi.stubEnv("AI_PROVIDER", "gemini");
       expect(getConfiguredAIProvider()).toBe("gemini");
+    });
+
+    it("codex-app-server を返す", () => {
+      vi.stubEnv("AI_PROVIDER", "codex-app-server");
+      expect(getConfiguredAIProvider()).toBe("codex-app-server");
     });
 
     it("mock を返す", () => {
@@ -67,6 +73,18 @@ describe("model-config", () => {
     it("未設定の場合はデフォルト値を返す", () => {
       vi.stubEnv("GEMINI_MODEL", undefined);
       expect(getGeminiModel()).toBe("gemini-2.5-flash");
+    });
+  });
+
+  describe("getCodexAppServerModel", () => {
+    it("環境変数が設定されている場合はその値を返す", () => {
+      vi.stubEnv("CODEX_APP_SERVER_MODEL", "gpt-5.4");
+      expect(getCodexAppServerModel()).toBe("gpt-5.4");
+    });
+
+    it("未設定の場合はデフォルト値を返す", () => {
+      vi.stubEnv("CODEX_APP_SERVER_MODEL", undefined);
+      expect(getCodexAppServerModel()).toBe("gpt-5.4-mini");
     });
   });
 
@@ -155,6 +173,12 @@ describe("model-config", () => {
       vi.stubEnv("AI_PROVIDER", "gemini");
       const config = resolveAIModelConfig({ taskType: "rule_review" });
       expect(config.provider).toBe("gemini");
+    });
+
+    it("codex-app-server の provider override が反映される", () => {
+      vi.stubEnv("AI_PROVIDER", "codex-app-server");
+      const config = resolveAIModelConfig({ taskType: "rule_review" });
+      expect(config.provider).toBe("codex-app-server");
     });
   });
 });

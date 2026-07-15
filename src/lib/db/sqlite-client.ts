@@ -361,7 +361,7 @@ export class SqliteQueryBuilder {
 }
 
 function normalizeWriteRow(row: Row, includeId = true): Row {
-  const source = includeId ? { id: row.id ?? randomUUID(), ...row } : row;
+  const source = includeId ? { ...row, id: row.id ?? randomUUID() } : row;
   return Object.fromEntries(
     Object.entries(source).map(([key, value]) => [key, serializeValue(value)]),
   );

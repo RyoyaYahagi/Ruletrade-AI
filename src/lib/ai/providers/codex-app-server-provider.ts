@@ -3,6 +3,7 @@ import "server-only";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { z } from "zod";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
+import { assertCodexAppServerLocalOnly } from "@/lib/ai/codex-app-server-access";
 import { getAITimeoutMs } from "@/lib/ai/model-config";
 import type {
   AIProvider,
@@ -14,8 +15,132 @@ import type {
 import { normalizeAIUsage } from "@/lib/ai/usage/token-usage";
 
 const DEFAULT_MODEL = "gpt-5.4-mini";
+const CONNECTION_TIMEOUT_MS = 5_000;
+
+export type CodexAppServerLoginMode = "browser" | "device-code";
+
+export type CodexAccountStatus = {
+  authenticated: boolean;
+  authMode: string | null;
+  planType: string | null;
+};
+
+export type CodexChatGPTLogin =
+  | {
+      mode: "browser";
+      loginId: string;
+      authUrl: string;
+    }
+  | {
+      mode: "device-code";
+      loginId: string;
+      verificationUrl: string;
+      userCode: string;
+    };
+
+type Notification = { method: string; params?: unknown };
+type NotificationHandler = (message: Notification) => void;
+type RpcError = { code?: number; message?: string; data?: unknown };
+
+type RpcResult = Record<string, unknown>;
+
+class AppServerRpcError extends Error {
+  constructor(public readonly rpcError: RpcError) {
+    super(rpcError.message ?? "Codex app server RPC request failed.");
+    this.name = "AppServerRpcError";
+  }
+}
+
+export class CodexAppServerClient {
+  private readonly pending = new Map<
+    number,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  >();
+  private readonly handlers: NotificationHandler[] = [];
+  private nextRequestId = 0;
+
+  constructor(private readonly ws: WebSocket) {
+    ws.onmessage = (event) => {
+      let message: Record<string, unknown>;
+      try {
+        message = JSON.parse(event.data as string) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+
+      if (typeof message.id === "number") {
+        const handler = this.pending.get(message.id);
+        if (!handler) return;
+
+        this.pending.delete(message.id);
+        if (message.error) {
+          handler.reject(new AppServerRpcError(message.error as RpcError));
+        } else {
+          handler.resolve(message.result);
+        }
+        return;
+      }
+
+      if (typeof message.method === "string") {
+        const notification = {
+          method: message.method,
+          params: message.params,
+        };
+        for (const handler of this.handlers) {
+          handler(notification);
+        }
+      }
+    };
+  }
+
+  onNotification(handler: NotificationHandler): () => void {
+    this.handlers.push(handler);
+    return () => {
+      const index = this.handlers.indexOf(handler);
+      if (index >= 0) this.handlers.splice(index, 1);
+    };
+  }
+
+  request<T = unknown>(method: string, params?: unknown): Promise<T> {
+    const id = ++this.nextRequestId;
+    return new Promise<T>((resolve, reject) => {
+      this.pending.set(id, {
+        resolve: (value) => resolve(value as T),
+        reject,
+      });
+      try {
+        this.ws.send(
+          JSON.stringify({
+            id,
+            method,
+            ...(params === undefined ? {} : { params }),
+          }),
+        );
+      } catch (error) {
+        this.pending.delete(id);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+  }
+
+  notify(method: string, params?: unknown): void {
+    this.ws.send(
+      JSON.stringify({
+        method,
+        ...(params === undefined ? {} : { params }),
+      }),
+    );
+  }
+
+  close(): void {
+    this.ws.close();
+  }
+}
 
 export function getCodexAppServerUrl(): string {
+  const configuredUrl = process.env.CODEX_APP_SERVER_URL?.trim();
+  if (configuredUrl) return configuredUrl;
+
   const port = process.env.CODEX_APP_SERVER_PORT ?? "8765";
   return `ws://127.0.0.1:${port}`;
 }
@@ -24,101 +149,41 @@ export function getCodexAppServerModel(): string {
   return process.env.CODEX_APP_SERVER_MODEL ?? DEFAULT_MODEL;
 }
 
-type Notification = { method: string; params: unknown };
-type NotificationHandler = (msg: Notification) => void;
-
-class AppServerClient {
-  private ws: WebSocket;
-  private pending = new Map<
-    number,
-    { resolve: (v: unknown) => void; reject: (e: Error) => void }
-  >();
-  private handlers: NotificationHandler[] = [];
-  private idCounter = 0;
-
-  constructor(ws: WebSocket) {
-    this.ws = ws;
-    ws.onmessage = (ev) => {
-      let msg: Record<string, unknown>;
-      try {
-        msg = JSON.parse(ev.data as string) as Record<string, unknown>;
-      } catch {
-        return;
-      }
-      if ("id" in msg) {
-        const id = msg.id as number;
-        const handler = this.pending.get(id);
-        if (handler) {
-          this.pending.delete(id);
-          if (msg.error) {
-            handler.reject(new Error(JSON.stringify(msg.error)));
-          } else {
-            handler.resolve(msg.result);
-          }
-        }
-      } else if ("method" in msg) {
-        for (const fn of this.handlers) {
-          fn({ method: msg.method as string, params: msg.params });
-        }
-      }
-    };
-  }
-
-  onNotification(fn: NotificationHandler): () => void {
-    this.handlers.push(fn);
-    return () => {
-      this.handlers = this.handlers.filter((h) => h !== fn);
-    };
-  }
-
-  request(method: string, params: unknown): Promise<unknown> {
-    const id = ++this.idCounter;
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws.send(JSON.stringify({ id, method, params }));
-    });
-  }
-
-  close() {
-    this.ws.close();
-  }
-}
-
-function connect(url: string): Promise<AppServerClient> {
+export function connectCodexAppServer(
+  url = getCodexAppServerUrl(),
+): Promise<CodexAppServerClient> {
+  assertCodexAppServerLocalOnly();
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(
-        new AIProviderError(
-          "AI_PROVIDER_REQUEST_FAILED",
-          `Codex app server に接続できません (${url})。先に \`codex app-server --listen ws://localhost:PORT\` を起動してください。`,
-          undefined,
-          false,
-        ),
-      );
-    }, 5_000);
-
+    let settled = false;
     const ws = new WebSocket(url);
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      ws.close();
+      reject(createConnectionError(url));
+    }, CONNECTION_TIMEOUT_MS);
+
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(createConnectionError(url));
+    };
 
     ws.onopen = () => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
-      resolve(new AppServerClient(ws));
+      resolve(new CodexAppServerClient(ws));
     };
-
-    ws.onerror = () => {
-      clearTimeout(timer);
-      reject(
-        new AIProviderError(
-          "AI_PROVIDER_REQUEST_FAILED",
-          `Codex app server に接続できません (${url})。先に \`codex app-server --listen ws://localhost:PORT\` を起動してください。`,
-          undefined,
-          false,
-        ),
-      );
-    };
+    ws.onerror = fail;
+    ws.onclose = fail;
   });
 }
 
-async function initialize(client: AppServerClient): Promise<void> {
+export async function initializeCodexAppServer(
+  client: CodexAppServerClient,
+): Promise<void> {
   await client.request("initialize", {
     clientInfo: {
       name: "ruletrade-ai",
@@ -127,42 +192,125 @@ async function initialize(client: AppServerClient): Promise<void> {
     },
     capabilities: { experimentalApi: false },
   });
+
+  // The protocol requires this notification before any subsequent request.
+  client.notify("initialized", {});
 }
 
-async function startThread(
-  client: AppServerClient,
-  model: string,
-  systemPrompt?: string,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const unsub = client.onNotification((msg) => {
-      if (msg.method === "thread/started") {
-        unsub();
-        const thread = (msg.params as { thread: { id: string } }).thread;
-        resolve(thread.id);
-      } else if (msg.method === "error") {
-        unsub();
-        reject(new Error(JSON.stringify(msg.params)));
-      }
-    });
+async function withCodexAppServer<T>(
+  operation: (client: CodexAppServerClient) => Promise<T>,
+): Promise<T> {
+  const client = await connectCodexAppServer();
+  try {
+    await initializeCodexAppServer(client);
+    return await operation(client);
+  } finally {
+    client.close();
+  }
+}
 
-    client
-      .request("thread/start", {
-        model,
-        ephemeral: true,
-        experimentalRawEvents: false,
-        persistExtendedHistory: false,
-        developerInstructions: systemPrompt ?? null,
-      })
-      .catch((e: unknown) => {
-        unsub();
-        reject(e);
-      });
+export async function readCodexAccount(): Promise<CodexAccountStatus> {
+  return withCodexAppServer(async (client) => {
+    const response = await client.request<{
+      account?: { type?: string; planType?: string } | null;
+    }>("account/read", { refreshToken: true });
+    const account = response.account;
+
+    return {
+      authenticated: Boolean(account?.type),
+      authMode: account?.type ?? null,
+      planType: account?.planType ?? null,
+    };
   });
 }
 
+export async function startCodexChatGPTLogin(
+  mode: CodexAppServerLoginMode = "browser",
+): Promise<CodexChatGPTLogin> {
+  return withCodexAppServer(async (client) => {
+    if (mode === "device-code") {
+      const response = await client.request<{
+        type?: string;
+        loginId?: string;
+        verificationUrl?: string;
+        userCode?: string;
+      }>("account/login/start", { type: "chatgptDeviceCode" });
+
+      if (!response.loginId || !response.verificationUrl || !response.userCode) {
+        throw new AIProviderError(
+          "AI_PROVIDER_REQUEST_FAILED",
+          "Codex app server がデバイスコードログイン情報を返しませんでした。",
+          response,
+          false,
+        );
+      }
+
+      return {
+        mode,
+        loginId: response.loginId,
+        verificationUrl: response.verificationUrl,
+        userCode: response.userCode,
+      };
+    }
+
+    const response = await client.request<{
+      type?: string;
+      loginId?: string;
+      authUrl?: string;
+    }>("account/login/start", {
+      type: "chatgpt",
+      useHostedLoginSuccessPage: true,
+      appBrand: "chatgpt",
+    });
+
+    if (!response.loginId || !response.authUrl) {
+      throw new AIProviderError(
+        "AI_PROVIDER_REQUEST_FAILED",
+        "Codex app server がChatGPTログインURLを返しませんでした。",
+        response,
+        false,
+      );
+    }
+
+    return { mode, loginId: response.loginId, authUrl: response.authUrl };
+  });
+}
+
+async function startThread(
+  client: CodexAppServerClient,
+  model: string,
+  systemPrompt?: string,
+): Promise<string> {
+  const response = await client.request<RpcResult>("thread/start", {
+    model,
+    ephemeral: true,
+    sandbox: "read-only",
+    approvalPolicy: "never",
+    developerInstructions: systemPrompt ?? null,
+    serviceName: "ruletrade-ai",
+  });
+  const threadId =
+    response?.thread &&
+    typeof response.thread === "object" &&
+    "id" in response.thread &&
+    typeof response.thread.id === "string"
+      ? response.thread.id
+      : null;
+
+  if (!threadId) {
+    throw new AIProviderError(
+      "AI_PROVIDER_REQUEST_FAILED",
+      "Codex app server がスレッドIDを返しませんでした。",
+      response,
+      false,
+    );
+  }
+
+  return threadId;
+}
+
 function runTurn(
-  client: AppServerClient,
+  client: CodexAppServerClient,
   threadId: string,
   userText: string,
   timeoutMs: number,
@@ -170,51 +318,66 @@ function runTurn(
 ): Promise<{ text: string }> {
   return new Promise((resolve, reject) => {
     let collected = "";
+    let finished = false;
+
+    const finish = (callback: () => void) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      unsubscribe();
+      callback();
+    };
 
     const timer = setTimeout(() => {
-      unsub();
-      reject(
-        new AIProviderError(
-          "AI_PROVIDER_TIMEOUT",
-          "Codex app server のターンがタイムアウトしました。",
-          undefined,
-          true,
+      finish(() =>
+        reject(
+          new AIProviderError(
+            "AI_PROVIDER_TIMEOUT",
+            "Codex app server のターンがタイムアウトしました。",
+            undefined,
+            true,
+          ),
         ),
       );
     }, timeoutMs);
 
-    const unsub = client.onNotification((msg) => {
-      if (msg.method === "item/agentMessage/delta") {
-        collected += (msg.params as { delta: string }).delta;
-      } else if (msg.method === "turn/completed") {
-        clearTimeout(timer);
-        unsub();
-        const turn = (
-          msg.params as {
-            turn?: { status?: string; error?: unknown };
-          }
-        ).turn;
+    const unsubscribe = client.onNotification((message) => {
+      if (message.method === "item/agentMessage/delta") {
+        const params = message.params as { delta?: unknown } | undefined;
+        if (typeof params?.delta === "string") collected += params.delta;
+        return;
+      }
+
+      if (message.method === "turn/completed") {
+        const turn = (message.params as { turn?: { status?: string; error?: unknown } } | undefined)
+          ?.turn;
         if (turn?.status === "failed") {
-          reject(
-            new AIProviderError(
-              "AI_PROVIDER_REQUEST_FAILED",
-              "Codex app server のターンが失敗しました。",
-              turn.error,
-              true,
+          finish(() =>
+            reject(
+              new AIProviderError(
+                "AI_PROVIDER_REQUEST_FAILED",
+                "Codex app server のターンが失敗しました。",
+                turn.error,
+                true,
+              ),
             ),
           );
           return;
         }
-        resolve({ text: collected });
-      } else if (msg.method === "error") {
-        clearTimeout(timer);
-        unsub();
-        reject(
-          new AIProviderError(
-            "AI_PROVIDER_REQUEST_FAILED",
-            "Codex app server がエラーを返しました。",
-            msg.params,
-            true,
+
+        finish(() => resolve({ text: collected }));
+        return;
+      }
+
+      if (message.method === "error") {
+        finish(() =>
+          reject(
+            new AIProviderError(
+              "AI_PROVIDER_REQUEST_FAILED",
+              "Codex app server がエラーを返しました。",
+              message.params,
+              true,
+            ),
           ),
         );
       }
@@ -222,16 +385,12 @@ function runTurn(
 
     const turnParams: Record<string, unknown> = {
       threadId,
-      input: [{ type: "text", text: userText, text_elements: [] }],
+      input: [{ type: "text", text: userText }],
     };
-    if (outputSchema !== undefined) {
-      turnParams.outputSchema = outputSchema;
-    }
+    if (outputSchema !== undefined) turnParams.outputSchema = outputSchema;
 
-    client.request("turn/start", turnParams).catch((e: unknown) => {
-      clearTimeout(timer);
-      unsub();
-      reject(e);
+    client.request("turn/start", turnParams).catch((error: unknown) => {
+      finish(() => reject(error instanceof Error ? error : new Error(String(error))));
     });
   });
 }
@@ -240,9 +399,9 @@ function buildUserText(
   messages: Array<{ role: string; content: string }>,
   schemaName?: string,
 ): string {
-  const parts = messages
-    .filter((m) => m.role !== "system")
-    .map((m) => `${m.role.toUpperCase()}:\n${m.content}`);
+  const parts = messages.map((message) =>
+    `${message.role.toUpperCase()}:\n${message.content}`,
+  );
 
   if (schemaName) {
     parts.push(`Return only valid JSON matching the ${schemaName} schema.`);
@@ -262,6 +421,7 @@ function parseJsonFromText(text: string): unknown {
       { rawText: text },
     );
   }
+
   try {
     return JSON.parse(trimmed.slice(start, end + 1));
   } catch {
@@ -273,12 +433,40 @@ function parseJsonFromText(text: string): unknown {
   }
 }
 
+function createConnectionError(url: string): AIProviderError {
+  return new AIProviderError(
+    "AI_PROVIDER_REQUEST_FAILED",
+    `Codex app server に接続できません (${url})。先に \`npm run codex:app-server\` を起動してください。`,
+    undefined,
+    false,
+  );
+}
+
+function normalizeProviderError(error: unknown): AIProviderError {
+  if (error instanceof AIProviderError) return error;
+  if (error instanceof AppServerRpcError) {
+    return new AIProviderError(
+      error.rpcError.code === -32001
+        ? "AI_PROVIDER_RATE_LIMITED"
+        : "AI_PROVIDER_REQUEST_FAILED",
+      error.message,
+      error.rpcError,
+      error.rpcError.code === -32001 || error.rpcError.code === -32603,
+    );
+  }
+
+  return new AIProviderError(
+    "AI_PROVIDER_REQUEST_FAILED",
+    "Codex app server でエラーが発生しました。",
+    error,
+    true,
+  );
+}
+
 export class CodexAppServerProvider implements AIProvider {
-  private wsUrl: string;
-  private model: string;
+  private readonly model: string;
 
   constructor() {
-    this.wsUrl = getCodexAppServerUrl();
     this.model = getCodexAppServerModel();
   }
 
@@ -287,83 +475,73 @@ export class CodexAppServerProvider implements AIProvider {
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
     const timeoutMs = getAITimeoutMs();
-    let client: AppServerClient | null = null;
 
     try {
-      client = await connect(this.wsUrl);
-      await initialize(client);
+      const text = await withCodexAppServer(async (client) => {
+        const systemPrompt = params.messages.find(
+          (message) => message.role === "system",
+        )?.content;
+        const threadId = await startThread(client, this.model, systemPrompt);
+        const outputSchema = zodToJsonSchema(
+          params.schema as unknown as Parameters<typeof zodToJsonSchema>[0],
+          params.schemaName,
+        );
+        const result = await runTurn(
+          client,
+          threadId,
+          buildUserText(params.messages, params.schemaName),
+          timeoutMs,
+          outputSchema,
+        );
+        return result.text;
+      });
 
-      const systemPrompt = params.messages.find(
-        (m) => m.role === "system",
-      )?.content;
-      const threadId = await startThread(client, this.model, systemPrompt);
-      const userText = buildUserText(params.messages, params.schemaName);
-      const outputSchema = zodToJsonSchema(
-        params.schema as unknown as Parameters<typeof zodToJsonSchema>[0],
-        params.schemaName,
-      );
-
-      const { text } = await runTurn(
-        client,
-        threadId,
-        userText,
-        timeoutMs,
-        outputSchema,
-      );
-
-      const parsedJson = parseJsonFromText(text);
-      const validated = params.schema.safeParse(parsedJson);
-
-      if (!validated.success) {
+      const parsed = params.schema.safeParse(parseJsonFromText(text));
+      if (!parsed.success) {
         throw new AIProviderError(
           "AI_OUTPUT_SCHEMA_INVALID",
           "Codex の出力がスキーマに一致しませんでした。",
-          validated.error.flatten(),
+          parsed.error.flatten(),
         );
       }
 
       return {
-        data: validated.data,
+        data: parsed.data,
         rawText: text,
         usage: normalizeAIUsage({}),
         meta: {
           provider: "codex-app-server",
           model: this.model,
           taskType: params.taskType,
+          agentName: params.agentName,
           promptVersion: params.promptVersion,
           fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };
     } catch (error) {
-      if (error instanceof AIProviderError) throw error;
-      throw new AIProviderError(
-        "AI_PROVIDER_REQUEST_FAILED",
-        "Codex app server でエラーが発生しました。",
-        error,
-        true,
-      );
-    } finally {
-      client?.close();
+      throw normalizeProviderError(error);
     }
   }
 
   async generateText(params: GenerateTextParams): Promise<GenerateTextResult> {
     const startedAt = Date.now();
     const timeoutMs = getAITimeoutMs();
-    let client: AppServerClient | null = null;
 
     try {
-      client = await connect(this.wsUrl);
-      await initialize(client);
-
-      const systemPrompt = params.messages.find(
-        (m) => m.role === "system",
-      )?.content;
-      const threadId = await startThread(client, this.model, systemPrompt);
-      const userText = buildUserText(params.messages);
-
-      const { text } = await runTurn(client, threadId, userText, timeoutMs);
+      const text = await withCodexAppServer(async (client) => {
+        const systemPrompt = params.messages.find(
+          (message) => message.role === "system",
+        )?.content;
+        const threadId = await startThread(client, this.model, systemPrompt);
+        const result = await runTurn(
+          client,
+          threadId,
+          buildUserText(params.messages),
+          timeoutMs,
+        );
+        return result.text;
+      });
 
       return {
         text,
@@ -372,21 +550,14 @@ export class CodexAppServerProvider implements AIProvider {
           provider: "codex-app-server",
           model: this.model,
           taskType: params.taskType,
+          agentName: params.agentName,
           promptVersion: params.promptVersion,
           fallbackUsed: false,
           latencyMs: Date.now() - startedAt,
         },
       };
     } catch (error) {
-      if (error instanceof AIProviderError) throw error;
-      throw new AIProviderError(
-        "AI_PROVIDER_REQUEST_FAILED",
-        "Codex app server でエラーが発生しました。",
-        error,
-        true,
-      );
-    } finally {
-      client?.close();
+      throw normalizeProviderError(error);
     }
   }
 }

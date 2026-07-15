@@ -39,13 +39,19 @@ export function resolveAIModelConfig(
   }
 
   // 3. 環境変数による provider override
-  const providerOverride = process.env.AI_PROVIDER as "openai" | "gemini" | "mock" | undefined;
+  const providerOverride = process.env.AI_PROVIDER as
+    | "openai"
+    | "gemini"
+    | "mock"
+    | "codex-app-server"
+    | undefined;
 
   if (
     providerOverride &&
     (providerOverride === "openai" ||
       providerOverride === "gemini" ||
-      providerOverride === "mock")
+      providerOverride === "mock" ||
+      providerOverride === "codex-app-server")
   ) {
     return {
       ...config,

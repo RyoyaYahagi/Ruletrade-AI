@@ -12,6 +12,7 @@ import { logAiRunEvent } from "@/lib/ai/logs/log-ai-run-event";
 import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
 import {
   getConfiguredAIProvider,
+  getCodexAppServerModel,
   getOpenAIModel,
   getGeminiModel,
 } from "@/lib/ai/model-config";
@@ -37,6 +38,7 @@ function getConfiguredModelForLog(): string {
   const provider = getConfiguredAIProvider();
   if (provider === "openai") return getOpenAIModel();
   if (provider === "gemini") return getGeminiModel();
+  if (provider === "codex-app-server") return getCodexAppServerModel();
   return "mock-model";
 }
 

@@ -216,6 +216,46 @@ Not allowed:
 - Treating a personal ChatGPT/Codex session as a shared backend credential
 - Bypassing AI Provider Gateway cost limits, safety checks, or logs for user-facing features
 
+### Local ChatGPT Login with Codex App Server
+
+Ruletrade-AI can use the locally running Codex App Server with the ChatGPT
+account managed by Codex. This is intentionally development-only: it must not
+turn one developer's ChatGPT account into a shared production credential.
+
+Start the local server in a separate terminal:
+
+```bash
+npm run codex:app-server
+```
+
+Then configure the app:
+
+```env
+AI_PROVIDER=codex-app-server
+CODEX_APP_SERVER_URL=ws://127.0.0.1:8765
+CODEX_APP_SERVER_MODEL=gpt-5.4-mini
+```
+
+After signing into the app, start the ChatGPT login flow with:
+
+```bash
+curl -X POST http://localhost:3000/api/ai/codex/login \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"browser"}'
+```
+
+Open the returned `authUrl` in a browser. The login state can be checked
+without exposing any token:
+
+```bash
+curl http://localhost:3000/api/ai/codex/account
+```
+
+The provider uses the same server-side AI Provider Gateway, structured-output
+validation, safety checks, compliance checks, rate limits, and AI run logging
+as the other providers. The production configuration guard rejects
+`codex-app-server` when `NODE_ENV=production`.
+
 ## Safety
 
 Ruletrade-AI does not provide investment advice.

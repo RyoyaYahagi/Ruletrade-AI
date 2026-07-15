@@ -3,7 +3,12 @@ import { z } from "zod";
 /**
  * Zod schema for AIProviderKey values.
  */
-export const AIProviderKeySchema = z.enum(["mock", "openai", "gemini"]);
+export const AIProviderKeySchema = z.enum([
+  "mock",
+  "openai",
+  "gemini",
+  "codex-app-server",
+]);
 
 /**
  * Zod schema for AITaskType values.
