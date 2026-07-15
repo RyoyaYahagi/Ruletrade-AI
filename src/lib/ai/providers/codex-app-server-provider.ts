@@ -1,7 +1,6 @@
 import "server-only";
 
-import { zodToJsonSchema } from "zod-to-json-schema";
-import type { z } from "zod";
+import { z } from "zod";
 import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { assertCodexAppServerLocalOnly } from "@/lib/ai/codex-app-server-access";
 import { getAITimeoutMs } from "@/lib/ai/model-config";
@@ -16,6 +15,8 @@ import { normalizeAIUsage } from "@/lib/ai/usage/token-usage";
 
 const DEFAULT_MODEL = "gpt-5.4-mini";
 const CONNECTION_TIMEOUT_MS = 5_000;
+const MIN_TURN_TIMEOUT_MS = 60_000;
+const CODEX_REASONING_EFFORT = "medium";
 
 export type CodexAppServerLoginMode = "browser" | "device-code";
 
@@ -43,6 +44,15 @@ type NotificationHandler = (message: Notification) => void;
 type RpcError = { code?: number; message?: string; data?: unknown };
 
 type RpcResult = Record<string, unknown>;
+type JsonSchema = {
+  type?: string;
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  items?: JsonSchema;
+  anyOf?: JsonSchema[];
+  oneOf?: JsonSchema[];
+  [key: string]: unknown;
+};
 
 class AppServerRpcError extends Error {
   constructor(public readonly rpcError: RpcError) {
@@ -386,6 +396,7 @@ function runTurn(
     const turnParams: Record<string, unknown> = {
       threadId,
       input: [{ type: "text", text: userText }],
+      effort: CODEX_REASONING_EFFORT,
     };
     if (outputSchema !== undefined) turnParams.outputSchema = outputSchema;
 
@@ -433,6 +444,83 @@ function parseJsonFromText(text: string): unknown {
   }
 }
 
+function toCodexOutputSchema(schema: z.ZodType): {
+  original: JsonSchema;
+  strict: JsonSchema;
+} {
+  const original = z.toJSONSchema(schema, { target: "draft-7" }) as JsonSchema;
+  return { original, strict: makeStrictJsonSchema(original) };
+}
+
+function makeStrictJsonSchema(schema: JsonSchema): JsonSchema {
+  const transformed: JsonSchema = { ...schema };
+
+  if (schema.properties) {
+    const required = new Set(schema.required ?? []);
+    transformed.properties = Object.fromEntries(
+      Object.entries(schema.properties).map(([key, propertySchema]) => {
+        const transformedProperty = makeStrictJsonSchema(propertySchema);
+        return [
+          key,
+          required.has(key)
+            ? transformedProperty
+            : {
+                anyOf: [transformedProperty, { type: "null" }],
+              },
+        ];
+      }),
+    );
+    transformed.required = Object.keys(schema.properties);
+  }
+
+  if (schema.items) {
+    transformed.items = makeStrictJsonSchema(schema.items);
+  }
+
+  if (schema.anyOf) {
+    transformed.anyOf = schema.anyOf.map(makeStrictJsonSchema);
+  }
+
+  if (schema.oneOf) {
+    transformed.oneOf = schema.oneOf.map(makeStrictJsonSchema);
+  }
+
+  return transformed;
+}
+
+function restoreOptionalJsonValues(value: unknown, schema: JsonSchema): unknown {
+  if (Array.isArray(value) && schema.items) {
+    return value.map((item) => restoreOptionalJsonValues(item, schema.items!));
+  }
+
+  if (!isJsonRecord(value)) return value;
+
+  if (schema.anyOf) {
+    const objectSchema = schema.anyOf.find((candidate) => candidate.type === "object");
+    return objectSchema
+      ? restoreOptionalJsonValues(value, objectSchema)
+      : value;
+  }
+
+  if (!schema.properties) return value;
+
+  const required = new Set(schema.required ?? []);
+  const restored = { ...value };
+  for (const [key, propertySchema] of Object.entries(schema.properties)) {
+    if (!(key in restored)) continue;
+    if (!required.has(key) && restored[key] === null) {
+      delete restored[key];
+      continue;
+    }
+    restored[key] = restoreOptionalJsonValues(restored[key], propertySchema);
+  }
+  return restored;
+}
+
+function isJsonRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function createConnectionError(url: string): AIProviderError {
   return new AIProviderError(
     "AI_PROVIDER_REQUEST_FAILED",
@@ -474,7 +562,7 @@ export class CodexAppServerProvider implements AIProvider {
     params: GenerateObjectParams<TSchema>,
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
-    const timeoutMs = getAITimeoutMs();
+    const timeoutMs = Math.max(getAITimeoutMs(), MIN_TURN_TIMEOUT_MS);
 
     try {
       const text = await withCodexAppServer(async (client) => {
@@ -482,21 +570,23 @@ export class CodexAppServerProvider implements AIProvider {
           (message) => message.role === "system",
         )?.content;
         const threadId = await startThread(client, this.model, systemPrompt);
-        const outputSchema = zodToJsonSchema(
-          params.schema as unknown as Parameters<typeof zodToJsonSchema>[0],
-          params.schemaName,
-        );
+        const outputSchema = toCodexOutputSchema(params.schema);
         const result = await runTurn(
           client,
           threadId,
           buildUserText(params.messages, params.schemaName),
           timeoutMs,
-          outputSchema,
+          outputSchema.strict,
         );
-        return result.text;
+        return {
+          text: result.text,
+          originalSchema: outputSchema.original,
+        };
       });
 
-      const parsed = params.schema.safeParse(parseJsonFromText(text));
+      const parsed = params.schema.safeParse(
+        restoreOptionalJsonValues(parseJsonFromText(text.text), text.originalSchema),
+      );
       if (!parsed.success) {
         throw new AIProviderError(
           "AI_OUTPUT_SCHEMA_INVALID",
@@ -507,7 +597,7 @@ export class CodexAppServerProvider implements AIProvider {
 
       return {
         data: parsed.data,
-        rawText: text,
+        rawText: text.text,
         usage: normalizeAIUsage({}),
         meta: {
           provider: "codex-app-server",
@@ -526,7 +616,7 @@ export class CodexAppServerProvider implements AIProvider {
 
   async generateText(params: GenerateTextParams): Promise<GenerateTextResult> {
     const startedAt = Date.now();
-    const timeoutMs = getAITimeoutMs();
+    const timeoutMs = Math.max(getAITimeoutMs(), MIN_TURN_TIMEOUT_MS);
 
     try {
       const text = await withCodexAppServer(async (client) => {

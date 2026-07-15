@@ -99,7 +99,14 @@ describe("CodexAppServerProvider", () => {
     expect(FakeWebSocket.sentMessages[3]?.params).toMatchObject({
       threadId: "thread-1",
       input: [{ type: "text" }],
+      effort: "medium",
     });
-    expect(FakeWebSocket.sentMessages[3]?.params?.outputSchema).toBeDefined();
+    expect(FakeWebSocket.sentMessages[3]?.params?.outputSchema).toMatchObject({
+      type: "object",
+      properties: {
+        answer: { type: "string" },
+      },
+      required: ["answer"],
+    });
   });
 });
