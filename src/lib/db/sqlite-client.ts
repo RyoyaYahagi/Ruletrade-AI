@@ -469,6 +469,7 @@ function ensureTableForColumns(table: string, columns: string[]) {
         `alter table ${quoteIdent(table)} add column ${quoteIdent(column)} text`,
       )
       .run();
+    existingColumns.add(column);
   }
 }
 

@@ -2,6 +2,8 @@ import "server-only";
 
 import { AppError } from "@/lib/errors/app-error";
 import { callAi } from "@/lib/ai/provider-gateway";
+import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
+import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import {
   PortfolioPositionImageImportSchema,
   type PortfolioPositionImportItem,
@@ -32,29 +34,40 @@ export async function extractPortfolioPositionsFromImages(params: {
     data: Buffer;
   }>;
 }) {
-  const result = await callAi({
-    weight: "heavy",
-    taskType: "portfolio_position_import",
-    agentName: "portfolio_import_agent",
-    system:
-      "あなたは投資口座の明細画像を構造化する抽出エージェントです。画像に書かれている事実だけを返してください。",
-    prompt: IMPORT_PROMPT,
-    outputSchema: PortfolioPositionImageImportSchema,
-    schemaName: "PortfolioPositionImageImport",
-    temperature: 0.1,
-    maxTokens: 4096,
+  const result = await runMeteredAiCall({
     userId: params.userId,
-    requestId: params.requestId,
-    sourceType: "portfolio",
-    inputJson: {
-      fileNames: params.images.map((image) => image.fileName),
-      imageCount: params.images.length,
+    feature: "portfolio_import",
+    estimatedCostUsd: ESTIMATED_AI_COST_USD.portfolio_import,
+    execute: async () => {
+      const result = await callAi({
+        weight: "heavy",
+        taskType: "portfolio_position_import",
+        agentName: "portfolio_import_agent",
+        system:
+          "あなたは投資口座の明細画像を構造化する抽出エージェントです。画像に書かれている事実だけを返してください。",
+        prompt: IMPORT_PROMPT,
+        outputSchema: PortfolioPositionImageImportSchema,
+        schemaName: "PortfolioPositionImageImport",
+        temperature: 0.1,
+        maxTokens: 4096,
+        userId: params.userId,
+        requestId: params.requestId,
+        sourceType: "portfolio",
+        inputJson: {
+          fileNames: params.images.map((image) => image.fileName),
+          imageCount: params.images.length,
+        },
+        images: params.images.map((image) => ({
+          data: image.data.toString("base64"),
+          mimeType: image.mimeType,
+          detail: "high" as const,
+        })),
+      });
+      return {
+        result,
+        actualCostUsd: result.ok ? result.estimatedCostUsd : undefined,
+      };
     },
-    images: params.images.map((image) => ({
-      data: image.data.toString("base64"),
-      mimeType: image.mimeType,
-      detail: "high" as const,
-    })),
   });
 
   if (!result.ok) {

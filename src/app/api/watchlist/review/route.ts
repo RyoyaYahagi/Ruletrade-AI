@@ -3,7 +3,8 @@ import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import { checkRateLimit } from "@/lib/rate-limit/check-rate-limit";
 import { incrementRateLimit } from "@/lib/rate-limit/increment-rate-limit";
-import { checkAiCostLimit } from "@/lib/cost-limit/check-ai-cost-limit";
+import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
+import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import { runWatchlistReview } from "@/features/watchlist/services/watchlist-review-service";
 
 export async function POST() {
@@ -19,14 +20,17 @@ export async function POST() {
       key: "ai_rule_review_hourly",
     });
 
-    await checkAiCostLimit({
+    const result = await runMeteredAiCall({
       userId: user.id,
-      estimatedNextCostUsd: 0.05,
-    });
-
-    const result = await runWatchlistReview({
-      userId: user.id,
-      requestId,
+      feature: "watchlist_review",
+      estimatedCostUsd: ESTIMATED_AI_COST_USD.watchlist_review,
+      execute: async () => ({
+        result: await runWatchlistReview({
+          userId: user.id,
+          requestId,
+        }),
+        actualCostUsd: undefined,
+      }),
     });
 
     await incrementRateLimit({

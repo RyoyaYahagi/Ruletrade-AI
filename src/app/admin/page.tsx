@@ -31,6 +31,13 @@ export default function AdminDashboardPage() {
           <h2 className="font-semibold">Audit Logs</h2>
           <p className="text-sm text-gray-500">Review admin actions</p>
         </Link>
+        <Link
+          href="/admin/ai-usage"
+          className="rounded border p-4 hover:bg-gray-50"
+        >
+          <h2 className="font-semibold">AI Usage</h2>
+          <p className="text-sm text-gray-500">Review usage and model pricing</p>
+        </Link>
       </div>
     </div>
   );

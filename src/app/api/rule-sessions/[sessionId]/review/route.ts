@@ -5,9 +5,8 @@ import { assertOwnRuleSession } from "@/features/rules/services/rule-ownership-s
 import { runRuleReview } from "@/features/rules/services/rule-review-service";
 import { checkRateLimit } from "@/lib/rate-limit/check-rate-limit";
 import { incrementRateLimit } from "@/lib/rate-limit/increment-rate-limit";
-import { checkAiCostLimit } from "@/lib/cost-limit/check-ai-cost-limit";
-import { incrementAiCostUsage } from "@/lib/cost-limit/increment-ai-cost-usage";
-import { ESTIMATED_AI_RULE_REVIEW_COST_USD } from "@/lib/cost-limit/cost-limit-types";
+import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
+import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 
 export async function POST(
   request: Request,
@@ -33,15 +32,21 @@ export async function POST(
       key: "ai_rule_review_daily",
     });
 
-    await checkAiCostLimit({
+    const result = await runMeteredAiCall({
       userId: user.id,
-      estimatedNextCostUsd: ESTIMATED_AI_RULE_REVIEW_COST_USD,
-    });
-
-    const result = await runRuleReview({
-      userId: user.id,
-      sessionId,
-      requestId,
+      feature: "rule_review",
+      estimatedCostUsd: ESTIMATED_AI_COST_USD.rule_review,
+      execute: async () => {
+        const result = await runRuleReview({
+          userId: user.id,
+          sessionId,
+          requestId,
+        });
+        return {
+          result,
+          actualCostUsd: result.estimatedCostUsd,
+        };
+      },
     });
 
     await incrementRateLimit({
@@ -53,13 +58,6 @@ export async function POST(
       userId: user.id,
       key: "ai_rule_review_daily",
     });
-
-    if (result.estimatedCostUsd) {
-      await incrementAiCostUsage({
-        userId: user.id,
-        costUsd: result.estimatedCostUsd,
-      });
-    }
 
     return apiSuccess(result);
   } catch (error) {

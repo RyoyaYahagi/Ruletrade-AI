@@ -11,6 +11,8 @@ import { calculatePortfolioAllocationSummary } from "@/features/portfolio/servic
 import { buildDraftFromAnswers } from "@/features/portfolio/services/portfolio-rule-answer-mapping";
 import { AppError } from "@/lib/errors/app-error";
 import { callAi } from "@/lib/ai/provider-gateway";
+import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
+import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import {
   PortfolioRuleGuidanceResponseSchema,
   type PortfolioRuleGuidanceRequest,
@@ -79,22 +81,33 @@ export async function guidePortfolioCommonRule(params: {
     holdingsSummaryText,
   });
 
-  const aiResult = await callAi({
-    provider: aiSettings.provider,
-    model: aiSettings.model,
-    weight: "standard",
-    system: prompt.system,
-    prompt: prompt.user,
-    outputSchema: PortfolioRuleGuidanceResponseSchema,
-    taskType: "portfolio_rule_guidance",
-    agentName: "portfolio_rule_guidance_agent",
-    promptVersion: PORTFOLIO_RULE_GUIDANCE_PROMPT_VERSION,
-    schemaName: "PortfolioRuleGuidance",
+  const aiResult = await runMeteredAiCall({
     userId: params.userId,
-    requestId: params.requestId,
-    sourceType: "portfolio",
-    sourceId: "portfolio-rule-guidance",
-    inputJson: params.input,
+    feature: "portfolio_rule_guidance",
+    estimatedCostUsd: ESTIMATED_AI_COST_USD.portfolio_rule_guidance,
+    execute: async () => {
+      const result = await callAi({
+        provider: aiSettings.provider,
+        model: aiSettings.model,
+        weight: "standard",
+        system: prompt.system,
+        prompt: prompt.user,
+        outputSchema: PortfolioRuleGuidanceResponseSchema,
+        taskType: "portfolio_rule_guidance",
+        agentName: "portfolio_rule_guidance_agent",
+        promptVersion: PORTFOLIO_RULE_GUIDANCE_PROMPT_VERSION,
+        schemaName: "PortfolioRuleGuidance",
+        userId: params.userId,
+        requestId: params.requestId,
+        sourceType: "portfolio",
+        sourceId: "portfolio-rule-guidance",
+        inputJson: params.input,
+      });
+      return {
+        result,
+        actualCostUsd: result.ok ? result.estimatedCostUsd : undefined,
+      };
+    },
   });
 
   if (!aiResult.ok) {

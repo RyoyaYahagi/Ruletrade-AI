@@ -22,6 +22,13 @@ export async function checkAiCostLimit(params: {
     .eq("period_end", periodEnd)
     .maybeSingle();
 
+  const { data: budgetSetting, error: budgetSettingError } = await db
+    .from("user_ai_budget_settings")
+    .select("monthly_limit_usd")
+    .eq("user_id", params.userId)
+    .limit(1)
+    .maybeSingle();
+
   if (error) {
     throw new AppError(
       "DATABASE_ERROR",
@@ -32,9 +39,21 @@ export async function checkAiCostLimit(params: {
     );
   }
 
+  if (budgetSettingError) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "AI利用上限設定の確認に失敗しました。",
+      500,
+      { originalError: budgetSettingError.message },
+      false,
+    );
+  }
+
   const usedCostUsd = Number(data?.used_cost_usd ?? 0);
   const limitCostUsd = Number(
-    data?.limit_cost_usd ?? DEFAULT_MONTHLY_AI_COST_LIMIT_USD,
+    budgetSetting?.monthly_limit_usd ??
+      data?.limit_cost_usd ??
+      DEFAULT_MONTHLY_AI_COST_LIMIT_USD,
   );
 
   if (usedCostUsd + estimatedNextCostUsd > limitCostUsd) {

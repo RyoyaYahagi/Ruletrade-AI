@@ -13,6 +13,7 @@ export const NotificationTypeSchema = z.enum([
   "document_summary_completed",
   "document_index_failed",
   "system_notice",
+  "ai_budget_warning",
 ]);
 
 export const NotificationSeveritySchema = z.enum([
