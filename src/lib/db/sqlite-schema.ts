@@ -132,11 +132,25 @@ const schemaStatements = [
     suggested_question text,
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists holistic_reviews (
+    id text primary key,
+    user_id text not null,
+    period text not null,
+    review_json text not null,
+    summary_text text not null,
+    model text not null,
+    estimated_cost_usd real,
+    safety_passed integer not null default 1,
+    notification_id text,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now'))
+  )`,
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
   `create index if not exists idx_rule_reviews_session_created on rule_reviews(session_id, created_at desc)`,
   `create index if not exists idx_rule_quality_checks_review on rule_quality_checks(review_id)`,
+  `create unique index if not exists idx_holistic_reviews_user_period on holistic_reviews(user_id, period)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
 ];

@@ -9,6 +9,7 @@ export const NotificationTypeSchema = z.enum([
   "watchlist_review_due",
   "portfolio_missing_rules",
   "portfolio_review_due",
+  "holistic_review_ready",
   "document_extraction_completed",
   "document_summary_completed",
   "document_index_failed",
