@@ -132,11 +132,32 @@ const schemaStatements = [
     suggested_question text,
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists price_quotes (
+    id text primary key,
+    symbol text not null,
+    market text not null default 'JP',
+    quote_date text not null,
+    close_price real not null,
+    currency text not null default 'JPY',
+    source text not null,
+    created_at text not null default (datetime('now')),
+    unique (symbol, market, quote_date)
+  )`,
+  `create table if not exists fx_rates (
+    id text primary key,
+    pair text not null,
+    rate_date text not null,
+    rate real not null,
+    source text not null,
+    created_at text not null default (datetime('now')),
+    unique (pair, rate_date)
+  )`,
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
   `create index if not exists idx_rule_reviews_session_created on rule_reviews(session_id, created_at desc)`,
   `create index if not exists idx_rule_quality_checks_review on rule_quality_checks(review_id)`,
+  `create index if not exists idx_price_quotes_symbol_date on price_quotes(symbol, market, quote_date desc)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
 ];

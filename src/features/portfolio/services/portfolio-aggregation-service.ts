@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getLatestQuotes, quoteMapKey } from "@/lib/prices/price-quote-service";
+
 type PortfolioAllocationSlice = {
   key: string;
   label: string;
@@ -27,11 +29,15 @@ export function calculatePortfolioSummary(params: {
   positions: Array<{
     ticker: string;
     company_name?: string | null;
-    market_value: number;
+    market_value: number | string | null;
     sector?: string | null;
     theme?: string | null;
     currency?: string | null;
     rule_session_id?: string | null;
+    current_price?: number | string | null;
+    priceSource?: "manual" | "auto";
+    priceAsOf?: string | null;
+    isStale?: boolean;
   }>;
 }) {
   const totalPositionValue = params.positions.reduce(
@@ -85,6 +91,67 @@ export function calculatePortfolioSummary(params: {
       (position) => !position.rule_session_id,
     ).length,
   };
+}
+
+export async function applyLatestQuotesToPositions<
+  T extends {
+    ticker: string;
+    market?: string | null;
+    quantity?: number | string | null;
+    current_price?: number | string | null;
+    market_value: number | string | null;
+  },
+>(params: {
+  positions: T[];
+}): Promise<
+  Array<
+    T & {
+      priceSource: "manual" | "auto";
+      priceAsOf: string | null;
+      isStale: boolean;
+    }
+  >
+> {
+  const symbols = Array.from(
+    new Map(
+      params.positions
+        .filter((position) => position.market && position.ticker)
+        .map((position) => [
+          quoteMapKey(position.ticker, position.market!),
+          { symbol: position.ticker, market: position.market! },
+        ]),
+    ).values(),
+  );
+  const quotes = await getLatestQuotes({ symbols });
+
+  return params.positions.map((position) => {
+    const latest = position.market
+      ? quotes.get(quoteMapKey(position.ticker, position.market))
+      : undefined;
+
+    if (!latest?.quote) {
+      return {
+        ...position,
+        priceSource: "manual" as const,
+        priceAsOf: null,
+        isStale: false,
+      };
+    }
+
+    const quantity = Number(position.quantity);
+    const hasQuantity = Number.isFinite(quantity);
+
+    return {
+      ...position,
+      current_price: latest.quote.closePrice,
+      market_value: hasQuantity
+        ? latest.quote.closePrice * quantity
+        : position.market_value,
+      priceSource: "auto" as const,
+      priceAsOf: latest.quote.quoteDate,
+      isStale: latest.isStale,
+    };
+  });
 }
 
 export function calculatePortfolioAllocationSummary(params: {

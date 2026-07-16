@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { getOrCreateMainPortfolio } from "@/features/portfolio/services/portfolio-service";
+import { applyLatestQuotesToPositions } from "@/features/portfolio/services/portfolio-aggregation-service";
 
 export async function listPortfolioPositions(params: { userId: string }) {
   const db = await createDatabaseClient();
@@ -27,7 +28,7 @@ export async function listPortfolioPositions(params: { userId: string }) {
   }
 
   return {
-    positions: data ?? [],
+    positions: await applyLatestQuotesToPositions({ positions: data ?? [] }),
   };
 }
 

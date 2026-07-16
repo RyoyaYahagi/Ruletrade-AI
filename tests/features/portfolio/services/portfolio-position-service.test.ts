@@ -15,6 +15,10 @@ vi.mock("@/lib/db/database-client", () => ({
   createDatabaseClient: vi.fn(),
 }));
 
+vi.mock("@/features/portfolio/services/portfolio-aggregation-service", () => ({
+  applyLatestQuotesToPositions: vi.fn(async ({ positions }) => positions),
+}));
+
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { getOrCreateMainPortfolio } from "@/features/portfolio/services/portfolio-service";
 

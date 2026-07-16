@@ -32,6 +32,8 @@ const EnvSchema = z.object({
 
   EMBEDDING_PROVIDER: z.enum(["mock", "openai", "gemini"]).default("mock"),
 
+  PRICE_PROVIDER: z.enum(["mock", "stooq"]).default("mock"),
+
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   GEMINI_EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1536),
@@ -93,6 +95,8 @@ export const env = EnvSchema.parse({
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
 
   EMBEDDING_PROVIDER: process.env.EMBEDDING_PROVIDER,
+
+  PRICE_PROVIDER: process.env.PRICE_PROVIDER,
 
   OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
   GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL,

@@ -10,8 +10,12 @@ type DbPosition = {
   currency: string | null;
   asset_type: string | null;
   sector: string | null;
+  current_price: number | string | null;
   market_value: number | string | null;
   rule_session_id: string | null;
+  priceSource?: "manual" | "auto";
+  priceAsOf?: string | null;
+  isStale?: boolean;
 };
 
 type SortKey = "marketValueDesc" | "marketValueAsc" | "tickerAsc" | "nameAsc";
@@ -105,7 +109,8 @@ export function PortfolioPositionTable() {
         .toLowerCase();
 
       return (
-        (normalizedSearch === "" || searchableText.includes(normalizedSearch)) &&
+        (normalizedSearch === "" ||
+          searchableText.includes(normalizedSearch)) &&
         (marketFilter === "all" || market === marketFilter) &&
         (assetTypeFilter === "all" || assetType === assetTypeFilter) &&
         (sectorFilter === "all" || sector === sectorFilter)
@@ -127,7 +132,14 @@ export function PortfolioPositionTable() {
       }
       return a.ticker.localeCompare(b.ticker, "ja");
     });
-  }, [assetTypeFilter, marketFilter, positions, searchTerm, sectorFilter, sortKey]);
+  }, [
+    assetTypeFilter,
+    marketFilter,
+    positions,
+    searchTerm,
+    sectorFilter,
+    sortKey,
+  ]);
 
   function clearFilters() {
     setSearchTerm("");
@@ -176,7 +188,10 @@ export function PortfolioPositionTable() {
 
       {hasUsdPositions && (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <label className="flex items-center gap-1.5" htmlFor="portfolio-jpy-toggle">
+          <label
+            className="flex items-center gap-1.5"
+            htmlFor="portfolio-jpy-toggle"
+          >
             <input
               id="portfolio-jpy-toggle"
               type="checkbox"
@@ -208,7 +223,10 @@ export function PortfolioPositionTable() {
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="xl:col-span-2">
-          <label htmlFor="position-search" className="block text-xs font-medium">
+          <label
+            htmlFor="position-search"
+            className="block text-xs font-medium"
+          >
             銘柄を検索
           </label>
           <input
@@ -239,7 +257,10 @@ export function PortfolioPositionTable() {
           </select>
         </div>
         <div>
-          <label htmlFor="position-market-filter" className="block text-xs font-medium">
+          <label
+            htmlFor="position-market-filter"
+            className="block text-xs font-medium"
+          >
             市場
           </label>
           <select
@@ -260,7 +281,10 @@ export function PortfolioPositionTable() {
           </select>
         </div>
         <div>
-          <label htmlFor="position-asset-type-filter" className="block text-xs font-medium">
+          <label
+            htmlFor="position-asset-type-filter"
+            className="block text-xs font-medium"
+          >
             種類
           </label>
           <select
@@ -281,7 +305,10 @@ export function PortfolioPositionTable() {
           </select>
         </div>
         <div>
-          <label htmlFor="position-sector-filter" className="block text-xs font-medium">
+          <label
+            htmlFor="position-sector-filter"
+            className="block text-xs font-medium"
+          >
             セクター
           </label>
           <select
@@ -325,6 +352,7 @@ export function PortfolioPositionTable() {
                 <th className="py-2">市場</th>
                 <th className="py-2">種類</th>
                 <th className="py-2">セクター</th>
+                <th className="py-2 text-right">終値</th>
                 <th className="py-2 text-right">評価額</th>
                 <th className="py-2 text-right">ルール</th>
               </tr>
@@ -344,6 +372,31 @@ export function PortfolioPositionTable() {
                     {getAssetTypeLabel(position.asset_type)}
                   </td>
                   <td className="py-2">{position.sector ?? "未設定"}</td>
+                  <td
+                    className="py-2 text-right"
+                    data-testid="portfolio-position-price"
+                  >
+                    {position.priceSource === "auto" &&
+                    position.current_price != null ? (
+                      <div>
+                        <div>
+                          {Number(position.current_price).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {position.priceAsOf
+                            ? `${position.priceAsOf}時点`
+                            : ""}
+                        </div>
+                        {position.isStale ? (
+                          <div className="text-xs text-amber-700">
+                            ⚠ 4日以上未更新
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">手動入力値</span>
+                    )}
+                  </td>
                   <td className="py-2 text-right">
                     {showJpy && position.currency === "USD" ? (
                       <>
