@@ -53,8 +53,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Claude
-.claude/
+# Claude (local state stays ignored; project skills are shared)
+.claude/*
+!.claude/skills/
 
 # Agent skills (large external packages)
 .agents/skills/notebooklm/
