@@ -43,6 +43,7 @@ export function NewPositionPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [assetType, setAssetType] = useState("stock");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkResult, setCheckResult] = useState<PositionCheckResult | null>(
     null,
@@ -54,8 +55,11 @@ export function NewPositionPage() {
     setCheckResult(null);
 
     const formData = new FormData(form);
+    const ticker = String(formData.get("ticker") || "");
+    const companyName = String(formData.get("companyName") || "");
+    const identifier = (ticker || companyName).slice(0, 32);
     const payload = {
-      ticker: String(formData.get("ticker") || ""),
+      ticker: identifier,
       marketValue: Number(formData.get("marketValue") || 0),
       sector: String(formData.get("sector") || "") || undefined,
       theme: String(formData.get("theme") || "") || undefined,
@@ -63,7 +67,7 @@ export function NewPositionPage() {
       market: String(formData.get("market") || "") || undefined,
     };
 
-    if (!payload.ticker) {
+    if (!identifier) {
       setErrorMessage("事前チェックには銘柄コードと評価額が必要です。");
       setIsChecking(false);
       return;
@@ -97,7 +101,7 @@ export function NewPositionPage() {
 
     const formData = new FormData(event.currentTarget);
     const payload = {
-      ticker: String(formData.get("ticker")),
+      ticker: String(formData.get("ticker") || "") || undefined,
       companyName: String(formData.get("companyName") || ""),
       market: String(formData.get("market")),
       currency: String(formData.get("currency")),
@@ -156,19 +160,24 @@ export function NewPositionPage() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium">銘柄コード *</label>
+          <label className="block text-sm font-medium">
+            {assetType === "fund" ? "ファンドコード（任意）" : "銘柄コード *"}
+          </label>
           <input
             name="ticker"
-            required
+            required={assetType !== "fund"}
             maxLength={32}
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium">会社名</label>
+          <label className="block text-sm font-medium">
+            {assetType === "fund" ? "ファンド名 *" : "会社名"}
+          </label>
           <input
             name="companyName"
+            required={assetType === "fund"}
             maxLength={200}
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
           />
@@ -210,6 +219,8 @@ export function NewPositionPage() {
             <select
               name="assetType"
               required
+              value={assetType}
+              onChange={(event) => setAssetType(event.target.value)}
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
             >
               {ASSET_TYPES.map((a) => (

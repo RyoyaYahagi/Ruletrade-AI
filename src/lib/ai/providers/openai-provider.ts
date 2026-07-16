@@ -6,6 +6,7 @@ import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { getAITimeoutMs, getOpenAIModel } from "@/lib/ai/model-config";
 import type {
   AIMessage,
+  AIMessagePart,
   AIProvider,
   GenerateObjectParams,
   GenerateObjectResult,
@@ -93,7 +94,7 @@ export class OpenAIProvider implements AIProvider {
       const response = await withTimeout(
         this.client.chat.completions.create({
           model,
-          messages: params.messages,
+          messages: toOpenAIMessages(params.messages),
           temperature: params.temperature ?? 0.2,
           max_tokens: params.maxOutputTokens,
         }),
@@ -125,15 +126,57 @@ export class OpenAIProvider implements AIProvider {
 
 function toOpenAIMessages(
   messages: AIMessage[],
-  schemaName: string,
+  schemaName?: string,
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
+  const converted = messages.map(toOpenAIMessage);
+  if (!schemaName) return converted;
   return [
-    ...messages,
-    {
-      role: "user",
-      content: `Return only valid JSON matching the ${schemaName} schema.`,
-    },
+    ...converted,
+    { role: "user", content: `Return only valid JSON matching the ${schemaName} schema.` },
   ];
+}
+
+function toOpenAIMessage(message: AIMessage): OpenAI.Chat.ChatCompletionMessageParam {
+  const content =
+    typeof message.content === "string"
+      ? message.content
+      : message.content.map(toOpenAIContentPart);
+
+  if (message.role === "system") {
+    return {
+      role: "system",
+      content:
+        typeof content === "string"
+          ? content
+          : content
+              .filter((part) => part.type === "text")
+              .map((part) => part.text)
+              .join("\n"),
+    };
+  }
+
+  if (message.role === "assistant") {
+    return {
+      role: "assistant",
+      content:
+        typeof content === "string"
+          ? content
+          : content
+              .filter((part) => part.type === "text")
+              .map((part) => part.text)
+              .join("\n"),
+    };
+  }
+
+  return { role: "user", content };
+}
+
+function toOpenAIContentPart(part: AIMessagePart) {
+  if (part.type === "text") return part;
+  return {
+    type: "image_url" as const,
+    image_url: part.image_url,
+  };
 }
 
 function parseJson(rawText: string, providerName: string): unknown {

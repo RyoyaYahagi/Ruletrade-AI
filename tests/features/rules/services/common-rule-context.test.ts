@@ -83,4 +83,22 @@ describe("buildCommonRuleContextText", () => {
     expect(text).toContain("現金比率の下限: 15%");
     expect(text).toContain("目標配分 stock: 80%");
   });
+
+  it("lists risk tolerance, position count, market limit and exclusions", () => {
+    const text = buildCommonRuleContextText(
+      buildRule({
+        riskTolerance: "conservative",
+        maxPositionCount: 10,
+        maxMarketPercent: 60,
+        excludedAssetTypes: ["レバレッジ型商品", "暗号資産"],
+      }),
+    );
+
+    expect(text).toContain("リスク許容度: 慎重寄り");
+    expect(text).toContain("保有銘柄数の上限: 10銘柄");
+    expect(text).toContain("1市場の最大比率: 60%");
+    expect(text).toContain(
+      "買わないと決めているもの: レバレッジ型商品、暗号資産",
+    );
+  });
 });

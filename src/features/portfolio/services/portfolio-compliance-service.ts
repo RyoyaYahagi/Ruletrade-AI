@@ -20,12 +20,16 @@ export type CompliancePositionInput = {
 
 export type RuleViolation = {
   ruleKey:
+    | "max_position_count"
     | "max_position_percent"
     | "max_sector_percent"
     | "max_theme_percent"
+    | "max_market_percent"
     | "min_cash_percent"
+    | "excluded_asset_type"
     | "target_allocation";
   subject: string;
+  // max_position_count では % ではなく銘柄数（limit=上限銘柄数、actual=現在の銘柄数）。
   limitPercent: number;
   actualPercent: number;
   severity: "medium" | "high";
@@ -33,6 +37,13 @@ export type RuleViolation = {
 };
 
 const HIGH_SEVERITY_EXCESS_POINTS = 5;
+
+// 投信・ETFはそれ自体が複数銘柄に分散された商品のため、1銘柄集中チェックの対象外とする。
+const DIVERSIFIED_ASSET_TYPES = new Set(["fund", "etf"]);
+
+function normalizeAssetType(assetType: string | null | undefined) {
+  return (assetType ?? "").toLowerCase();
+}
 
 function roundPercent(value: number) {
   return Number(value.toFixed(2));
@@ -77,8 +88,28 @@ export function evaluatePortfolioCompliance(params: {
 
   const toPercent = (value: number) => roundPercent((value / totalValue) * 100);
 
+  if (rule.maxPositionCount != null) {
+    const tickerCount = new Set(
+      params.positions.map((position) => position.ticker),
+    ).size;
+    if (tickerCount > rule.maxPositionCount) {
+      violations.push({
+        ruleKey: "max_position_count",
+        subject: "保有銘柄数",
+        limitPercent: rule.maxPositionCount,
+        actualPercent: tickerCount,
+        severity: severityForExcess(tickerCount - rule.maxPositionCount),
+        message: `「保有銘柄数の上限${rule.maxPositionCount}銘柄」に対して、現在${tickerCount}銘柄になっています。`,
+      });
+    }
+  }
+
   if (rule.maxPositionPercent != null) {
-    const byTicker = sumByKey(params.positions, (p) => p.ticker);
+    // 投信・ETFは商品自体が分散されているため、個別銘柄の集中チェックからは除外する。
+    const concentratablePositions = params.positions.filter(
+      (position) => !DIVERSIFIED_ASSET_TYPES.has(normalizeAssetType(position.asset_type)),
+    );
+    const byTicker = sumByKey(concentratablePositions, (p) => p.ticker);
     for (const [ticker, value] of byTicker) {
       const percent = toPercent(value);
       if (percent > rule.maxPositionPercent) {
@@ -123,6 +154,45 @@ export function evaluatePortfolioCompliance(params: {
           actualPercent: percent,
           severity: severityForExcess(percent - rule.maxThemePercent),
           message: `「1テーマの最大比率${rule.maxThemePercent}%」に対して、${theme}が${percent}%になっています。`,
+        });
+      }
+    }
+  }
+
+  if (rule.maxMarketPercent != null) {
+    // 市場集中ルールは個別株だけを対象にする。投信・ETFは商品自体の中で
+    // 分散されているため、国・市場の比率に二重計上しない。
+    const individualStockPositions = params.positions.filter(
+      (position) => normalizeAssetType(position.asset_type) === "stock",
+    );
+    const byMarket = sumByKey(individualStockPositions, (p) => p.market);
+    for (const [market, value] of byMarket) {
+      const percent = toPercent(value);
+      if (percent > rule.maxMarketPercent) {
+        violations.push({
+          ruleKey: "max_market_percent",
+          subject: market,
+          limitPercent: rule.maxMarketPercent,
+          actualPercent: percent,
+          severity: severityForExcess(percent - rule.maxMarketPercent),
+          message: `「1市場の最大比率${rule.maxMarketPercent}%」に対して、${market}が${percent}%になっています。`,
+        });
+      }
+    }
+  }
+
+  if (rule.excludedAssetTypes.length > 0) {
+    const byAssetType = sumByKey(params.positions, (p) => p.asset_type);
+    for (const excluded of rule.excludedAssetTypes) {
+      const value = byAssetType.get(excluded);
+      if (value != null && value > 0) {
+        violations.push({
+          ruleKey: "excluded_asset_type",
+          subject: excluded,
+          limitPercent: 0,
+          actualPercent: toPercent(value),
+          severity: "high",
+          message: `「${excluded}は買わない」というルールに対して、現在${toPercent(value)}%保有しています。`,
         });
       }
     }
@@ -251,7 +321,7 @@ export function simulatePositionImpact(params: {
   };
 }
 
-async function loadPortfolioState(userId: string) {
+export async function loadPortfolioState(userId: string) {
   const db = await createDatabaseClient();
   const { portfolio } = await getOrCreateMainPortfolio({ userId });
 

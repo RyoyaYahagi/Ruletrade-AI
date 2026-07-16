@@ -43,6 +43,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test hygiene (no .skip/.only)
+        run: npm run check:test-hygiene
+
       - name: Test
         run: npm run test
 

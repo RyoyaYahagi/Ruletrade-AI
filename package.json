@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "pretest:e2e": "npm rebuild better-sqlite3",
+    "check:test-hygiene": "bash scripts/check-test-hygiene.sh",
     "openapi:lint": "redocly lint ruletrade@v1",
     "openapi:types": "openapi-typescript openapi/openapi.yaml -o src/generated/openapi-types.ts",
     "openapi:check": "npm run openapi:lint && npm run openapi:types",

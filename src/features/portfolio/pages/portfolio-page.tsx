@@ -15,19 +15,35 @@ export function PortfolioPage() {
     <main className="mx-auto max-w-6xl p-6" data-testid="portfolio-page">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="portfolio-title">Portfolio</h1>
+          <a
+            href="/dashboard"
+            className="text-sm text-muted-foreground hover:underline"
+            data-testid="portfolio-back-to-dashboard-link"
+          >
+            &larr; ダッシュボードに戻る
+          </a>
+          <h1 className="mt-2 text-2xl font-bold" data-testid="portfolio-title">Portfolio</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             保有銘柄の偏り、集中リスク、未設定ルールを確認します。
           </p>
         </div>
 
-        <a
-          href="/portfolio/positions/new"
-          className="rounded-md bg-black px-4 py-2 text-sm text-white"
-          data-testid="portfolio-add-position-link"
-        >
-          保有銘柄を追加
-        </a>
+        <div className="flex flex-wrap justify-end gap-2">
+          <a
+            href="/portfolio/positions/new"
+            className="rounded-md bg-black px-4 py-2 text-sm text-white"
+            data-testid="portfolio-add-position-link"
+          >
+            保有銘柄を追加
+          </a>
+          <a
+            href="/portfolio/positions/import"
+            className="rounded-md border px-4 py-2 text-sm"
+            data-testid="portfolio-import-position-link"
+          >
+            画像から一括追加
+          </a>
+        </div>
       </div>
 
       <div className="mt-6 space-y-6" data-testid="portfolio-content">

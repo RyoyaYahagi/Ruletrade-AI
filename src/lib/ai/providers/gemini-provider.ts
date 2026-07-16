@@ -5,6 +5,8 @@ import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import { getAITimeoutMs, getGeminiModel } from "@/lib/ai/model-config";
 import type {
   AIProvider,
+  AIMessage,
+  AIMessagePart,
   GenerateObjectParams,
   GenerateObjectResult,
   GenerateTextParams,
@@ -55,7 +57,7 @@ export class GeminiProvider implements AIProvider {
 
     try {
       const response = await this.generateContent(model, {
-        prompt: toGeminiPrompt(params.messages, params.schemaName),
+        contents: toGeminiContents(params.messages, params.schemaName),
         temperature: params.temperature ?? 0.2,
         maxOutputTokens: params.maxOutputTokens,
         responseMimeType: "application/json",
@@ -98,7 +100,7 @@ export class GeminiProvider implements AIProvider {
 
     try {
       const response = await this.generateContent(model, {
-        prompt: toGeminiPrompt(params.messages),
+        contents: toGeminiContents(params.messages),
         temperature: params.temperature ?? 0.2,
         maxOutputTokens: params.maxOutputTokens,
       });
@@ -124,7 +126,10 @@ export class GeminiProvider implements AIProvider {
   private async generateContent(
     model: string,
     options: {
-      prompt: string;
+      contents: Array<{
+        role: "user" | "model";
+        parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>;
+      }>;
       temperature: number;
       maxOutputTokens?: number;
       responseMimeType?: "application/json";
@@ -148,7 +153,7 @@ export class GeminiProvider implements AIProvider {
             "x-goog-api-key": this.apiKey,
           },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: options.prompt }] }],
+            contents: options.contents,
             generationConfig: {
               temperature: options.temperature,
               maxOutputTokens: options.maxOutputTokens,
@@ -202,19 +207,41 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function toGeminiPrompt(
-  messages: Array<{ role: string; content: string }>,
+function toGeminiContents(
+  messages: AIMessage[],
   schemaName?: string,
-): string {
-  const prompt = messages
-    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
-    .join("\n\n");
+): Array<{
+  role: "user" | "model";
+  parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>;
+}> {
+  const parts = messages.flatMap((message) => {
+    if (typeof message.content === "string") {
+      return [{ text: `${message.role.toUpperCase()}:\n${message.content}` }];
+    }
 
-  if (!schemaName) {
-    return prompt;
+    return [
+      { text: `${message.role.toUpperCase()}:` },
+      ...message.content.map(toGeminiPart),
+    ];
+  });
+
+  if (schemaName) {
+    parts.push({ text: `Return only valid JSON matching the ${schemaName} schema.` });
   }
 
-  return `${prompt}\n\nReturn only valid JSON matching the ${schemaName} schema.`;
+  return [{ role: "user", parts }];
+}
+
+function toGeminiPart(part: AIMessagePart) {
+  if (part.type === "text") return { text: part.text };
+
+  const [header, base64] = part.image_url.url.split(",", 2);
+  const mimeType = header?.match(/^data:([^;]+);base64$/)?.[1];
+  if (!mimeType || !base64) {
+    return { text: "[画像を読み取れませんでした]" };
+  }
+
+  return { inlineData: { mimeType, data: base64 } };
 }
 
 function getGeminiResponseSchema(schemaName: string): unknown {

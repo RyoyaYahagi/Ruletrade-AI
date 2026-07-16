@@ -19,9 +19,11 @@ export const PortfolioPositionStatusSchema = z.enum([
 export const PortfolioMarketSchema = z.enum(["JP", "US", "OTHER"]);
 
 export const PortfolioPositionSchema = z.object({
-  ticker: z.string().min(1).max(32),
+  // 投資信託はコードが表示されない明細もあるため、名称だけでも登録できる。
+  // 保存時にはサービス層で内部識別子を補う。
+  ticker: z.string().trim().min(1).max(32).optional(),
 
-  companyName: z.string().max(200).optional(),
+  companyName: z.string().trim().max(200).optional(),
 
   market: PortfolioMarketSchema.default("JP"),
 
@@ -48,6 +50,18 @@ export const PortfolioPositionSchema = z.object({
   positionStatus: PortfolioPositionStatusSchema.default("active"),
 
   memo: z.string().max(4000).optional(),
+}).superRefine((position, context) => {
+  if (position.ticker || position.companyName) return;
+
+  context.addIssue({
+    code: "custom",
+    path: ["ticker"],
+    message: "銘柄コードまたは銘柄名を入力してください。",
+  });
+});
+
+export const PortfolioPositionBulkSchema = z.object({
+  positions: z.array(PortfolioPositionSchema).min(1).max(100),
 });
 
 export type PortfolioPosition = z.infer<typeof PortfolioPositionSchema>;

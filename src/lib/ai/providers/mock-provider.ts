@@ -18,11 +18,7 @@ export class MockProvider implements AIProvider {
     params: GenerateObjectParams<TSchema>,
   ): Promise<GenerateObjectResult<z.infer<TSchema>>> {
     const startedAt = Date.now();
-    const mockData = getMockObject(
-      params.taskType,
-      params.schemaName,
-      params.messages,
-    );
+    const mockData = getMockObject(params.taskType, params.schemaName);
     const parsed = params.schema.safeParse(mockData);
 
     if (!parsed.success) {
@@ -69,11 +65,7 @@ export class MockProvider implements AIProvider {
   }
 }
 
-function getMockObject(
-  taskType: string,
-  schemaName: string,
-  messages: GenerateObjectParams<z.ZodType>['messages'],
-): unknown {
+function getMockObject(taskType: string, schemaName: string): unknown {
   if (schemaName === "RuleReview" || taskType === "rule_review") {
     return {
       summary:
@@ -134,108 +126,41 @@ function getMockObject(
   }
 
   if (schemaName === "PortfolioRuleGuidance" || taskType === "portfolio_rule_guidance") {
-    const prompt = messages.map((message) => message.content).join("\n");
-    const turn = Number(prompt.match(/現在のターン:\s*(\d+)/)?.[1] ?? 0);
-    const disclaimer =
-      "これは投資助言ではなく、本人のルール作成を支援するための整理です。";
-
-    if (turn === 0) {
-      return {
-        message: "まずは損失への向き合い方を整理します。",
-        question: {
-          key: "risk_tolerance",
-          text: "資産全体が下がっても、どの程度なら慌てず持ち続けられそうですか？",
-          explanation: "例えば100万円が90万円になっても続けられるか、のように考えます。",
-        },
-        suggestions: [],
-        progress: 0,
-        readyToReview: false,
-        guidance: ["損失への許容度"],
-        disclaimer,
-      };
-    }
-
-    if (turn === 1) {
-      return {
-        message: "次に、値動きが大きい場面での向き合い方を確認します。",
-        question: {
-          key: "volatility_tolerance",
-          text: "値下がりしても、前提が変わらなければ持ち続けられそうですか？",
-          explanation: "例えば大きく下がった日に、慌ててルールを変えずにいられるかを考えます。",
-        },
-        suggestions: [],
-        progress: 35,
-        readyToReview: false,
-        guidance: ["値動きの大きさ", "ルールを続ける条件"],
-        disclaimer,
-      };
-    }
-
-    if (turn === 2) {
-      return {
-        message: "最後に、1回の取引で許容できる損失を考えます。",
-        question: {
-          key: "single_trade_loss_tolerance",
-          text: "1回の取引での損失は、どの程度までなら許容できそうですか？",
-          explanation: "金額ではなく資産全体に対する割合で、1回で立て直せる範囲を考えます。",
-        },
-        suggestions: [],
-        progress: 70,
-        readyToReview: false,
-        guidance: ["1回あたりの許容損失", "資産全体に対する割合"],
-        disclaimer,
-      };
-    }
-
     return {
-      message: "回答した条件から、比較用の参考案を3つ作りました。",
+      message: "回答を確認し、未定の項目について目安をまとめました。",
       question: null,
       suggestions: [
         {
           key: "conservative",
           title: "慎重寄り",
-          summary: "現金を厚めに残し、1回あたりの損失を小さくする案です。",
+          summary: "現金をやや厚めに残す案です。",
           tradeoff: "守りやすい一方、値上がり局面への参加は抑えめです。",
           draft: {
-            maxPositionPercent: 8,
-            maxSectorPercent: 25,
             minCashPercent: 20,
-            maxSingleTradeLossPercent: 0.5,
           },
         },
         {
           key: "balanced",
           title: "中間の案",
-          summary: "現金と投資のバランスを取り、管理しやすくする案です。",
+          summary: "現金と投資のバランスを取る案です。",
           tradeoff: "極端な偏りは抑えますが、両方の妥協が必要です。",
           draft: {
-            maxPositionPercent: 12,
-            maxSectorPercent: 35,
             minCashPercent: 10,
-            maxSingleTradeLossPercent: 1,
           },
         },
-        {
-          key: "flexible",
-          title: "変動許容寄り",
-          summary: "値動きを広く受け入れる前提で、投資比率を高めにする案です。",
-          tradeoff: "大きな含み損に備え、事前の見直し基準が必要です。",
-          draft: {
-            maxPositionPercent: 18,
-            maxSectorPercent: 45,
-            minCashPercent: 5,
-            maxSingleTradeLossPercent: 2,
-          },
-        },
+      ],
+      consistencyNotes: [
+        "資産全体が下がると不安になると回答した一方、1回あたりの許容損失はやや大きめです。バランスを見直してもよいかもしれません。",
       ],
       progress: 100,
       readyToReview: true,
       guidance: [
-        "3案から選ぶ",
-        "フォームで数値を編集する",
-        "未設定の項目は残してよい",
+        "確定した項目はそのまま活かす",
+        "未定の項目だけ目安を参考にする",
+        "違和感があれば数値を編集する",
       ],
-      disclaimer,
+      disclaimer:
+        "これは投資助言ではなく、本人のルール作成を支援するための整理です。",
     };
   }
 
