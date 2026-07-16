@@ -95,6 +95,12 @@ Do not add fallbacks casually:
 - Never use a fallback to bypass Safety Check, Compliance Gate, or
   ownership checks.
 
+## Review
+
+When reviewing a diff or PR, also apply the checklist in
+`.agents/skills/review-checklist/SKILL.md` (symlinked from
+`.claude/skills/review-checklist`).
+
 ## Forbidden
 
 - Do not edit `.env.local`.
