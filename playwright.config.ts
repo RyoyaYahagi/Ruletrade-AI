@@ -3,7 +3,18 @@ import dotenv from "dotenv";
 import path from "node:path";
 
 // Load test environment variables
-dotenv.config({ path: path.resolve(process.cwd(), ".env.test") });
+dotenv.config({
+  path: path.resolve(process.cwd(), ".env.test"),
+  override: true,
+});
+
+const e2ePort = process.env.E2E_TEST_PORT ?? "3100";
+const e2eBaseUrl =
+  process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${e2ePort}`;
+const e2eDistDir = process.env.NEXT_DIST_DIR ?? ".next-e2e";
+const e2eServerCommand = `NEXT_DIST_DIR=${e2eDistDir} PORT=${e2ePort} ${
+  process.env.CI ? "npm start" : "npm run dev"
+}`;
 
 export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
@@ -14,7 +25,7 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? [["html"], ["github"], ["list"]] : "html",
   use: {
-    baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    baseURL: e2eBaseUrl,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
@@ -24,11 +35,9 @@ export default defineConfig({
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
   ],
   webServer: {
-    command: process.env.CI
-      ? "npm start"
-      : "npm run dev",
-    url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    command: e2eServerCommand,
+    url: e2eBaseUrl,
+    reuseExistingServer: false,
     timeout: 120_000,
     stdout: "pipe",
     stderr: "pipe",

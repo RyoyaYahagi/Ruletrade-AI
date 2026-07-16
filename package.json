@@ -2,6 +2,9 @@
   "name": "ruletrade-ai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,6 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "pretest:e2e": "npm rebuild better-sqlite3",
     "openapi:lint": "redocly lint ruletrade@v1",
     "openapi:types": "openapi-typescript openapi/openapi.yaml -o src/generated/openapi-types.ts",
     "openapi:check": "npm run openapi:lint && npm run openapi:types",
