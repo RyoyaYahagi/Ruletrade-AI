@@ -23,6 +23,7 @@
 
 # local sqlite data
 /data/
+/.data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
