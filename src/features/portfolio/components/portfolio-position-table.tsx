@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { AttentionBadge } from "@/components/status/attention-badge";
+import { StatValue } from "@/components/status/stat-value";
+import type { AttentionStatus } from "@/features/ux/services/attention-status-service";
+
 type DbPosition = {
   id: string;
   ticker: string;
@@ -56,6 +60,9 @@ function getMarketValue(position: DbPosition) {
 
 export function PortfolioPositionTable() {
   const [positions, setPositions] = useState<DbPosition[]>([]);
+  const [attentionStatuses, setAttentionStatuses] = useState<
+    Record<string, AttentionStatus>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [marketFilter, setMarketFilter] = useState("all");
@@ -69,11 +76,18 @@ export function PortfolioPositionTable() {
     async function load() {
       setIsLoading(true);
 
-      const response = await fetch("/api/portfolio/positions");
+      const [response, statusResponse] = await Promise.all([
+        fetch("/api/portfolio/positions"),
+        fetch("/api/attention-statuses"),
+      ]);
       const json = await response.json();
+      const statusJson = await statusResponse.json();
 
       if (json.ok) {
         setPositions(json.data.positions);
+      }
+      if (statusJson.ok) {
+        setAttentionStatuses(statusJson.data.statuses ?? {});
       }
 
       setIsLoading(false);
@@ -346,23 +360,35 @@ export function PortfolioPositionTable() {
                   <td className="py-2">{position.sector ?? "未設定"}</td>
                   <td className="py-2 text-right">
                     {showJpy && position.currency === "USD" ? (
-                      <>
-                        <div>
-                          {Math.round(
-                            getMarketValue(position) * usdJpyRate,
-                          ).toLocaleString()}{" "}
-                          円
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          ${getMarketValue(position).toLocaleString()}
-                        </div>
-                      </>
+                      <StatValue
+                        label="評価額"
+                        value={
+                          <>
+                            <span>
+                              {Math.round(
+                                getMarketValue(position) * usdJpyRate,
+                              ).toLocaleString()} 円
+                            </span>
+                            <span className="block text-sm font-normal text-muted-foreground">
+                              ${getMarketValue(position).toLocaleString()}
+                            </span>
+                          </>
+                        }
+                      />
                     ) : (
-                      getMarketValue(position).toLocaleString()
+                      <StatValue
+                        label="評価額"
+                        value={getMarketValue(position).toLocaleString()}
+                      />
                     )}
                   </td>
                   <td className="py-2 text-right">
-                    {position.rule_session_id ? "あり" : "未設定"}
+                    <AttentionBadge
+                      status={
+                        attentionStatuses[position.rule_session_id ?? position.id] ??
+                        "needs_check"
+                      }
+                    />
                   </td>
                 </tr>
               ))}

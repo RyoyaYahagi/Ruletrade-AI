@@ -30,10 +30,10 @@ export async function POST(request: Request) {
   };
 
   const redirectPath = new URL(request.url).searchParams.get("redirect");
-  if (redirectPath === "/dashboard") {
+  if (redirectPath === "/today") {
     const response = new NextResponse(null, {
       status: 303,
-      headers: { Location: "/dashboard" },
+      headers: { Location: "/today" },
     });
     response.cookies.set(
       GUEST_SESSION_COOKIE,
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   return Response.json({
     ok: true,
     data: {
-      redirectTo: "/dashboard",
+      redirectTo: "/today",
     },
   });
 }

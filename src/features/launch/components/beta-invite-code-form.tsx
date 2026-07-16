@@ -24,7 +24,7 @@ export function BetaInviteCodeForm() {
       setMessage(json.error?.message ?? "招待コードを確認できませんでした。");
       return;
     }
-    router.replace("/dashboard");
+    router.replace("/today");
   }
 
   return (
