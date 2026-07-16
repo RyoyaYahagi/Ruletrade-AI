@@ -6,6 +6,7 @@ export const RuleQuestionTypeSchema = z.enum([
   "free_text",
   "number",
   "price_range",
+  "percent_slider",
   "date",
   "yes_no",
 ]);

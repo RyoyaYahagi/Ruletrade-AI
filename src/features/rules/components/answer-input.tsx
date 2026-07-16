@@ -131,6 +131,66 @@ export function AnswerInput({
     );
   }
 
+  if (question.question_type === "percent_slider") {
+    const config = isPercentSliderOptions(question.options)
+      ? question.options
+      : { min: 0, max: 100, step: 1, presets: [] };
+    const selectedValue =
+      typeof answerJson.value === "number" || answerJson.value === null
+        ? answerJson.value
+        : config.presets[0]?.value ?? config.min;
+
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-2 sm:grid-cols-3">
+          {config.presets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => {
+                onAnswerJsonChange({ value: preset.value });
+                onAnswerTextChange(preset.label);
+              }}
+              className={[
+                "rounded-md border px-4 py-3 text-sm",
+                selectedValue === preset.value
+                  ? "border-black bg-gray-50"
+                  : "",
+              ].join(" ")}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <details>
+          <summary className="cursor-pointer text-sm text-muted-foreground">
+            数値を細かく調整する
+          </summary>
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="range"
+              min={config.min}
+              max={config.max}
+              step={config.step}
+              value={
+                typeof selectedValue === "number" ? selectedValue : config.min
+              }
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                onAnswerJsonChange({ value });
+                onAnswerTextChange(`${value}%`);
+              }}
+              className="w-full"
+            />
+            <span className="min-w-12 text-right text-sm">
+              {selectedValue == null ? "未設定" : `${selectedValue}%`}
+            </span>
+          </div>
+        </details>
+      </div>
+    );
+  }
+
   if (question.question_type === "yes_no") {
     return (
       <div className="grid gap-3 sm:grid-cols-2">
@@ -202,5 +262,31 @@ export function AnswerInput({
         className="w-full rounded-md border px-3 py-2"
       />
     </div>
+  );
+}
+
+function isPercentSliderOptions(
+  options: unknown,
+): options is {
+  min: number;
+  max: number;
+  step: number;
+  presets: Array<{ label: string; value: number | null }>;
+} {
+  if (typeof options !== "object" || options === null) return false;
+  const value = options as Record<string, unknown>;
+  return (
+    typeof value.min === "number" &&
+    typeof value.max === "number" &&
+    typeof value.step === "number" &&
+    Array.isArray(value.presets) &&
+    value.presets.every(
+      (preset) =>
+        typeof preset === "object" &&
+        preset !== null &&
+        typeof (preset as { label?: unknown }).label === "string" &&
+        (typeof (preset as { value?: unknown }).value === "number" ||
+          (preset as { value?: unknown }).value === null),
+    )
   );
 }

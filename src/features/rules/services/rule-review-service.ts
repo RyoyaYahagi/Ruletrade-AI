@@ -18,6 +18,8 @@ import {
   type ReviewNextQuestionCandidate,
 } from "@/features/rules/services/rule-review-question-selection";
 import { getPortfolioCommonRule } from "@/features/portfolio/services/portfolio-rule-service";
+import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
+import { buildMonitoringQualityChecks } from "@/features/rules/services/trading-rule-validation";
 import {
   buildCommonRuleContextText,
   filterQuestionsCoveredByCommonRule,
@@ -344,7 +346,23 @@ export async function runRuleReview(params: {
     },
   });
 
-  const review = aiResult.data;
+  const parsedTradeRule = TradeRuleSchema.safeParse(session.rule_json ?? {});
+  const deterministicQualityChecks = parsedTradeRule.success
+    ? buildMonitoringQualityChecks(parsedTradeRule.data)
+    : [];
+  const hasMonitoringBlocker = deterministicQualityChecks.some(
+    (check) => check.status === "fail",
+  );
+  const review = {
+    ...aiResult.data,
+    qualityChecks: [
+      ...aiResult.data.qualityChecks,
+      ...deterministicQualityChecks,
+    ],
+    needsMoreInfo:
+      aiResult.data.needsMoreInfo || deterministicQualityChecks.length > 0,
+    canFinalize: aiResult.data.canFinalize && !hasMonitoringBlocker,
+  };
 
   const safetyText = buildRuleReviewSafetyText(review);
 

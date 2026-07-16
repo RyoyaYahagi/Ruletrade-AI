@@ -28,7 +28,7 @@ export async function createRuleSession(params: {
       quality_gate_status: "not_reviewed",
       rule_json: {},
       question_count: 0,
-      max_question_count: 12,
+      max_question_count: 10,
     })
     .select("id")
     .single();

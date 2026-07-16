@@ -2,7 +2,10 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
-import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
+import {
+  TradeRuleSchema,
+  type ThesisBreaker,
+} from "@/schemas/rules/trade-rule-schema";
 
 export async function applyAnswerToRuleJson(params: {
   userId: string;
@@ -27,20 +30,40 @@ export async function applyAnswerToRuleJson(params: {
   }
   const currentRule = TradeRuleSchema.parse(session.rule_json ?? {});
   const nextRule = structuredClone(currentRule);
+  const answerValue = getAnswerValue(params.answerJson);
   switch (params.questionKey) {
-    case "investment_thesis":
-      nextRule.investmentThesis = params.answerText;
+    case "holding_purpose":
+      if (typeof answerValue === "string") {
+        nextRule.purpose = answerValue as typeof nextRule.purpose;
+      }
       break;
     case "time_horizon":
-      if (
-        typeof params.answerJson === "object" &&
-        params.answerJson !== null &&
-        "value" in params.answerJson
-      ) {
-        nextRule.timeHorizon = String(
-          (params.answerJson as { value: unknown }).value,
-        ) as typeof nextRule.timeHorizon;
+      if (typeof answerValue === "string") {
+        nextRule.timeHorizon = answerValue as typeof nextRule.timeHorizon;
       }
+      break;
+    case "thesis_draft":
+      nextRule.investmentThesis = getAnswerText(params);
+      break;
+    case "thesis_breakers_pick":
+      nextRule.thesisBreakers = buildThesisBreakers(params.answerJson);
+      break;
+    case "stop_loss_review":
+      setNestedRuleValue(nextRule, "monitoring.stopLossReviewPercent", answerValue);
+      break;
+    case "take_profit_review":
+      setNestedRuleValue(nextRule, "monitoring.takeProfitReviewPercent", answerValue);
+      break;
+    case "max_position":
+      setNestedRuleValue(nextRule, "riskManagement.maxPositionPercent", answerValue);
+      break;
+    case "earnings_policy":
+      setNestedRuleValue(nextRule, "earningsPolicy.policy", answerValue);
+      break;
+    case "review_cycle":
+      setNestedRuleValue(nextRule, "monitoring.reviewCycle", answerValue);
+      break;
+    case "thesis_seed":
       break;
     case "entry_price_range":
       if (typeof params.answerJson === "object" && params.answerJson !== null) {
@@ -91,4 +114,76 @@ export async function applyAnswerToRuleJson(params: {
     );
   }
   return data.rule_json;
+}
+
+function getAnswerValue(answerJson: unknown) {
+  if (typeof answerJson !== "object" || answerJson === null) return undefined;
+  if (!("value" in answerJson)) return undefined;
+  return (answerJson as { value: unknown }).value;
+}
+
+function getAnswerText(params: { answerJson: unknown; answerText?: string }) {
+  if (params.answerText?.trim()) return params.answerText.trim();
+  if (
+    typeof params.answerJson === "object" &&
+    params.answerJson !== null &&
+    "text" in params.answerJson
+  ) {
+    const text = (params.answerJson as { text?: unknown }).text;
+    if (typeof text === "string") return text.trim();
+  }
+  return undefined;
+}
+
+function setNestedRuleValue(
+  rule: ReturnType<typeof TradeRuleSchema.parse>,
+  path: string,
+  value: unknown,
+) {
+  const [parentKey, childKey] = path.split(".");
+  if (!parentKey || !childKey) return;
+  const parent = rule[parentKey as keyof typeof rule];
+  if (typeof parent !== "object" || parent === null) return;
+  (parent as Record<string, unknown>)[childKey] = value ?? undefined;
+}
+
+function buildThesisBreakers(answerJson: unknown): ThesisBreaker[] {
+  if (typeof answerJson !== "object" || answerJson === null) return [];
+  const value = answerJson as {
+    values?: unknown;
+    breakers?: unknown;
+    value?: unknown;
+  };
+  const selected = Array.isArray(value.breakers)
+    ? value.breakers
+    : Array.isArray(value.values)
+      ? value.values
+      : Array.isArray(value.value)
+        ? value.value
+        : [];
+
+  return selected
+    .map((item): ThesisBreaker | null => {
+      if (typeof item === "string" && item.trim()) {
+        return { description: item.trim(), newsKeywords: [] };
+      }
+      if (typeof item !== "object" || item === null) return null;
+      const candidate = item as {
+        description?: unknown;
+        newsKeywords?: unknown;
+      };
+      if (typeof candidate.description !== "string") return null;
+      const newsKeywords = Array.isArray(candidate.newsKeywords)
+        ? candidate.newsKeywords.filter(
+            (keyword): keyword is string =>
+              typeof keyword === "string" && keyword.trim().length > 0,
+          )
+        : [];
+      return {
+        description: candidate.description.trim(),
+        newsKeywords,
+      };
+    })
+    .filter((item): item is ThesisBreaker => item !== null)
+    .slice(0, 10);
 }

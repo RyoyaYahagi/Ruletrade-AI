@@ -13,6 +13,8 @@ export const NotificationTypeSchema = z.enum([
   "document_summary_completed",
   "document_index_failed",
   "system_notice",
+  "rule_price_condition_met",
+  "price_data_stale",
 ]);
 
 export const NotificationSeveritySchema = z.enum([
@@ -53,3 +55,7 @@ export const CreateNotificationSchema = z.object({
 });
 
 export type CreateNotification = z.infer<typeof CreateNotificationSchema>;
+
+export const RuleAlertResolutionSchema = z.object({
+  resolution: z.enum(["kept", "revising"]),
+});

@@ -2,59 +2,18 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
+import { RULE_QUESTION_CATALOG } from "@/features/rules/constants/question-catalog";
 
 export async function createInitialQuestions(params: {
   userId: string;
   sessionId: string;
 }) {
   const db = await createDatabaseClient();
-  const questions = [
-    {
-      user_id: params.userId,
-      session_id: params.sessionId,
-      question_key: "investment_thesis",
-      question_text: "この銘柄を買いたい理由は何ですか？",
-      question_type: "free_text",
-      help_text:
-        "事業成長、割安感、配当、テーマ性など、今考えている理由を書いてください。",
-      priority: 5,
-      is_required: true,
-      maps_to_rule_field: "investmentThesis",
-      source: "template",
-      display_order: 1,
-    },
-    {
-      user_id: params.userId,
-      session_id: params.sessionId,
-      question_key: "time_horizon",
-      question_text: "どれくらいの期間で考えていますか？",
-      question_type: "single_choice",
-      options: [
-        { label: "数週間〜数か月", value: "short_term" },
-        { label: "数か月〜1年", value: "medium_term" },
-        { label: "1年以上", value: "long_term" },
-        { label: "まだ決めていない", value: "undecided" },
-      ],
-      priority: 4,
-      is_required: true,
-      maps_to_rule_field: "timeHorizon",
-      source: "template",
-      display_order: 2,
-    },
-    {
-      user_id: params.userId,
-      session_id: params.sessionId,
-      question_key: "entry_price_range",
-      question_text: "いくらくらいまでなら買いたいですか？",
-      question_type: "price_range",
-      help_text: "まだ決まっていなければ、おおまかな価格帯でも大丈夫です。",
-      priority: 4,
-      is_required: false,
-      maps_to_rule_field: "entryPlan",
-      source: "template",
-      display_order: 3,
-    },
-  ];
+  const questions = RULE_QUESTION_CATALOG.map((question) => ({
+    user_id: params.userId,
+    session_id: params.sessionId,
+    ...question,
+  }));
   const { error } = await db.from("rule_questions").insert(questions);
   if (error) {
     throw new AppError(
@@ -77,7 +36,6 @@ export async function getNextQuestion(params: {
     .eq("session_id", params.sessionId)
     .eq("user_id", params.userId)
     .eq("status", "pending")
-    .order("priority", { ascending: false })
     .order("display_order", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -90,4 +48,61 @@ export async function getNextQuestion(params: {
     );
   }
   return { question: data ?? null };
+}
+
+export async function skipRuleQuestion(params: {
+  userId: string;
+  sessionId: string;
+  questionId: string;
+}) {
+  const db = await createDatabaseClient();
+  const { data, error } = await db
+    .from("rule_questions")
+    .update({ status: "skipped", answered_at: new Date().toISOString() })
+    .eq("id", params.questionId)
+    .eq("session_id", params.sessionId)
+    .eq("user_id", params.userId)
+    .eq("status", "pending")
+    .select("id, status")
+    .single();
+
+  if (error || !data) {
+    throw new AppError(
+      "NOT_FOUND",
+      "スキップする質問が見つかりません。",
+      404,
+      error,
+    );
+  }
+
+  const { data: session, error: sessionError } = await db
+    .from("rule_design_sessions")
+    .select("question_count")
+    .eq("id", params.sessionId)
+    .eq("user_id", params.userId)
+    .single();
+  if (sessionError || !session) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "質問の進捗更新に失敗しました。",
+      500,
+      sessionError,
+    );
+  }
+
+  const { error: sessionUpdateError } = await db
+    .from("rule_design_sessions")
+    .update({ question_count: (session.question_count ?? 0) + 1 })
+    .eq("id", params.sessionId)
+    .eq("user_id", params.userId);
+  if (sessionUpdateError) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "質問の進捗更新に失敗しました。",
+      500,
+      sessionUpdateError,
+    );
+  }
+
+  return { question: data };
 }

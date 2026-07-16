@@ -84,8 +84,36 @@ const schemaStatements = [
     source text not null default 'ai',
     status text not null default 'pending',
     display_order integer not null default 0,
+    allow_unknown integer not null default 1,
+    unknown_default_json text,
+    breaker_source text,
     created_at text not null default (datetime('now')),
     answered_at text
+  )`,
+  `create table if not exists price_quotes (
+    id text primary key,
+    symbol text not null,
+    market text not null default 'JP',
+    quote_date text not null,
+    close_price real not null,
+    currency text not null default 'JPY',
+    source text not null default 'mock',
+    created_at text not null default (datetime('now')),
+    unique (symbol, market, quote_date)
+  )`,
+  `create table if not exists rule_alert_events (
+    id text primary key,
+    user_id text not null,
+    session_id text not null,
+    condition_key text not null,
+    quote_date text not null,
+    triggered_value real,
+    threshold_value real,
+    notification_id text,
+    resolution text,
+    resolved_at text,
+    created_at text not null default (datetime('now')),
+    unique (session_id, condition_key, quote_date)
   )`,
   `create table if not exists rule_answers (
     id text primary key,
@@ -137,6 +165,7 @@ const schemaStatements = [
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
   `create index if not exists idx_rule_reviews_session_created on rule_reviews(session_id, created_at desc)`,
   `create index if not exists idx_rule_quality_checks_review on rule_quality_checks(review_id)`,
+  `create index if not exists idx_rule_alert_events_user on rule_alert_events(user_id, created_at desc)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
 ];
@@ -155,6 +184,30 @@ export function initializeSqliteSchema(db: Database.Database) {
   ensureColumn(db, "app_users", "role", "text not null default 'user'");
   ensureColumn(db, "user_ui_preferences", "ai_provider", "text");
   ensureColumn(db, "user_ui_preferences", "ai_model", "text");
+  ensureColumn(db, "rule_questions", "allow_unknown", "integer not null default 1");
+  ensureColumn(db, "rule_questions", "unknown_default_json", "text");
+  ensureColumn(db, "rule_questions", "breaker_source", "text");
+  ensureColumn(db, "rule_alert_events", "resolution", "text");
+  ensureColumn(db, "rule_alert_events", "resolved_at", "text");
+  ensureColumn(db, "price_quotes", "symbol", "text");
+  ensureColumn(db, "price_quotes", "market", "text not null default 'JP'");
+  ensureColumn(db, "price_quotes", "source", "text not null default 'mock'");
+  if (hasColumn(db, "price_quotes", "ticker")) {
+    db.prepare(
+      `update price_quotes set symbol = ticker where symbol is null`,
+    ).run();
+  }
+  db.prepare(
+    "create index if not exists idx_price_quotes_symbol_date on price_quotes(symbol, market, quote_date desc)",
+  ).run();
+}
+
+function hasColumn(db: Database.Database, table: string, column: string) {
+  return (db
+    .prepare(`pragma table_info("${table.replaceAll('"', '""')}")`)
+    .all() as Array<{ name: string }>).some(
+    (candidate) => candidate.name === column,
+  );
 }
 
 function ensureColumn(
