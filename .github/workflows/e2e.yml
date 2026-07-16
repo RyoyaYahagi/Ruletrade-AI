@@ -17,6 +17,9 @@ jobs:
     env:
       CI: true
       NODE_ENV: test
+      NEXT_PUBLIC_APP_URL: http://localhost:3100
+      E2E_TEST_PORT: 3100
+      NEXT_DIST_DIR: .next-e2e
       SQLITE_DATABASE_PATH: ./data/e2e-test.sqlite
       LOCAL_STORAGE_PATH: ./data/e2e-test-storage
       MOCK_AUTH_EMAIL: e2e@example.com
@@ -48,7 +51,7 @@ jobs:
         run: npm run build
 
       - name: Run E2E tests
-        run: npx playwright test --project=chromium
+        run: npm run test:e2e -- --project=chromium
 
       - name: Upload Playwright report
         if: always()
