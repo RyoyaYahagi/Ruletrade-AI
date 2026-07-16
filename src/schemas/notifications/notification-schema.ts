@@ -13,6 +13,9 @@ export const NotificationTypeSchema = z.enum([
   "document_summary_completed",
   "document_index_failed",
   "system_notice",
+  "portfolio_drift_exceeded",
+  "news_thesis_impact",
+  "ai_budget_warning",
 ]);
 
 export const NotificationSeveritySchema = z.enum([
@@ -29,6 +32,7 @@ export const NotificationTargetTypeSchema = z.enum([
   "portfolio_position",
   "document",
   "system",
+  "news_item",
 ]);
 
 export const NotificationStatusSchema = z.enum([
