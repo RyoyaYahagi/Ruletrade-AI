@@ -105,6 +105,7 @@ When reviewing a diff or PR, also apply the checklist in
 
 - Do not edit `.env.local`.
 - Do not commit real secrets.
+- Do not commit database files (`*.sqlite*`, anything under `.data/`).
 - Do not disable tests to pass CI.
 - Do not remove ownership checks.
 - Do not change production deployment settings.

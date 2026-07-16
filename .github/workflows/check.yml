@@ -46,6 +46,9 @@ jobs:
       - name: Test hygiene (no .skip/.only)
         run: npm run check:test-hygiene
 
+      - name: Repo hygiene (no DB artifacts)
+        run: npm run check:repo-hygiene
+
       - name: Test
         run: npm run test
 
