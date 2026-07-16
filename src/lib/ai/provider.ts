@@ -20,6 +20,8 @@ export type AITaskType =
   | "eval_judge"
   | "document_rag_review"
   | "portfolio_position_import"
+  | "news_classify"
+  | "news_summarize"
   | "embedding";
 
 export type AIAgentName =

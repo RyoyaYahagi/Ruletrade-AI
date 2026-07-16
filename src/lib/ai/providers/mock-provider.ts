@@ -66,6 +66,21 @@ export class MockProvider implements AIProvider {
 }
 
 function getMockObject(taskType: string, schemaName: string): unknown {
+  if (schemaName === "NewsClassification") {
+    return {
+      relevance: "affects_thesis",
+      thesisRelation: "unclear",
+      matchedBreakerIndex: null,
+      reason: "記事の内容が仮説に関係する可能性があります。",
+    };
+  }
+
+  if (schemaName === "NewsSummary") {
+    return {
+      summary: "記事の要旨と仮説への関係を確認してください。\n追加の事実は記事本文に基づきません。",
+    };
+  }
+
   if (schemaName === "RuleReview" || taskType === "rule_review") {
     return {
       summary:
