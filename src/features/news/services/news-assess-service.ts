@@ -7,6 +7,7 @@ import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
 import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { runComplianceGate } from "@/features/legal/services/compliance-gate-service";
+import { logError } from "@/lib/observability/structured-logger";
 import { createNotification } from "@/features/notifications/services/notification-service";
 import { TradeRuleSchema, type TradeRule } from "@/schemas/rules/trade-rule-schema";
 import {
@@ -35,10 +36,9 @@ type RuleSession = {
   status: string;
 };
 
-function parseRule(value: unknown): TradeRule {
+function parseRule(value: unknown): TradeRule | null {
   const parsed = TradeRuleSchema.safeParse(value ?? {});
-  if (parsed.success) return parsed.data;
-  return TradeRuleSchema.parse({});
+  return parsed.success ? parsed.data : null;
 }
 
 async function classifyNews(params: {
@@ -125,6 +125,7 @@ async function summarizeNews(params: {
     reviewType: "news_summary",
     text: summary.summary,
   });
+  // Safety or compliance failure must never expose the generated text to the user.
   if (!safety.passed || !compliance.passed) return SUMMARY_BLOCKED_MESSAGE;
   return summary.summary;
 }
@@ -186,6 +187,14 @@ export async function assessNewsForAllUsers() {
       const session = rawSession as RuleSession;
       if (!["finalized", "approved", "quality_gate_passed"].includes(session.status)) continue;
       const rule = parseRule(session.rule_json);
+      if (!rule) {
+        errorCount += 1;
+        logError("ニュース判定対象のルール形式が不正です。", {
+          userId,
+          sessionId: session.id,
+        });
+        continue;
+      }
       for (const match of matchesBySymbol.get(session.ticker.toUpperCase()) ?? []) {
         const article = articleById.get(match.news_item_id);
         if (!article) continue;
@@ -236,6 +245,12 @@ export async function assessNewsForAllUsers() {
               break;
             }
             errorCount += 1;
+            logError("ニュース要約に失敗しました。", {
+              userId,
+              sessionId: candidate.session.id,
+              newsItemId: candidate.article.id,
+              error: error instanceof Error ? error.message : String(error),
+            });
             summaryText = SUMMARY_BLOCKED_MESSAGE;
           }
         }
@@ -291,6 +306,12 @@ export async function assessNewsForAllUsers() {
           break;
         }
         errorCount += 1;
+        logError("ニュース分類に失敗しました。", {
+          userId,
+          sessionId: candidate.session.id,
+          newsItemId: candidate.article.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
     if (userCostLimited) costLimitedUserCount += 1;

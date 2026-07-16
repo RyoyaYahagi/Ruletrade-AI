@@ -54,6 +54,7 @@ const EnvSchema = z.object({
 
   NEWS_PROVIDER: z.enum(["mock", "rss"]).default("mock"),
   NEWS_RSS_FEEDS: z.string().default(""),
+  PRICE_PROVIDER: z.enum(["mock", "stooq"]).default("mock"),
 
   DOCUMENTS_BUCKET: z.string().default("documents"),
   MAX_DOCUMENT_UPLOAD_BYTES: z.coerce
@@ -120,6 +121,7 @@ export const env = EnvSchema.parse({
 
   NEWS_PROVIDER: process.env.NEWS_PROVIDER,
   NEWS_RSS_FEEDS: process.env.NEWS_RSS_FEEDS,
+  PRICE_PROVIDER: process.env.PRICE_PROVIDER,
 
   DOCUMENTS_BUCKET: process.env.DOCUMENTS_BUCKET,
   MAX_DOCUMENT_UPLOAD_BYTES: process.env.MAX_DOCUMENT_UPLOAD_BYTES,

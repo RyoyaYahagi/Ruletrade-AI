@@ -10,6 +10,8 @@ type DbPosition = {
   currency: string | null;
   asset_type: string | null;
   sector: string | null;
+  current_price: number | string | null;
+  price_updated_at: string | null;
   market_value: number | string | null;
   rule_session_id: string | null;
 };
@@ -52,6 +54,11 @@ function getMarketLabel(market: string | null) {
 
 function getMarketValue(position: DbPosition) {
   return Number(position.market_value ?? 0);
+}
+
+function isStalePrice(timestamp: string | null) {
+  if (!timestamp) return false;
+  return Date.now() - Date.parse(timestamp) >= 4 * 24 * 60 * 60 * 1000;
 }
 
 export function PortfolioPositionTable() {
@@ -337,6 +344,12 @@ export function PortfolioPositionTable() {
                     <div className="font-medium">{position.ticker}</div>
                     <div className="text-xs text-muted-foreground">
                       {position.company_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {position.price_updated_at
+                        ? `終値 ${Number(position.current_price ?? 0).toLocaleString()}円（${position.price_updated_at.slice(0, 10)}時点）`
+                        : "手動入力値"}
+                      {isStalePrice(position.price_updated_at) ? " ・ 4日以上未更新" : ""}
                     </div>
                   </td>
                   <td className="py-2">{getMarketLabel(position.market)}</td>
