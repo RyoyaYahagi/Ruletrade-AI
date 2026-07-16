@@ -5,7 +5,6 @@ Portfolio MVP allows users to manually enter holdings and review portfolio-level
 ## Overview
 
 - Users manually input holdings (no brokerage integration)
-- No price API integration in MVP
 - Portfolio values are user-input or manually updated
 - AI reviews portfolio for:
   - Concentration risk
@@ -34,13 +33,17 @@ The AI does **not** recommend buying or selling. It only points out gaps, biases
 ## Out of Scope
 
 - Brokerage integration
-- Price API integration
-- Automatic valuation updates
 - Dividend tracking
 - Sector auto-classification
 - CSV import
 - Asset history charts
-- Rebalancing support
+- Rebalancing support (the app does not suggest rebalancing; it only detects
+  drift from a target allocation in [plans/07](../plans/07-portfolio-target-drift.md))
 - Order execution
 - Tax calculation
 - NISA management
+
+## Planned (see plans/)
+
+- Price API integration ([plans/02](../plans/02-price-data-foundation.md))
+- Automatic valuation updates ([plans/02](../plans/02-price-data-foundation.md))

@@ -16,9 +16,13 @@ Notifications help users:
 ## What notifications do NOT do
 
 - recommend buying or selling
-- provide price alerts
+- provide market-timing alerts unrelated to the user's rules
 - give trading signals
 - create urgency around market timing
+
+Rule-condition alerts are allowed when an approved user rule's numeric condition
+is met. They report the fact, reference the user's own rule, and prompt the user
+to review it. See [ADR-0008](adr/0008-rule-condition-alerts-and-news-monitoring.md).
 
 ## Channels
 
@@ -65,6 +69,12 @@ Candidates:
 | document_summary_completed    | AI summary ready                  |
 | document_index_failed         | document RAG indexing failed      |
 | system_notice                 | system announcements              |
+| rule_price_condition_met      | approved rule price condition met |
+| price_data_stale              | held security price is stale      |
+| portfolio_drift_exceeded      | allocation drift exceeds limit   |
+| news_thesis_impact             | news may relate to a thesis      |
+| holistic_review_ready         | monthly holistic review created  |
+| ai_budget_warning              | monthly AI usage reaches 80%     |
 
 ## Safety
 

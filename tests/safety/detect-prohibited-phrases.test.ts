@@ -33,6 +33,31 @@ describe("detectProhibitedPhrases", () => {
     ).toBe(true);
   });
 
+  it("detects buy timing recommendation", () => {
+    const result = detectProhibitedPhrases("今は買い時です。");
+    expect(result.some((item) => item.phrase === "買い時")).toBe(true);
+  });
+
+  it("detects sell timing recommendation", () => {
+    const result = detectProhibitedPhrases("今は売り時です。");
+    expect(result.some((item) => item.phrase === "売り時")).toBe(true);
+  });
+
+  it("detects recommended security wording", () => {
+    const result = detectProhibitedPhrases("おすすめの銘柄を紹介します。");
+    expect(result.some((item) => item.phrase === "おすすめの銘柄")).toBe(true);
+  });
+
+  it("detects market timing pressure", () => {
+    const result = detectProhibitedPhrases("今がチャンスです。");
+    expect(result.some((item) => item.phrase === "今がチャンス")).toBe(true);
+  });
+
+  it("detects fear of missing out", () => {
+    const result = detectProhibitedPhrases("このままだと乗り遅れます。");
+    expect(result.some((item) => item.phrase === "乗り遅れ")).toBe(true);
+  });
+
   it("detects decision delegation", () => {
     const result = detectProhibitedPhrases("この条件なら購入決定でよいです。");
     expect(result.some((item) => item.type === "decision_delegation")).toBe(

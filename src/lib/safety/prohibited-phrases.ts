@@ -25,6 +25,18 @@ export const PROHIBITED_PHRASE_RULES: ProhibitedPhraseRule[] = [
   },
   {
     type: "buy_recommendation",
+    phrase: "買い時",
+    reason: "購入に適した時期だと推奨する表現です。",
+    riskLevel: "high",
+  },
+  {
+    type: "buy_recommendation",
+    phrase: "おすすめの銘柄",
+    reason: "特定銘柄を推奨する表現です。",
+    riskLevel: "high",
+  },
+  {
+    type: "buy_recommendation",
     phrase: "今すぐ買",
     reason: "購入を急かす買い推奨表現です。",
     riskLevel: "high",
@@ -45,6 +57,12 @@ export const PROHIBITED_PHRASE_RULES: ProhibitedPhraseRule[] = [
     type: "sell_recommendation",
     phrase: "売るべき",
     reason: "個別銘柄の売り推奨に見える表現です。",
+    riskLevel: "high",
+  },
+  {
+    type: "sell_recommendation",
+    phrase: "売り時",
+    reason: "売却に適した時期だと推奨する表現です。",
     riskLevel: "high",
   },
   {
@@ -159,6 +177,18 @@ export const PROHIBITED_PHRASE_RULES: ProhibitedPhraseRule[] = [
     type: "urgency_pressure",
     phrase: "迷わず",
     reason: "慎重な判断を妨げる可能性がある表現です。",
+    riskLevel: "medium",
+  },
+  {
+    type: "urgency_pressure",
+    phrase: "今がチャンス",
+    reason: "市場タイミングを煽る表現です。",
+    riskLevel: "medium",
+  },
+  {
+    type: "urgency_pressure",
+    phrase: "乗り遅れ",
+    reason: "機会を逃す不安で判断を急かす表現です。",
     riskLevel: "medium",
   },
   {
