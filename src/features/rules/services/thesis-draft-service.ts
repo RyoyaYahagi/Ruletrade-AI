@@ -6,6 +6,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
 import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import { createDatabaseClient } from "@/lib/db/database-client";
+import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { runComplianceGate } from "@/features/legal/services/compliance-gate-service";
 import {
@@ -67,6 +68,16 @@ export async function generateThesisDraft(params: {
     );
   }
 
+  // 新規ユーザーの検索0件は正常系。過去の自分のメモがない状態でも、
+  // 現在の回答だけで通常どおり下書きを生成する。
+  const ragResult = await retrieveRagContext({
+    userId: params.userId,
+    taskType: "rule_draft_generation",
+    queryText: `${session.ticker} ${session.company_name ?? ""} 投資仮説`,
+    sourceTypes: ["rule_session", "alert_resolution", "holistic_review"],
+    maxContextChars: 1500,
+  });
+
   const result = await runMeteredAiCall({
     userId: params.userId,
     feature: "thesis_draft",
@@ -91,6 +102,7 @@ export async function generateThesisDraft(params: {
               answerJson: answer.answer_json,
             }),
           ),
+          pastContext: ragResult.contextText,
         }),
         outputSchema: ThesisDraftOutputSchema,
         schemaName: "ThesisDraft",

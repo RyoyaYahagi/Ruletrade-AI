@@ -18,6 +18,9 @@ export async function upsertRagDocument(params: {
     | "portfolio_position"
     | "portfolio_review"
     | "trade_reflection"
+    | "alert_resolution"
+    | "news_assessment"
+    | "holistic_review"
     | "manual_note";
   sourceId: string;
   title: string;

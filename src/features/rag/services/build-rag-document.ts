@@ -90,3 +90,58 @@ export function buildPortfolioPositionRagContent(position: {
     .filter(Boolean)
     .join("\n");
 }
+
+export function buildAlertResolutionRagContent(params: {
+  quoteDate: string;
+  ticker: string;
+  conditionKey: string;
+  resolution: "kept" | "revising";
+}) {
+  return `${params.quoteDate} ${params.ticker} の条件「${params.conditionKey}」成立に対し、ユーザーは「${params.resolution === "kept" ? "ルールを維持" : "ルールを見直す"}」を選びました。これはユーザー自身の過去の判断記録です。`;
+}
+
+export function buildNewsAssessmentRagContent(params: {
+  publishedAt: string;
+  ticker: string;
+  title: string;
+  thesis: string;
+  thesisRelation?: string | null;
+  summary?: string | null;
+}) {
+  return [
+    `${params.publishedAt} ${params.ticker}: ${params.title}`,
+    `仮説「${params.thesis.slice(0, 100)}」への関係: ${params.thesisRelation ?? "未分類"}`,
+    params.summary ? `要約: ${params.summary}` : null,
+    "これはユーザーのルールに対する過去の判定記録です。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildHolisticReviewRagContent(params: {
+  period: string;
+  summaryText: string;
+  findings: Array<{
+    category: string;
+    status: string;
+    message: string;
+    relatedSymbols?: string[];
+  }>;
+}) {
+  return [
+    `月次レビュー ${params.period}`,
+    `総括: ${params.summaryText}`,
+    ...params.findings.map((finding) =>
+      [
+        `確認項目: ${finding.category} (${finding.status})`,
+        finding.message,
+        finding.relatedSymbols?.length
+          ? `関連銘柄: ${finding.relatedSymbols.join(", ")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("。"),
+    ),
+    "これはユーザーの登録情報と過去のルール確認結果です。",
+  ].join("\n");
+}

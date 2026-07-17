@@ -233,5 +233,13 @@ export async function resolveRuleAlert(params: {
     );
   }
 
+  const { upsertRagDocumentFromAlertResolution } = await import(
+    "@/features/rag/services/upsert-rag-sources"
+  );
+  await upsertRagDocumentFromAlertResolution({
+    userId: params.userId,
+    eventId: event.id,
+  });
+
   return { resolution: params.resolution, notificationId: params.notificationId };
 }

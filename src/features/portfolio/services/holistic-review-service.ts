@@ -19,6 +19,8 @@ import {
   HOLISTIC_REVIEW_PROMPT_VERSION,
 } from "@/features/portfolio/prompts/holistic-review-prompt";
 import { createNotification } from "@/features/notifications/services/notification-service";
+import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
+import { upsertRagDocumentFromHolisticReview } from "@/features/rag/services/upsert-rag-sources";
 
 const REVIEW_DUE_DAYS = 90;
 const SAFE_REVIEW_TEXT =
@@ -53,6 +55,8 @@ export type HolisticReviewFacts = {
   }>;
   invalidRuleJsonSessionIds: string[];
   investmentMemory: unknown;
+  previousReview: unknown | null;
+  alertResolutionContext: string;
 };
 
 export type HolisticReviewResult = {
@@ -85,12 +89,24 @@ export function getReviewPeriod(date = new Date()) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+export function getPreviousReviewPeriod(period: string) {
+  const [yearText, monthText] = period.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    throw new AppError("VALIDATION_ERROR", "レビュー期間の形式が正しくありません。", 400);
+  }
+  return getReviewPeriod(new Date(Date.UTC(year, month - 2, 1)));
+}
+
 export function buildHolisticReviewFacts(params: {
   period?: string;
   cashAmount: number;
   positions: ReviewPositionRow[];
   sessions: ReviewSessionRow[];
   investmentMemory: unknown;
+  previousReview?: unknown | null;
+  alertResolutionContext?: string;
   now?: Date;
 }): HolisticReviewFacts {
   const now = params.now ?? new Date();
@@ -194,6 +210,8 @@ export function buildHolisticReviewFacts(params: {
     staleRules,
     invalidRuleJsonSessionIds,
     investmentMemory: params.investmentMemory,
+    previousReview: params.previousReview ?? null,
+    alertResolutionContext: params.alertResolutionContext ?? "",
   };
 }
 
@@ -239,6 +257,27 @@ export async function generateHolisticReview(params: {
     };
   }
 
+  const previousPeriod = getPreviousReviewPeriod(period);
+  // A period is a direct SQL key, so the previous review is loaded without
+  // RAG. RAG is reserved for the unbounded set of current alert decisions.
+  const [{ data: previousReview, error: previousReviewError }, alertResolutionContext] =
+    await Promise.all([
+      db
+        .from("holistic_reviews")
+        .select("period, review_json, summary_text")
+        .eq("user_id", params.userId)
+        .eq("period", previousPeriod)
+        .maybeSingle(),
+      retrieveRagContext({
+        userId: params.userId,
+        taskType: "holistic_review",
+        queryText: `${period} のあなたの過去の判断記録`,
+        sourceTypes: ["alert_resolution"],
+        maxContextChars: 1500,
+      }),
+    ]);
+  if (previousReviewError) throw previousReviewError;
+
   const [{ data: portfolio, error: portfolioError }, positionsResult, sessionsResult, memoryResult] =
     await Promise.all([
       db
@@ -271,6 +310,8 @@ export async function generateHolisticReview(params: {
     positions: (positionsResult.data ?? []) as ReviewPositionRow[],
     sessions: (sessionsResult.data ?? []) as ReviewSessionRow[],
     investmentMemory: memoryResult.data,
+    previousReview: previousReview ?? null,
+    alertResolutionContext: alertResolutionContext.contextText,
     now: params.now,
   });
   const prompt = buildHolisticReviewPrompt(facts);
@@ -390,6 +431,11 @@ export async function generateHolisticReview(params: {
     period,
     reviewRow: savedReview,
     portfolioId: portfolio?.id,
+  });
+
+  await upsertRagDocumentFromHolisticReview({
+    userId: params.userId,
+    reviewId: savedReview.id,
   });
 
   return {

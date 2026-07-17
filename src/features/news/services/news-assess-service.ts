@@ -36,6 +36,11 @@ type RuleSession = {
   status: string;
 };
 
+type HistoricalAssessment = {
+  thesis_relation?: string | null;
+  summary_text?: string | null;
+};
+
 function parseRule(value: unknown): TradeRule | null {
   const parsed = TradeRuleSchema.safeParse(value ?? {});
   return parsed.success ? parsed.data : null;
@@ -46,6 +51,7 @@ async function classifyNews(params: {
   sessionId: string;
   article: NewsItem;
   rule: TradeRule;
+  historicalAssessments: HistoricalAssessment[];
 }) {
   return runMeteredAiCall({
     userId: params.userId,
@@ -71,6 +77,9 @@ async function classifyNews(params: {
           summary: params.article.summary,
           investmentThesis: params.rule.investmentThesis ?? null,
           thesisBreakers: params.rule.thesisBreakers,
+          historicalAssessments: formatHistoricalAssessments(
+            params.historicalAssessments,
+          ),
         }),
         outputSchema: NewsClassificationSchema,
         schemaName: "NewsClassification",
@@ -79,6 +88,35 @@ async function classifyNews(params: {
       return { result: response.data, actualCostUsd: response.estimatedCostUsd };
     },
   });
+}
+
+async function loadHistoricalAssessments(params: {
+  db: Awaited<ReturnType<typeof createDatabaseClient>>;
+  userId: string;
+  sessionId: string;
+}) {
+  // session_id is a direct lookup key. SQL is deterministic and complete here;
+  // using RAG would add embedding cost and could omit a prior assessment.
+  const { data, error } = await params.db
+    .from("news_assessments")
+    .select("thesis_relation, summary_text")
+    .eq("user_id", params.userId)
+    .eq("session_id", params.sessionId)
+    .eq("relevance", "affects_thesis")
+    .order("created_at", { ascending: false })
+    .limit(2);
+  if (error) throw error;
+  return (data ?? []) as HistoricalAssessment[];
+}
+
+function formatHistoricalAssessments(assessments: HistoricalAssessment[]) {
+  return assessments
+    .map(
+      (assessment) =>
+        `${assessment.thesis_relation ?? "未分類"}: ${(assessment.summary_text ?? "").slice(0, 100)}`,
+    )
+    .join("\n")
+    .slice(0, 300);
 }
 
 async function summarizeNews(params: {
@@ -215,11 +253,17 @@ export async function assessNewsForAllUsers() {
     let userSummarizedCount = 0;
     for (const candidate of candidates.slice(0, MAX_CLASSIFY_PER_USER_PER_DAY)) {
       try {
+        const historicalAssessments = await loadHistoricalAssessments({
+          db,
+          userId,
+          sessionId: candidate.session.id,
+        });
         const classification = await classifyNews({
           userId,
           sessionId: candidate.session.id,
           article: candidate.article,
           rule: candidate.rule,
+          historicalAssessments,
         });
         classifiedCount += 1;
         const affectsThesis = classification.relevance === "affects_thesis";
@@ -301,6 +345,15 @@ export async function assessNewsForAllUsers() {
             .eq("id", assessment.id)
             .eq("user_id", userId);
           notificationCount += 1;
+        }
+        if (assessment?.id) {
+          const { upsertRagDocumentFromNewsAssessment } = await import(
+            "@/features/rag/services/upsert-rag-sources"
+          );
+          await upsertRagDocumentFromNewsAssessment({
+            userId,
+            assessmentId: assessment.id,
+          });
         }
       } catch (error) {
         if (error instanceof AppError && error.status === 402) {

@@ -80,6 +80,14 @@ export default async function MonthlyReviewPage({
             <p className="text-base leading-7">{selectedReview.review.overallNote}</p>
           </div>
 
+          {selectedReview.review.changedFromLastMonth ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5">
+              <p className="text-sm font-medium text-muted-foreground">前月からの変化</p>
+              <p className="mt-2 text-base leading-7">{selectedReview.review.changedFromLastMonth}</p>
+              <p className="mt-2 text-xs text-muted-foreground">あなたの過去のメモ・判断からの比較です。</p>
+            </div>
+          ) : null}
+
           <div className="grid gap-4">
             {selectedReview.review.findings.map((finding, index) => (
               <article

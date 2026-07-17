@@ -9,6 +9,7 @@ export const THESIS_DRAFT_SYSTEM_PROMPT = `
 export function buildThesisDraftPrompt(params: {
   ticker: string;
   companyName?: string | null;
+  pastContext?: string;
   answers: Array<{
     questionKey: string;
     answerText?: string | null;
@@ -26,12 +27,16 @@ export function buildThesisDraftPrompt(params: {
       answerText: answer.answerText ?? null,
       answerJson: answer.answerJson ?? null,
     })),
+    pastContext: params.pastContext
+      ? `あなたの過去のメモ・判断から:\n${params.pastContext}`
+      : "過去の参照情報はありません。",
     constraints: [
       "一人称で書く",
       "買い推奨や売り推奨の表現を使わない",
       "選択された理由以外の事実を追加しない",
       "破れ条件は観測可能な事実にする",
       "破れ条件を4件返す",
+      "過去の仮説を複製せず、文体と一貫性の参考だけにする",
     ],
   });
 }

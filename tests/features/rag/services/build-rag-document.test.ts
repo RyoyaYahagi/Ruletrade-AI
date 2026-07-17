@@ -3,6 +3,9 @@ import {
   buildRuleSessionRagContent,
   buildWatchlistItemRagContent,
   buildPortfolioPositionRagContent,
+  buildAlertResolutionRagContent,
+  buildNewsAssessmentRagContent,
+  buildHolisticReviewRagContent,
 } from "@/features/rag/services/build-rag-document";
 
 describe("buildRuleSessionRagContent", () => {
@@ -63,5 +66,43 @@ describe("buildPortfolioPositionRagContent", () => {
     expect(content).toContain("銘柄: AAPL");
     expect(content).toContain("セクター: Technology");
     expect(content).toContain("時価総額: 100000");
+  });
+});
+
+describe("judgement RAG documents", () => {
+  it("records alert resolutions without turning them into advice", () => {
+    const content = buildAlertResolutionRagContent({
+      quoteDate: "2026-07-17",
+      ticker: "7203",
+      conditionKey: "stop_loss_review",
+      resolution: "revising",
+    });
+    expect(content).toContain("7203");
+    expect(content).toContain("ルールを見直す");
+    expect(content).toContain("過去の判断記録");
+  });
+
+  it("limits a thesis excerpt to the defined context boundary", () => {
+    const content = buildNewsAssessmentRagContent({
+      publishedAt: "2026-07-17",
+      ticker: "7203",
+      title: "ニュース",
+      thesis: "a".repeat(300),
+      thesisRelation: "supports",
+      summary: "要約",
+    });
+    expect(content).toContain(`仮説「${"a".repeat(100)}」`);
+    expect(content).not.toContain(`仮説「${"a".repeat(101)}`);
+  });
+
+  it("keeps holistic findings as user-owned review context", () => {
+    const content = buildHolisticReviewRagContent({
+      period: "2026-07",
+      summaryText: "登録情報を確認しました。",
+      findings: [{ category: "missing_exit", status: "attention", message: "出口条件を確認してください。", relatedSymbols: ["7203"] }],
+    });
+    expect(content).toContain("月次レビュー 2026-07");
+    expect(content).toContain("出口条件を確認してください。");
+    expect(content).toContain("関連銘柄: 7203");
   });
 });

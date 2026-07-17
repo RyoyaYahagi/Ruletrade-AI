@@ -19,6 +19,7 @@ export const HolisticReviewFindingSchema = z.object({
 export const HolisticReviewSchema = z.object({
   findings: z.array(HolisticReviewFindingSchema).max(20),
   overallNote: z.string().min(1).max(500),
+  changedFromLastMonth: z.string().max(300).optional(),
 });
 
 export type HolisticReview = z.infer<typeof HolisticReviewSchema>;

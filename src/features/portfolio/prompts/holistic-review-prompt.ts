@@ -15,6 +15,8 @@ export function buildHolisticReviewPrompt(input: unknown) {
 - relatedSymbols には入力された保有銘柄の ticker だけを使う
 - 売買、保有継続、リバランスなどの行動を推奨しない
 - これは投資助言ではなく、ユーザー自身のルール確認であることが伝わる内容にする
+- 「前月からの変化」は入力された前月レビューと今月の事実だけを比較して書く。なければ省略する
+- 「あなたの過去のメモ・判断から」と示された参照情報は一貫性の確認にだけ使い、行動を促す根拠にしない
 - 出力は指定されたSchemaに合うJSONだけにする
 `.trim(),
     user: JSON.stringify(input),
