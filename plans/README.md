@@ -19,17 +19,18 @@
 | 05 | [05-llm-cost-management.md](05-llm-cost-management.md) | LLM 利用料金の記録・可視化・上限管理の完成 | なし |
 | 06 | [06-price-rule-alerts.md](06-price-rule-alerts.md) | 価格条件の成立通知（決定的判定・LLM 不使用） | 02, 03 |
 | 07 | [07-portfolio-target-drift.md](07-portfolio-target-drift.md) | ターゲット配分とドリフト検知通知 | 02 |
-| 08 | [08-news-pipeline.md](08-news-pipeline.md) | ニュース自動取得→照合→分類→要約→通知（該当箇所ハイライト付き出典リンクを含む） | 03, 05 |
+| 08 | [08-news-pipeline.md](08-news-pipeline.md) | ニュース自動取得→照合→分類→要約→通知（**実装済み**） | 03, 05 |
 | 09 | [09-monthly-holistic-review.md](09-monthly-holistic-review.md) | 月次総合レビュー（リスク許容度×資産×ルール） | 05 |
 | 10 | [10-ux-today-and-status.md](10-ux-today-and-status.md) | Today 画面・状態バッジ・タイポグラフィ改善 | 06（バッジの状態定義に依存） |
 | 11 | [11-mcp-and-agent-skills.md](11-mcp-and-agent-skills.md) | 外部 AI エージェント対応（PAT・MCP サーバー・Agent Skill 配布） | なし（対象機能の実装分だけツールを公開） |
 | 12 | [12-rag-utilization.md](12-rag-utilization.md) | RAG 活用の拡張（判断記録の蓄積と参照） | 06, 08, 09 の各成果物（実装済み分から順次） |
+| 13 | [13-news-evidence-highlight.md](13-news-evidence-highlight.md) | ニュース判定の根拠引用と該当箇所ハイライト付き出典リンク | 08 の実装 |
 
 推奨フェーズ分け:
 
 - **フェーズ A（基盤）**: 01 → 02 → 05
 - **フェーズ B（ルール作成体験）**: 03 → 04 → 06
-- **フェーズ C（自動監視）**: 07 → 08
+- **フェーズ C（自動監視）**: 07 → 08 → 13
 - **フェーズ D（レビューと UX）**: 09 → 10
 - **フェーズ E（連携と記憶）**: 11 → 12（11 はフェーズ B 以降ならいつでも並行可）
 

@@ -1,5 +1,8 @@
 # 08. ニュース自動取得→照合→分類→要約→通知
 
+> **状態: 実装済み**（ブランチ `codex/phase-c-auto-monitoring`）。
+> 出典リンクの該当箇所ハイライト対応は追加計画 [13-news-evidence-highlight.md](13-news-evidence-highlight.md) を参照。
+
 ## 目的
 
 保有・ウォッチ銘柄に関するニュースを自動取得し、ユーザーの投資仮説（`investmentThesis`）と
@@ -79,8 +82,6 @@ create table if not exists news_assessments (
   thesis_relation text,              -- 'supports' | 'challenges' | 'unclear'（affects時のみ）
   matched_breaker_index integer,     -- どの thesisBreaker に触れたか（該当時のみ）
   summary_text text,                 -- 要約（affects時のみ生成）
-  evidence_quote text,               -- 判定根拠となる記事内の逐語引用（検証済みのみ保存）
-  evidence_verified integer not null default 0,  -- 引用が原文に実在することをコードで確認済みか
   model text,
   estimated_cost_usd real,
   notification_id text,
@@ -166,33 +167,11 @@ z.object({
   thesisRelation: z.enum(["supports", "challenges", "unclear"]).optional(),
   matchedBreakerIndex: z.number().int().min(0).max(9).nullable(),
   reason: z.string().max(200),
-  // 判定根拠として、記事のタイトルまたは要旨から「一字一句そのまま」抜き出した引用。
-  // 言い換え・要約は禁止（プロンプトに明記する）
-  evidenceQuote: z.string().max(300).nullable(),
 })
 ```
 
    パース失敗はその記事を `relevance: 判定不能` として**保存せず**、エラーカウントに載せる
    （不正な出力を DB に残さない）。
-
-3b. **引用の逐語検証（決定的・無料）**: LLM が返した `evidenceQuote` が、
-   記事の `title + "\n" + summary` に**文字列としてそのまま含まれるか**をコードで確認する
-   （空白の正規化のみ許可: 連続空白を 1 つに畳んでから `includes` で判定）。
-
-   - 含まれる → `evidence_quote` に保存し `evidence_verified = 1`
-   - 含まれない（LLM の捏造・言い換え）→ `evidence_quote` は **null で保存**し、
-     `evidence_verified = 0`。判定自体（relevance）は使ってよいが、
-     引用として表示してはならない。捏造引用をユーザーに見せることは
-     誤情報の提示であり、検証はこの機能の信頼性の根幹である。
-
-   実装場所: `src/lib/news/verify-evidence-quote.ts`（新規・純関数）
-
-```ts
-export function verifyEvidenceQuote(params: {
-  quote: string;
-  articleText: string;
-}): boolean;
-```
 4. **要約（標準 LLM）**: `relevance === "affects_thesis"` の分のみ
    `runMeteredAiCall({ feature: "news_summarize" })` + `callAi({ taskWeight: "standard" })`。
    出力: 3 行以内の要約 + 「あなたの仮説/破れ条件のどこに関係するか」1 文。
@@ -209,46 +188,8 @@ export function verifyEvidenceQuote(params: {
   「{company} ({ticker}) に関するニュース: {title}。あなたの{仮説|破れ条件『{breaker}』}に関係する可能性があります。内容を確認してください。」
 - 通知のアクション: 「ニュースを確認」（詳細カードを開く）/ 「仮説を維持」/ 「ルールを見直す」
   （計画 06 の 3 アクション UI を流用）。
-- 詳細カード表示: 要約 + 出典リンク + 判定根拠の引用 +
+- 詳細カード表示: 要約 + 出典リンク（`url`。外部リンクであることを明示）+
   「この判定は AI によるもので、誤りがあり得ます」の 1 行。
-
-### ステップ 4b: ハイライト付き出典リンク
-
-詳細カードの出典リンクは、**該当箇所がハイライトされた状態で開く**リンクにする。
-
-実装: URL テキストフラグメント（[Text Fragments](https://developer.mozilla.org/en-US/docs/Web/URI/Fragment/Text_fragments)）を使う。
-外部ライブラリ不要。リンク生成関数を作る:
-
-ファイル: `src/lib/news/build-highlight-url.ts`（新規・純関数）
-
-```ts
-// evidence_verified = 1 の引用があるときだけハイライト付き URL を返す。
-// 無いときは元の url をそのまま返す（フォールバックではなく仕様。引用が
-// 検証できていない記事に偽のハイライトを付けないため）。
-export function buildHighlightUrl(params: {
-  url: string;
-  evidenceQuote: string | null;
-  evidenceVerified: boolean;
-}): string;
-```
-
-生成規則:
-
-1. `evidenceQuote` が null または `evidenceVerified` が false → `url` をそのまま返す
-2. 引用が 100 文字以下 → `${url}#:~:text=${encodeURIComponent(quote)}`
-3. 引用が 100 文字超 → 先頭 6 語（日本語は先頭 20 文字）と末尾 6 語（同 20 文字）で
-   範囲指定形式 `#:~:text=${start},${end}` を使う（長い完全一致はブラウザ側で失敗しやすいため）
-4. `url` に既存の `#` フラグメントがある場合はそれを除去してから付与する
-5. `-`（ハイフン）と `,` と `&` はテキストフラグメントの区切り記号なので
-   `encodeURIComponent` に加えて明示的に `%2D` / `%2C` / `%26` へ置換する
-
-UI 表示（詳細カード）:
-
-- 引用文をカード内に引用ブロックで表示し（出典名付き）、その下にリンク
-  「出典で該当箇所を見る ↗」（`buildHighlightUrl` の結果、`target="_blank"` + `rel="noopener noreferrer"`）。
-- `evidence_verified = 0` の場合は引用ブロックを出さず、リンクは「出典を見る ↗」（素の URL）にする。
-- 注記を小さく添える: 「ハイライト表示はブラウザによっては機能しません」
-  （テキストフラグメント非対応ブラウザでは通常のリンクとして開くだけで、壊れはしない）。
 
 ### ステップ 5: 判定履歴画面
 
@@ -275,16 +216,10 @@ UI 表示（詳細カード）:
 8. ユーザー A の assessments がユーザー B の API から見えない（**所有権テスト**）
 9. 通知文言が禁止語ゼロ
 10. コスト上限超過時（402）に assess cron が該当ユーザーをスキップして続行する
-11. `verifyEvidenceQuote`: 逐語一致 → true / 言い換え → false / 空白の揺れのみ → true
-12. 捏造引用（原文に無い evidenceQuote）が保存時に null になり、UI で引用ブロックが出ない
-13. `buildHighlightUrl`: 検証済み短文 → `#:~:text=` 付き / 未検証 → 素の URL /
-    ハイフン・カンマを含む引用が正しくエンコードされる / 既存フラグメント付き URL の置換
 
 ## 完了条件
 
 - [ ] mock プロバイダで fetch → assess → 通知の全経路が動く
 - [ ] 分類・要約の件数上限とコスト上限の両方が機能する
 - [ ] 通知に出典リンクと AI 免責が表示される
-- [ ] 検証済み引用のある記事は、出典リンクが該当箇所ハイライト付き（`#:~:text=`）で開く
-- [ ] 検証できなかった引用は表示されない（捏造引用がユーザーに見えない）
 - [ ] 上記テストがすべて通り、`npm run typecheck && npm run lint && npm run test && npm run test:e2e` が通る
