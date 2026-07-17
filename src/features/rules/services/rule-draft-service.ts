@@ -165,7 +165,11 @@ function buildThesisBreakers(answerJson: unknown): ThesisBreaker[] {
   return selected
     .map((item): ThesisBreaker | null => {
       if (typeof item === "string" && item.trim()) {
-        return { description: item.trim(), newsKeywords: [] };
+        return {
+          description: item.trim(),
+          severity: "medium",
+          newsKeywords: [],
+        };
       }
       if (typeof item !== "object" || item === null) return null;
       const candidate = item as {
@@ -181,6 +185,7 @@ function buildThesisBreakers(answerJson: unknown): ThesisBreaker[] {
         : [];
       return {
         description: candidate.description.trim(),
+        severity: "medium",
         newsKeywords,
       };
     })

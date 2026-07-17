@@ -43,6 +43,13 @@ export function PortfolioPage() {
           >
             画像から一括追加
           </a>
+          <a
+            href="/portfolio/targets"
+            className="rounded-md border px-4 py-2 text-sm"
+            data-testid="portfolio-targets-link"
+          >
+            ターゲット配分
+          </a>
         </div>
       </div>
 

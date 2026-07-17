@@ -14,6 +14,8 @@ export type AITaskType =
   | "safety_check"
   | "compliance_check"
   | "eval_judge"
+  | "news_classify"
+  | "news_summarize"
   | "embedding";
 
 export type AIAgentName =

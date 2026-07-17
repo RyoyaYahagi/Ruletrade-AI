@@ -16,6 +16,8 @@ export const NotificationTypeSchema = z.enum([
   "ai_budget_warning",
   "rule_price_condition_met",
   "price_data_stale",
+  "portfolio_drift_exceeded",
+  "news_thesis_impact",
 ]);
 
 export const NotificationSeveritySchema = z.enum([
@@ -32,6 +34,7 @@ export const NotificationTargetTypeSchema = z.enum([
   "portfolio_position",
   "document",
   "system",
+  "news_item",
 ]);
 
 export const NotificationStatusSchema = z.enum([

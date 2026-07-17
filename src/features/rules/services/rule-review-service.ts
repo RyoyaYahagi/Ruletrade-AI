@@ -87,7 +87,19 @@ Rules:
 function buildRuleReviewFallback(params: {
   ticker: string;
   companyName: string;
-}) {
+}): {
+  data: import("@/schemas/rules/rule-review-schema").RuleReviewOutput;
+  rawText: string;
+  usage: typeof zeroAIUsage;
+  meta: {
+    provider: string;
+    model: string;
+    taskType: "rule_review";
+    promptVersion: string;
+    fallbackUsed: true;
+    latencyMs: number;
+  };
+} {
   const startedAt = Date.now();
 
   return {
@@ -287,7 +299,9 @@ export async function runRuleReview(params: {
     matchCount: 8,
   });
 
-  const aiResult = await withAiRunLogging({
+  const aiResult = await withAiRunLogging<
+    import("@/schemas/rules/rule-review-schema").RuleReviewOutput
+  >({
     userId: params.userId,
     taskType: "rule_review",
     sourceType: "rule_session",

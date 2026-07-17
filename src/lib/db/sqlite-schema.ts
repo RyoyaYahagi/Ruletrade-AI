@@ -149,6 +149,64 @@ const schemaStatements = [
     suggested_question text,
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists portfolio_targets (
+    id text primary key,
+    user_id text not null,
+    portfolio_id text not null,
+    target_type text not null,
+    target_key text,
+    target_percent real not null,
+    tolerance_percent real not null default 5,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now')),
+    unique (portfolio_id, target_type, target_key)
+  )`,
+  `create table if not exists drift_alert_events (
+    id text primary key,
+    user_id text not null,
+    portfolio_id text not null,
+    target_type text not null,
+    target_key text not null,
+    quote_date text not null,
+    status text not null,
+    created_at text not null default (datetime('now')),
+    unique (portfolio_id, target_type, target_key, quote_date)
+  )`,
+  `create table if not exists news_items (
+    id text primary key,
+    source text not null,
+    external_id text not null,
+    title text not null,
+    summary text,
+    url text not null,
+    published_at text not null,
+    content_hash text not null unique,
+    created_at text not null default (datetime('now'))
+  )`,
+  `create table if not exists news_ticker_matches (
+    id text primary key,
+    news_item_id text not null,
+    symbol text not null,
+    market text not null default 'JP',
+    match_method text not null,
+    created_at text not null default (datetime('now')),
+    unique (news_item_id, symbol, market)
+  )`,
+  `create table if not exists news_assessments (
+    id text primary key,
+    user_id text not null,
+    news_item_id text not null,
+    session_id text not null,
+    relevance text not null,
+    thesis_relation text,
+    matched_breaker_index integer,
+    summary_text text,
+    model text,
+    estimated_cost_usd real,
+    notification_id text,
+    created_at text not null default (datetime('now')),
+    unique (user_id, news_item_id, session_id)
+  )`,
   `create table if not exists price_quotes (
     id text primary key,
     symbol text not null,
@@ -176,6 +234,10 @@ const schemaStatements = [
   `create index if not exists idx_rule_quality_checks_review on rule_quality_checks(review_id)`,
   `create index if not exists idx_price_quotes_symbol_date on price_quotes(symbol, market, quote_date desc)`,
   `create index if not exists idx_rule_alert_events_user on rule_alert_events(user_id, created_at desc)`,
+  `create index if not exists idx_portfolio_targets_user_portfolio on portfolio_targets(user_id, portfolio_id)`,
+  `create index if not exists idx_drift_alert_events_portfolio_target on drift_alert_events(portfolio_id, target_type, target_key, quote_date desc)`,
+  `create index if not exists idx_news_ticker_matches_symbol on news_ticker_matches(symbol, market)`,
+  `create index if not exists idx_news_assessments_user_created on news_assessments(user_id, created_at desc)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
 ];

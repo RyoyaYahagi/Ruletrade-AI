@@ -72,6 +72,7 @@ export const ExitPlanSchema = z.object({
 
 export const ThesisBreakerSchema = z.object({
   description: z.string().min(1).max(500),
+  severity: z.enum(["low", "medium", "high"]).default("medium"),
   newsKeywords: z.array(z.string().min(1).max(50)).max(10).default([]),
 });
 
@@ -93,6 +94,11 @@ export const MonitoringSettingsSchema = z.object({
 
 export const TradeRuleSchema = z.object({
   investmentThesis: z.string().max(4000).optional(),
+  thesisBreakers: z.array(ThesisBreakerSchema).max(10).default([]),
+  monitoring: MonitoringSettingsSchema.default({
+    cooldownHours: 24,
+    reviewCycle: "undecided",
+  }),
   purpose: HoldingPurposeSchema.default("undecided"),
   timeHorizon: TimeHorizonSchema.optional(),
   entryPlan: EntryPlanSchema.default({
@@ -115,17 +121,12 @@ export const TradeRuleSchema = z.object({
     .default({
       policy: "undecided",
     }),
-  thesisBreakers: z.array(ThesisBreakerSchema).max(10).default([]),
-  monitoring: MonitoringSettingsSchema.default({
-    cooldownHours: 24,
-    reviewCycle: "undecided",
-  }),
   portfolioNotes: z.string().max(2000).optional(),
   freeNotes: z.string().max(4000).optional(),
 });
 
 export type TradeRule = z.infer<typeof TradeRuleSchema>;
-export type HoldingPurpose = z.infer<typeof HoldingPurposeSchema>;
-export type ExitTrigger = z.infer<typeof ExitTriggerSchema>;
 export type ThesisBreaker = z.infer<typeof ThesisBreakerSchema>;
 export type MonitoringSettings = z.infer<typeof MonitoringSettingsSchema>;
+export type HoldingPurpose = z.infer<typeof HoldingPurposeSchema>;
+export type ExitTrigger = z.infer<typeof ExitTriggerSchema>;
