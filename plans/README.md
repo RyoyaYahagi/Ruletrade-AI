@@ -19,9 +19,11 @@
 | 05 | [05-llm-cost-management.md](05-llm-cost-management.md) | LLM 利用料金の記録・可視化・上限管理の完成 | なし |
 | 06 | [06-price-rule-alerts.md](06-price-rule-alerts.md) | 価格条件の成立通知（決定的判定・LLM 不使用） | 02, 03 |
 | 07 | [07-portfolio-target-drift.md](07-portfolio-target-drift.md) | ターゲット配分とドリフト検知通知 | 02 |
-| 08 | [08-news-pipeline.md](08-news-pipeline.md) | ニュース自動取得→照合→分類→要約→通知 | 03, 05 |
+| 08 | [08-news-pipeline.md](08-news-pipeline.md) | ニュース自動取得→照合→分類→要約→通知（該当箇所ハイライト付き出典リンクを含む） | 03, 05 |
 | 09 | [09-monthly-holistic-review.md](09-monthly-holistic-review.md) | 月次総合レビュー（リスク許容度×資産×ルール） | 05 |
 | 10 | [10-ux-today-and-status.md](10-ux-today-and-status.md) | Today 画面・状態バッジ・タイポグラフィ改善 | 06（バッジの状態定義に依存） |
+| 11 | [11-mcp-and-agent-skills.md](11-mcp-and-agent-skills.md) | 外部 AI エージェント対応（PAT・MCP サーバー・Agent Skill 配布） | なし（対象機能の実装分だけツールを公開） |
+| 12 | [12-rag-utilization.md](12-rag-utilization.md) | RAG 活用の拡張（判断記録の蓄積と参照） | 06, 08, 09 の各成果物（実装済み分から順次） |
 
 推奨フェーズ分け:
 
@@ -29,6 +31,7 @@
 - **フェーズ B（ルール作成体験）**: 03 → 04 → 06
 - **フェーズ C（自動監視）**: 07 → 08
 - **フェーズ D（レビューと UX）**: 09 → 10
+- **フェーズ E（連携と記憶）**: 11 → 12（11 はフェーズ B 以降ならいつでも並行可）
 
 ## 製品上の絶対原則（全計画共通）
 
@@ -131,3 +134,7 @@ export async function GET() {
 | ルール承認・通知への応答・売買行動 | 人間 | 製品哲学とコンプライアンス上、委譲禁止 |
 
 この表に反する実装（例: 価格が閾値を超えたかを LLM に聞く）をしてはならない。
+
+補足: 外部 AI エージェント（MCP 経由、計画 11）はこの表の「人間」には含まれない。
+エージェントができるのは閲覧と下書き入力までで、ルールの承認・通知への応答は
+API 経由でも不可能にする（該当ツールを作らない）。
