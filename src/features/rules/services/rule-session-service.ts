@@ -382,13 +382,29 @@ function deleteRagSources(
   if (sourceIds.length === 0) return;
   const placeholders = sourceIds.map(() => "?").join(", ");
   for (const table of ["rag_chunks", "rag_documents"]) {
-    if (!tables.has(table)) continue;
+    // RAG tables were provisioned dynamically in older SQLite databases, so a
+    // legacy table may exist without the source_id column used by newer rows.
+    if (!tables.has(table) || !hasTableColumn(sqlite, table, "source_id")) {
+      continue;
+    }
     sqlite
       .prepare(
         `delete from "${table}" where user_id = ? and source_type = ? and source_id in (${placeholders})`,
       )
       .run(userId, sourceType, ...sourceIds);
   }
+}
+
+function hasTableColumn(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  table: string,
+  column: string,
+) {
+  return (sqlite
+    .prepare(`pragma table_info("${table}")`)
+    .all() as Array<{ name: string }>).some(
+    (candidate) => candidate.name === column,
+  );
 }
 
 export async function updateRuleSession(params: {

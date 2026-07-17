@@ -164,6 +164,31 @@ describe("deleteRuleSession", () => {
     expect(result.data?.id).toBe("session-a");
   });
 
+  it("deletes the session when a legacy rag_chunks table lacks source_id", async () => {
+    await createSession("session-a", "user-a");
+    await db.from("rag_chunks").insert({
+      id: "legacy-chunk",
+      user_id: "user-a",
+      source_type: "rule_session",
+    });
+
+    await deleteRuleSession({ userId: "user-a", sessionId: "session-a" });
+
+    const deletedSession = await db
+      .from("rule_design_sessions")
+      .select("id")
+      .eq("id", "session-a")
+      .single();
+    expect(deletedSession.data).toBeNull();
+
+    const legacyChunk = await db
+      .from("rag_chunks")
+      .select("id")
+      .eq("id", "legacy-chunk")
+      .single();
+    expect(legacyChunk.data?.id).toBe("legacy-chunk");
+  });
+
   async function createSession(id: string, userId: string) {
     const result = await db.from("rule_design_sessions").insert({
       id,
