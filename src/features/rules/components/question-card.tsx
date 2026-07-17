@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnswerInput } from "@/features/rules/components/answer-input";
+import { KnowledgeArticleLinks } from "@/features/knowledge/components/knowledge-article-links";
 
 type ThesisDraftResponse = {
   ok?: boolean;
@@ -234,6 +235,7 @@ export function QuestionCard({
               <p className="mt-2 text-sm">
                 設定値: {formatDefaultValue(unknownDefault.value)}
               </p>
+              <KnowledgeArticleLinks topicKey={question.question_key} />
               <div className="mt-3 flex gap-3">
                 <button
                   type="button"

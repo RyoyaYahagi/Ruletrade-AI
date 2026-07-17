@@ -16,6 +16,12 @@ A lightweight glossary system that explains investment terms inline via `i` mark
 
 Terms are defined in `src/features/glossary/glossary-terms.ts`.
 
+Glossary terms remain one-term/one-definition inline help. Longer educational
+explanations are stored separately as `knowledge_articles` and are linked by
+exact `topic_keys` (for example, a wizard `question_key`). They are not part of
+the user-owned RAG and are displayed only as general knowledge with source and
+license metadata.
+
 Each term has:
 
 - `key`: machine identifier

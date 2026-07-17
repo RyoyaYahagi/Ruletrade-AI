@@ -38,6 +38,13 @@ export default function AdminDashboardPage() {
           <h2 className="font-semibold">AI Usage</h2>
           <p className="text-sm text-gray-500">Review usage and model pricing</p>
         </Link>
+        <Link
+          href="/admin/knowledge"
+          className="rounded border p-4 hover:bg-gray-50"
+        >
+          <h2 className="font-semibold">Knowledge Articles</h2>
+          <p className="text-sm text-gray-500">一般的な解説コンテンツを管理</p>
+        </Link>
       </div>
     </div>
   );
