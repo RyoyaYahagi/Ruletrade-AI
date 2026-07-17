@@ -70,6 +70,27 @@ export const ExitPlanSchema = z.object({
   exitConditions: z.array(z.string().min(1).max(1000)).default([]),
 });
 
+export const ThesisBreakerSchema = z.object({
+  description: z.string().min(1).max(500),
+  newsKeywords: z.array(z.string().min(1).max(50)).max(10).default([]),
+});
+
+export const ReviewCycleSchema = z.enum([
+  "monthly",
+  "quarterly",
+  "after_earnings",
+  "undecided",
+]);
+
+export const MonitoringSettingsSchema = z.object({
+  stopLossReviewPercent: PercentageSchema.optional(),
+  takeProfitReviewPercent: PercentageSchema.optional(),
+  drawdownFromHighPercent: PercentageSchema.optional(),
+  cooldownDailyDropPercent: PercentageSchema.optional(),
+  cooldownHours: z.number().int().min(1).max(168).default(24),
+  reviewCycle: ReviewCycleSchema.default("undecided"),
+});
+
 export const TradeRuleSchema = z.object({
   investmentThesis: z.string().max(4000).optional(),
   purpose: HoldingPurposeSchema.default("undecided"),
@@ -94,6 +115,11 @@ export const TradeRuleSchema = z.object({
     .default({
       policy: "undecided",
     }),
+  thesisBreakers: z.array(ThesisBreakerSchema).max(10).default([]),
+  monitoring: MonitoringSettingsSchema.default({
+    cooldownHours: 24,
+    reviewCycle: "undecided",
+  }),
   portfolioNotes: z.string().max(2000).optional(),
   freeNotes: z.string().max(4000).optional(),
 });
@@ -101,3 +127,5 @@ export const TradeRuleSchema = z.object({
 export type TradeRule = z.infer<typeof TradeRuleSchema>;
 export type HoldingPurpose = z.infer<typeof HoldingPurposeSchema>;
 export type ExitTrigger = z.infer<typeof ExitTriggerSchema>;
+export type ThesisBreaker = z.infer<typeof ThesisBreakerSchema>;
+export type MonitoringSettings = z.infer<typeof MonitoringSettingsSchema>;

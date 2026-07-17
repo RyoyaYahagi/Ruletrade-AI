@@ -69,6 +69,31 @@ Trading rules in Ruletrade-AI are structured, reviewable data rather than free-f
 }
 ```
 
+銘柄別ルールでは、次の構造化フィールドも使います。
+
+```json
+{
+  "thesisBreakers": [
+    {
+      "description": "主力事業の減収が2四半期続く",
+      "newsKeywords": ["減収", "業績予想"]
+    }
+  ],
+  "monitoring": {
+    "stopLossReviewPercent": 15,
+    "takeProfitReviewPercent": 30,
+    "drawdownFromHighPercent": 20,
+    "cooldownDailyDropPercent": 8,
+    "cooldownHours": 24,
+    "reviewCycle": "quarterly"
+  }
+}
+```
+
+`thesisBreakers` は仮説を見直す事実の候補、`monitoring` は価格確認の条件です。
+監視トリガーは事実を通知するだけで、売買や注文は実行しません。これらは optional
+default 付きで、旧形式の `rule_json` もそのまま読み込めます。
+
 ## Natural Language Summary
 
 Rules include a `natural_language_summary` derived from structured fields for human-readable explanations.

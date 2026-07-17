@@ -64,6 +64,7 @@ type Notification = {
   body: string;
   status: string;
   action_url: string | null;
+  notification_type: string;
 };
 
 function NotificationList({
@@ -127,7 +128,9 @@ function NotificationItem({
             onClick={() => void markAsRead()}
             className="text-xs font-medium underline"
           >
-            開く
+            {notification.notification_type === "rule_price_condition_met"
+              ? "ルールを確認"
+              : "開く"}
           </Link>
         ) : null}
         {notification.status !== "read" ? (
@@ -139,7 +142,37 @@ function NotificationItem({
             既読にする
           </button>
         ) : null}
+        {notification.notification_type === "rule_price_condition_met" ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void resolveAlert("kept")}
+              className="text-xs text-muted-foreground underline"
+            >
+              仮説を維持（記録する）
+            </button>
+            <button
+              type="button"
+              onClick={() => void resolveAlert("revising")}
+              className="text-xs text-muted-foreground underline"
+            >
+              ルールを見直す
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );
+
+  async function resolveAlert(resolution: "kept" | "revising") {
+    await fetch(`/api/notifications/${notification.id}/resolve`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resolution }),
+    });
+    onChanged();
+    if (resolution === "revising" && notification.action_url) {
+      window.location.assign(notification.action_url);
+    }
+  }
 }

@@ -23,6 +23,9 @@ type RuleSessionData = {
     priority: number;
     status: string;
     options?: unknown;
+    allow_unknown?: number | boolean | null;
+    unknown_default_json?: unknown;
+    breaker_source?: string | null;
   }>;
   latestReview: {
     can_finalize: boolean;
@@ -90,6 +93,12 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
   const pendingQuestion = questions?.find(
     (question) => question.status === "pending",
   );
+  const completedQuestionCount = questions.filter(
+    (question) => question.status === "answered" || question.status === "skipped",
+  ).length;
+  const questionProgress = questions.length
+    ? Math.round((completedQuestionCount / questions.length) * 100)
+    : 0;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
@@ -100,8 +109,22 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
             {session.company_name ? ` / ${session.company_name}` : ""}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            質問に答えながら、買い方・損切り・利確・最大投資比率を整理します。
+            質問に答えながら、保有理由・見直し条件・最大投資比率を整理します。
           </p>
+          <div className="mt-4" aria-label="質問の進捗">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>進捗</span>
+              <span>
+                {completedQuestionCount} / {questions.length}問
+              </span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full bg-black transition-all"
+                style={{ width: `${questionProgress}%` }}
+              />
+            </div>
+          </div>
         </div>
 
         {pendingQuestion ? (

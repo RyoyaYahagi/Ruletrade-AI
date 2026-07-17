@@ -175,3 +175,63 @@ export async function dismissNotification(params: {
 
   return { notification: data };
 }
+
+export async function resolveRuleAlert(params: {
+  userId: string;
+  notificationId: string;
+  resolution: "kept" | "revising";
+}) {
+  const db = await createDatabaseClient();
+  const { data: notification, error: notificationError } = await db
+    .from("notifications")
+    .select("id, user_id")
+    .eq("id", params.notificationId)
+    .eq("user_id", params.userId)
+    .single();
+  if (notificationError || !notification) {
+    throw new AppError("NOT_FOUND", "通知が見つかりません。", 404, notificationError);
+  }
+
+  const { data: event, error: eventError } = await db
+    .from("rule_alert_events")
+    .select("id")
+    .eq("user_id", params.userId)
+    .eq("notification_id", params.notificationId)
+    .maybeSingle();
+  if (eventError || !event) {
+    throw new AppError("NOT_FOUND", "価格アラートが見つかりません。", 404, eventError);
+  }
+
+  const { error: resolutionError } = await db
+    .from("rule_alert_events")
+    .update({
+      resolution: params.resolution,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", event.id)
+    .eq("user_id", params.userId);
+  if (resolutionError) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "価格アラートの記録に失敗しました。",
+      500,
+      resolutionError,
+    );
+  }
+
+  const { error: dismissError } = await db
+    .from("notifications")
+    .update({ status: "dismissed", dismissed_at: new Date().toISOString() })
+    .eq("id", params.notificationId)
+    .eq("user_id", params.userId);
+  if (dismissError) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "通知の更新に失敗しました。",
+      500,
+      dismissError,
+    );
+  }
+
+  return { resolution: params.resolution, notificationId: params.notificationId };
+}

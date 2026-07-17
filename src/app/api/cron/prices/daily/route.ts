@@ -9,6 +9,7 @@ import {
   saveDailyQuotes,
   saveFxRates,
 } from "@/lib/prices/price-quote-service";
+import { detectPriceAlerts } from "@/features/notifications/services/price-alert-detection-service";
 
 type PriceSymbol = { symbol: string; market: string };
 
@@ -38,11 +39,28 @@ export async function GET(request: Request) {
       ...allSymbols.slice(MAX_SYMBOLS_PER_RUN).map((symbol) => symbol.symbol),
     ];
 
+    const { data: users, error: usersError } = await db
+      .from("notification_preferences")
+      .select("user_id")
+      .eq("in_app_enabled", true)
+      .limit(500);
+    if (usersError) throw usersError;
+
+    let alertCreatedCount = 0;
+    let skippedRuleCount = 0;
+    for (const row of users ?? []) {
+      const result = await detectPriceAlerts({ userId: row.user_id });
+      alertCreatedCount += result.createdCount;
+      skippedRuleCount += result.skippedRuleCount;
+    }
+
     return apiSuccess({
       requestedCount: allSymbols.length,
       savedCount: quoteSaveResult.savedCount,
       fxSavedCount: fxSaveResult.savedCount,
       failedSymbols: Array.from(new Set(failedSymbols)),
+      alertCreatedCount,
+      skippedRuleCount,
     });
   } catch (error) {
     return toErrorResponse(error, {
