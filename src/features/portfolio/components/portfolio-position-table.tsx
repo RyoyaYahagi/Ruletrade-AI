@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { AttentionBadge } from "@/components/status/attention-badge";
 import { StatValue } from "@/components/status/stat-value";
+import { CreateRuleSessionFromPositionButton } from "@/features/portfolio/components/create-rule-session-from-position-button";
 import type { AttentionStatus } from "@/features/ux/services/attention-status-service";
 
 type DbPosition = {
@@ -436,12 +438,28 @@ export function PortfolioPositionTable() {
                     )}
                   </td>
                   <td className="py-2 text-right">
-                    <AttentionBadge
-                      status={
-                        attentionStatuses[position.rule_session_id ?? position.id] ??
-                        "needs_check"
-                      }
-                    />
+                    <div className="flex flex-col items-end gap-1">
+                      {position.rule_session_id ? (
+                        <Link
+                          href={`/rules/${position.rule_session_id}`}
+                          className="text-primary underline"
+                          data-testid="portfolio-position-rule-link"
+                        >
+                          ルールを見る
+                        </Link>
+                      ) : (
+                        <CreateRuleSessionFromPositionButton
+                          positionId={position.id}
+                        />
+                      )}
+                      <AttentionBadge
+                        status={
+                          attentionStatuses[
+                            position.rule_session_id ?? position.id
+                          ] ?? "needs_check"
+                        }
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
