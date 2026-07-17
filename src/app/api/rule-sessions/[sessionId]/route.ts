@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
 import {
+  deleteRuleSession,
   getRuleSessionDetail,
   updateRuleSession,
 } from "@/features/rules/services/rule-session-service";
@@ -43,6 +44,21 @@ export async function PATCH(
       sessionId,
       ...input,
     });
+    return apiSuccess(result);
+  } catch (error) {
+    return toErrorResponse(error, { requestId });
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ sessionId: string }> },
+) {
+  const requestId = crypto.randomUUID();
+  try {
+    const user = await requireUser();
+    const { sessionId } = await params;
+    const result = await deleteRuleSession({ userId: user.id, sessionId });
     return apiSuccess(result);
   } catch (error) {
     return toErrorResponse(error, { requestId });

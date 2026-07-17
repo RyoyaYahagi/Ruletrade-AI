@@ -2,6 +2,7 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
+import { getSqliteDatabase } from "@/lib/db/sqlite-client";
 import type { RuleSessionSummary } from "@/features/rules/model";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 import { createInitialQuestions } from "@/features/rules/services/rule-question-service";
@@ -62,6 +63,172 @@ export async function listRuleSessions(params: { userId: string }) {
     );
   }
   return { sessions: (data ?? []) as RuleSessionSummary[] };
+}
+
+export async function deleteRuleSession(params: {
+  userId: string;
+  sessionId: string;
+}) {
+  const db = await createDatabaseClient();
+  const { data: session, error: sessionError } = await db
+    .from("rule_design_sessions")
+    .select("id")
+    .eq("id", params.sessionId)
+    .eq("user_id", params.userId)
+    .single();
+
+  if (sessionError || !session) {
+    throw new AppError(
+      "NOT_FOUND",
+      "削除するルールが見つかりません。",
+      404,
+      sessionError,
+    );
+  }
+
+  const [versions, reviews, alertEvents, assessments] = await Promise.all([
+    db
+      .from("rule_versions")
+      .select("id")
+      .eq("session_id", params.sessionId)
+      .eq("user_id", params.userId),
+    db
+      .from("rule_reviews")
+      .select("id")
+      .eq("session_id", params.sessionId)
+      .eq("user_id", params.userId),
+    db
+      .from("rule_alert_events")
+      .select("id, notification_id")
+      .eq("session_id", params.sessionId)
+      .eq("user_id", params.userId),
+    db
+      .from("news_assessments")
+      .select("id, notification_id")
+      .eq("session_id", params.sessionId)
+      .eq("user_id", params.userId),
+  ]);
+
+  const lookupError = [versions, reviews, alertEvents, assessments].find(
+    (result) => result.error,
+  )?.error;
+  if (lookupError) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "ルールに紐づくデータの確認に失敗しました。",
+      500,
+      lookupError,
+    );
+  }
+
+  const versionIds = getStringIds(versions.data);
+  const reviewIds = getStringIds(reviews.data);
+  const alertEventIds = getStringIds(alertEvents.data);
+  const assessmentIds = getStringIds(assessments.data);
+  const notificationIds = getStringIds(
+    [...(alertEvents.data ?? []), ...(assessments.data ?? [])],
+    "notification_id",
+  );
+
+  try {
+    const sqlite = getSqliteDatabase();
+    const tables = getExistingTables(sqlite);
+
+    sqlite.transaction(() => {
+      deleteRagSources(sqlite, tables, params.userId, "rule_session", [
+        params.sessionId,
+      ]);
+      deleteRagSources(
+        sqlite,
+        tables,
+        params.userId,
+        "rule_version",
+        versionIds,
+      );
+      deleteRagSources(sqlite, tables, params.userId, "rule_review", reviewIds);
+      deleteRagSources(
+        sqlite,
+        tables,
+        params.userId,
+        "alert_resolution",
+        alertEventIds,
+      );
+      deleteRagSources(
+        sqlite,
+        tables,
+        params.userId,
+        "news_assessment",
+        assessmentIds,
+      );
+
+      deleteByNotificationIds(sqlite, tables, params.userId, notificationIds);
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_quality_checks",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_answers",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_questions",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_reviews",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_versions",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_alert_events",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "news_assessments",
+        params.userId,
+        params.sessionId,
+      );
+      deleteById(
+        sqlite,
+        tables,
+        "rule_design_sessions",
+        params.userId,
+        params.sessionId,
+      );
+    })();
+  } catch (error) {
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "ルールの削除に失敗しました。",
+      500,
+      error,
+    );
+  }
+
+  return { deleted: true };
 }
 
 export async function getRuleSessionDetail(params: {
@@ -134,6 +301,94 @@ export async function getRuleSessionDetail(params: {
     qualityChecks: qualityChecks ?? [],
     latestFinancialStatement: latestFinancialStatement ?? null,
   };
+}
+
+function getStringIds(rows: Array<Record<string, unknown>> | null, key = "id") {
+  return (rows ?? [])
+    .map((row) => row[key])
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    );
+}
+
+function getExistingTables(sqlite: ReturnType<typeof getSqliteDatabase>) {
+  return new Set(
+    (
+      sqlite
+        .prepare("select name from sqlite_master where type = 'table'")
+        .all() as Array<{ name: string }>
+    ).map((row) => row.name),
+  );
+}
+
+function deleteBySessionId(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  tables: Set<string>,
+  table: string,
+  userId: string,
+  sessionId: string,
+) {
+  if (!tables.has(table)) return;
+  sqlite
+    .prepare(`delete from "${table}" where user_id = ? and session_id = ?`)
+    .run(userId, sessionId);
+}
+
+function deleteById(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  tables: Set<string>,
+  table: string,
+  userId: string,
+  id: string,
+) {
+  if (!tables.has(table)) return;
+  sqlite
+    .prepare(`delete from "${table}" where user_id = ? and id = ?`)
+    .run(userId, id);
+}
+
+function deleteByNotificationIds(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  tables: Set<string>,
+  userId: string,
+  notificationIds: string[],
+) {
+  if (notificationIds.length === 0) return;
+
+  const placeholders = notificationIds.map(() => "?").join(", ");
+  if (tables.has("notification_delivery_logs")) {
+    sqlite
+      .prepare(
+        `delete from "notification_delivery_logs" where user_id = ? and notification_id in (${placeholders})`,
+      )
+      .run(userId, ...notificationIds);
+  }
+  if (tables.has("notifications")) {
+    sqlite
+      .prepare(
+        `delete from "notifications" where user_id = ? and id in (${placeholders})`,
+      )
+      .run(userId, ...notificationIds);
+  }
+}
+
+function deleteRagSources(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  tables: Set<string>,
+  userId: string,
+  sourceType: string,
+  sourceIds: string[],
+) {
+  if (sourceIds.length === 0) return;
+  const placeholders = sourceIds.map(() => "?").join(", ");
+  for (const table of ["rag_chunks", "rag_documents"]) {
+    if (!tables.has(table)) continue;
+    sqlite
+      .prepare(
+        `delete from "${table}" where user_id = ? and source_type = ? and source_id in (${placeholders})`,
+      )
+      .run(userId, sourceType, ...sourceIds);
+  }
 }
 
 export async function updateRuleSession(params: {

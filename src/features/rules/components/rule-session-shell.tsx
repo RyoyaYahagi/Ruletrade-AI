@@ -7,6 +7,7 @@ import { RuleReviewPanel } from "@/features/rules/components/rule-review-panel";
 import { ReviewActionBar } from "@/features/rules/components/review-action-bar";
 import { FinalizeRuleButton } from "@/features/rules/components/finalize-rule-button";
 import { FinancialStatementCard } from "@/features/financials/components/financial-statement-card";
+import { DeleteRuleButton } from "@/features/rules/components/delete-rule-button";
 
 type RuleSessionData = {
   session: {
@@ -129,11 +130,16 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
       <section className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {session.ticker}
+              {session.company_name ? ` / ${session.company_name}` : ""}
+            </h1>
+          </div>
+          <DeleteRuleButton sessionId={sessionId} />
+        </div>
         <div>
-          <h1 className="text-2xl font-bold">
-            {session.ticker}
-            {session.company_name ? ` / ${session.company_name}` : ""}
-          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             質問に答えながら、保有理由・見直し条件・最大投資比率を整理します。
           </p>
