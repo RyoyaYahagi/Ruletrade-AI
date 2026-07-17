@@ -13,12 +13,15 @@ export function PrivacySettingsForm() {
       const json = await res.json();
       if (json.ok && json.data.settings) {
         setSettings({
-          aiMemoryEnabled: json.data.settings.ai_memory_enabled,
-          aiLoggingEnabled: json.data.settings.ai_logging_enabled,
-          aiPayloadLoggingEnabled:
+          aiMemoryEnabled: toBoolean(json.data.settings.ai_memory_enabled),
+          aiLoggingEnabled: toBoolean(json.data.settings.ai_logging_enabled),
+          aiPayloadLoggingEnabled: toBoolean(
             json.data.settings.ai_payload_logging_enabled,
-          allowRagIndexing: json.data.settings.allow_rag_indexing,
-          allowDocumentIndexing: json.data.settings.allow_document_indexing,
+          ),
+          allowRagIndexing: toBoolean(json.data.settings.allow_rag_indexing),
+          allowDocumentIndexing: toBoolean(
+            json.data.settings.allow_document_indexing,
+          ),
         });
       }
     }
@@ -107,4 +110,8 @@ export function PrivacySettingsForm() {
       </div>
     </section>
   );
+}
+
+function toBoolean(value: unknown) {
+  return value === true || value === 1 || value === "1" || value === "true";
 }
