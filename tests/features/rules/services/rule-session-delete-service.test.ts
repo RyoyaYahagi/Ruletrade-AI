@@ -34,6 +34,28 @@ describe("deleteRuleSession", () => {
   it("deletes the owned session and all session-scoped records", async () => {
     await createSession("session-a", "user-a");
     await createSession("session-b", "user-b");
+    await db.from("portfolio_positions").insert([
+      {
+        id: "position-a",
+        user_id: "user-a",
+        ticker: "AAA",
+        currency: "JPY",
+        asset_type: "stock",
+        market_value: 1000,
+        position_status: "active",
+        rule_session_id: "session-a",
+      },
+      {
+        id: "position-b",
+        user_id: "user-b",
+        ticker: "BBB",
+        currency: "JPY",
+        asset_type: "stock",
+        market_value: 2000,
+        position_status: "active",
+        rule_session_id: "session-a",
+      },
+    ]);
 
     await db.from("rule_versions").insert({
       id: "version-a",
@@ -125,6 +147,20 @@ describe("deleteRuleSession", () => {
     await deleteRuleSession({ userId: "user-a", sessionId: "session-a" });
 
     await expectRows("rule_design_sessions", "session-a", 0);
+    const clearedPosition = await db
+      .from("portfolio_positions")
+      .select("rule_session_id")
+      .eq("id", "position-a")
+      .single();
+    expect(clearedPosition.data?.rule_session_id).toBeNull();
+
+    const otherUserPosition = await db
+      .from("portfolio_positions")
+      .select("rule_session_id")
+      .eq("id", "position-b")
+      .single();
+    expect(otherUserPosition.data?.rule_session_id).toBe("session-a");
+
     await expectRows("rule_questions", "session-a", 0);
     await expectRows("rule_answers", "session-a", 0);
     await expectRows("rule_reviews", "session-a", 0);

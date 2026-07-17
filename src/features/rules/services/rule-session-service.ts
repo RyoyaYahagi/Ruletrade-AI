@@ -135,6 +135,13 @@ export async function deleteRuleSession(params: {
     const tables = getExistingTables(sqlite);
 
     sqlite.transaction(() => {
+      // Deleting a session must not leave an owned portfolio row pointing at a missing rule.
+      clearPortfolioPositionRuleSession(
+        sqlite,
+        tables,
+        params.userId,
+        params.sessionId,
+      );
       deleteRagSources(sqlite, tables, params.userId, "rule_session", [
         params.sessionId,
       ]);
@@ -405,6 +412,23 @@ function hasTableColumn(
     .all() as Array<{ name: string }>).some(
     (candidate) => candidate.name === column,
   );
+}
+
+function clearPortfolioPositionRuleSession(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  tables: Set<string>,
+  userId: string,
+  sessionId: string,
+) {
+  if (!tables.has("portfolio_positions")) return;
+
+  sqlite
+    .prepare(
+      `update "portfolio_positions"
+       set rule_session_id = null
+       where user_id = ? and rule_session_id = ?`,
+    )
+    .run(userId, sessionId);
 }
 
 export async function updateRuleSession(params: {
