@@ -74,7 +74,7 @@ export async function generateThesisDraft(params: {
     userId: params.userId,
     taskType: "rule_draft_generation",
     queryText: `${session.ticker} ${session.company_name ?? ""} 投資仮説`,
-    sourceTypes: ["rule_session", "alert_resolution", "holistic_review"],
+    sourceTypes: ["rule_session", "alert_resolution", "holistic_review", "earnings_report"],
     maxContextChars: 1500,
   });
 

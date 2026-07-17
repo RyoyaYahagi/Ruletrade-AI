@@ -21,7 +21,8 @@ export async function upsertRagDocument(params: {
     | "alert_resolution"
     | "news_assessment"
     | "holistic_review"
-    | "manual_note";
+    | "manual_note"
+    | "earnings_report";
   sourceId: string;
   title: string;
   content: string;

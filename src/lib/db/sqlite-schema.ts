@@ -261,6 +261,37 @@ const schemaStatements = [
     created_at text not null default (datetime('now')),
     updated_at text not null default (datetime('now'))
   )`,
+  `create table if not exists financial_statements (
+    id text primary key,
+    ticker text not null,
+    market text not null default 'JP',
+    fiscal_period text not null,
+    revenue real,
+    operating_income real,
+    net_income real,
+    eps real,
+    dividend_per_share real,
+    equity_ratio real,
+    currency text not null default 'JPY',
+    source text not null,
+    filed_at text,
+    created_at text not null default (datetime('now')),
+    unique (ticker, market, fiscal_period, source)
+  )`,
+  `create table if not exists knowledge_articles (
+    id text primary key,
+    title text not null,
+    body text not null,
+    topic_keys text not null default '[]',
+    author_name text not null,
+    source_name text,
+    source_url text,
+    license_note text not null,
+    published_at text,
+    is_active integer not null default 1,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now'))
+  )`,
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
@@ -275,6 +306,8 @@ const schemaStatements = [
   `create unique index if not exists idx_holistic_reviews_user_period on holistic_reviews(user_id, period)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
+  `create index if not exists idx_financial_statements_ticker_period on financial_statements(ticker, market, fiscal_period desc)`,
+  `create index if not exists idx_knowledge_articles_active on knowledge_articles(is_active, updated_at desc)`,
   `create index if not exists idx_api_access_tokens_user on api_access_tokens(user_id, created_at desc)`,
   `create index if not exists idx_api_tool_audit_logs_token on api_tool_audit_logs(token_id, created_at desc)`,
 ];
@@ -314,6 +347,11 @@ export function initializeSqliteSchema(db: Database.Database) {
   ensureColumn(db, "price_quotes", "symbol", "text");
   ensureColumn(db, "price_quotes", "market", "text not null default 'JP'");
   ensureColumn(db, "price_quotes", "source", "text not null default 'mock'");
+  if (hasTable(db, "user_documents")) {
+    ensureColumn(db, "user_documents", "document_kind", "text not null default 'note'");
+    ensureColumn(db, "user_documents", "fiscal_period", "text");
+    ensureColumn(db, "user_documents", "ticker", "text");
+  }
   if (hasColumn(db, "price_quotes", "ticker")) {
     db.prepare(
       `update price_quotes set symbol = ticker where symbol is null`,

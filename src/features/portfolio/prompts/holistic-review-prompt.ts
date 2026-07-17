@@ -17,6 +17,7 @@ export function buildHolisticReviewPrompt(input: unknown) {
 - これは投資助言ではなく、ユーザー自身のルール確認であることが伝わる内容にする
 - 「前月からの変化」は入力された前月レビューと今月の事実だけを比較して書く。なければ省略する
 - 「あなたの過去のメモ・判断から」と示された参照情報は一貫性の確認にだけ使い、行動を促す根拠にしない
+- financialStatements は開示された数値の事実として扱い、null は未取得のまま扱う。数値から業績評価や売買の示唆を作らない
 - 出力は指定されたSchemaに合うJSONだけにする
 `.trim(),
     user: JSON.stringify(input),

@@ -33,6 +33,8 @@ const EnvSchema = z.object({
   EMBEDDING_PROVIDER: z.enum(["mock", "openai", "gemini"]).default("mock"),
 
   PRICE_PROVIDER: z.enum(["mock", "stooq"]).default("mock"),
+  FINANCIALS_PROVIDER: z.enum(["mock", "edinet"]).default("mock"),
+  EDINET_API_KEY: z.string().optional(),
 
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   GEMINI_EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
@@ -100,6 +102,8 @@ export const env = EnvSchema.parse({
   EMBEDDING_PROVIDER: process.env.EMBEDDING_PROVIDER,
 
   PRICE_PROVIDER: process.env.PRICE_PROVIDER,
+  FINANCIALS_PROVIDER: process.env.FINANCIALS_PROVIDER,
+  EDINET_API_KEY: process.env.EDINET_API_KEY,
 
   OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
   GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL,

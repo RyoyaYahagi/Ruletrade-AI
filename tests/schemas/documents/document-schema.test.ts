@@ -59,4 +59,38 @@ describe("UserDocumentSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("決算資料では銘柄コードと会計期間を必須にする", () => {
+    const base = {
+      title: "決算資料",
+      originalFilename: "earnings.pdf",
+      mimeType: "application/pdf" as const,
+      fileSizeBytes: 1024,
+      documentKind: "earnings_report" as const,
+    };
+
+    expect(() => UserDocumentSchema.parse(base)).toThrow();
+    expect(() =>
+      UserDocumentSchema.parse({ ...base, ticker: "7203" }),
+    ).toThrow();
+    expect(
+      UserDocumentSchema.parse({
+        ...base,
+        ticker: "7203",
+        fiscalPeriod: "FY2026Q1",
+      }),
+    ).toMatchObject({ documentKind: "earnings_report", fiscalPeriod: "FY2026Q1" });
+  });
+
+  it("メモは銘柄コードと会計期間なしで保存できる", () => {
+    expect(
+      UserDocumentSchema.parse({
+        title: "判断メモ",
+        originalFilename: "note.md",
+        mimeType: "text/markdown",
+        fileSizeBytes: 10,
+        documentKind: "note",
+      }),
+    ).toMatchObject({ documentKind: "note" });
+  });
 });

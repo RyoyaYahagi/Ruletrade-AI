@@ -6,6 +6,7 @@ import { RuleDraftView } from "@/features/rules/components/rule-draft-view";
 import { RuleReviewPanel } from "@/features/rules/components/rule-review-panel";
 import { ReviewActionBar } from "@/features/rules/components/review-action-bar";
 import { FinalizeRuleButton } from "@/features/rules/components/finalize-rule-button";
+import { FinancialStatementCard } from "@/features/financials/components/financial-statement-card";
 
 type RuleSessionData = {
   session: {
@@ -44,6 +45,18 @@ type RuleSessionData = {
     reason: string;
     suggested_question?: string | null;
   }>;
+  latestFinancialStatement?: {
+    fiscal_period?: string | null;
+    revenue?: number | null;
+    operating_income?: number | null;
+    net_income?: number | null;
+    eps?: number | null;
+    dividend_per_share?: number | null;
+    equity_ratio?: number | null;
+    currency?: string | null;
+    filed_at?: string | null;
+    source?: string | null;
+  } | null;
 };
 
 function isRuleSessionData(data: unknown): data is RuleSessionData {
@@ -93,7 +106,14 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
     );
   }
 
-  const { session, questions, answers, latestReview, qualityChecks } = data;
+  const {
+    session,
+    questions,
+    answers,
+    latestReview,
+    qualityChecks,
+    latestFinancialStatement,
+  } = data;
   const agentAnswers = answers.filter((answer) => hasAgentOrigin(answer.answer_json));
 
   const pendingQuestion = questions?.find(
@@ -168,6 +188,8 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
 
       <aside className="space-y-6">
         <RuleDraftView ruleJson={session.rule_json} />
+
+        <FinancialStatementCard statement={latestFinancialStatement ?? null} />
 
         <FinalizeRuleButton
           sessionId={sessionId}

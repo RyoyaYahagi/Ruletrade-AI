@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
+import { indexDocumentForRag } from "@/features/documents/services/document-index-service";
 import {
   upsertRagDocumentFromRuleSession,
   upsertRagDocumentFromWatchlistItem,
@@ -38,6 +39,16 @@ export async function reindexUserRagDocuments(params: { userId: string }) {
     .delete()
     .eq("user_id", params.userId)
     .in("source_type", ["alert_resolution", "news_assessment", "holistic_review"]);
+  await db
+    .from("rag_chunks")
+    .delete()
+    .eq("user_id", params.userId)
+    .eq("source_type", "earnings_report");
+  await db
+    .from("rag_documents")
+    .delete()
+    .eq("user_id", params.userId)
+    .eq("source_type", "earnings_report");
 
   for (const session of sessions ?? []) {
     try {
@@ -59,6 +70,26 @@ export async function reindexUserRagDocuments(params: { userId: string }) {
         itemId: item.id,
       });
 
+      indexedCount += 1;
+    } catch {
+      failedCount += 1;
+    }
+  }
+
+  const { data: earningsDocuments, error: earningsError } = await db
+    .from("user_documents")
+    .select("id")
+    .eq("user_id", params.userId)
+    .eq("document_kind", "earnings_report")
+    .order("fiscal_period", { ascending: false });
+  if (earningsError) throw earningsError;
+
+  for (const document of earningsDocuments ?? []) {
+    try {
+      await indexDocumentForRag({
+        userId: params.userId,
+        documentId: document.id,
+      });
       indexedCount += 1;
     } catch {
       failedCount += 1;

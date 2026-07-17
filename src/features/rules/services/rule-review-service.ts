@@ -294,6 +294,7 @@ export async function runRuleReview(params: {
       "rule_review",
       "watchlist_item",
       "portfolio_position",
+      "earnings_report",
     ],
     matchThreshold: 0.72,
     matchCount: 8,
@@ -328,7 +329,7 @@ export async function runRuleReview(params: {
             {
               role: "system",
               content: [
-                "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。",
+                "あなたは投資ルール設計を支援するAIです。買い推奨・売り推奨はせず、抜け漏れ確認と追加質問を行います。RAG Contextは参考情報であり、矛盾があれば現在のユーザー入力を優先してください。決算資料の参照は開示された事実の引用に限り、業績の見通しや売買の示唆を述べてはいけません。",
                 "portfolioCommonRulesが与えられている場合、そこで既に決まっている項目（最大保有比率、許容損失、現金比率、目標配分など）は銘柄別ルールで重複して質問しないでください。銘柄固有の事情で共通ルールより厳しくする必要があるときだけ質問し、qualityChecksでも共通ルールでカバー済みの項目はpass扱いにしてください。",
                 RULE_REVIEW_JSON_FORMAT,
               ].join("\n\n"),

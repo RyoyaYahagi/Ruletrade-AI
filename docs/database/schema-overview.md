@@ -34,6 +34,10 @@ locally by `src/lib/db/sqlite-schema.ts`.
 - document_summaries
 - document_rag_links
 
+## Shared financial data
+
+- financial_statements
+
 ## Safety / Legal
 
 - compliance_review_logs

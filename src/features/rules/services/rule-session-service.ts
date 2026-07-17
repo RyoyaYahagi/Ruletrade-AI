@@ -110,12 +110,29 @@ export async function getRuleSessionDetail(params: {
         .eq("review_id", latestReview.id)
         .eq("user_id", params.userId)
     : { data: [] };
+  const { data: latestFinancialStatement, error: financialStatementError } = await db
+    .from("financial_statements")
+    .select("*")
+    .eq("ticker", session.ticker)
+    .eq("market", session.market ?? "JP")
+    .order("fiscal_period", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (financialStatementError) {
+    throw new AppError(
+      "DATABASE_ERROR",
+      "最新の決算数値の取得に失敗しました。",
+      500,
+      financialStatementError,
+    );
+  }
   return {
     session,
     questions: questions ?? [],
     answers: answers ?? [],
     latestReview: latestReview ?? null,
     qualityChecks: qualityChecks ?? [],
+    latestFinancialStatement: latestFinancialStatement ?? null,
   };
 }
 

@@ -28,10 +28,17 @@ export async function deleteUserDocument(params: {
   });
 
   await db
+    .from("rag_chunks")
+    .delete()
+    .eq("user_id", params.userId)
+    .in("source_type", ["manual_note", "earnings_report"])
+    .eq("source_id", params.documentId);
+
+  await db
     .from("rag_documents")
     .delete()
     .eq("user_id", params.userId)
-    .eq("source_type", "manual_note")
+    .in("source_type", ["manual_note", "earnings_report"])
     .eq("source_id", params.documentId);
 
   const { error: deleteError } = await db

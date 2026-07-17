@@ -41,6 +41,8 @@ export async function POST(request: Request) {
 
     const title = (formData.get("title") as string) || file.name;
     const documentType = (formData.get("documentType") as string) || "other";
+    const documentKind = ((formData.get("documentKind") as string) || "note") as "note" | "earnings_report";
+    const fiscalPeriod = (formData.get("fiscalPeriod") as string) || undefined;
     const ticker = (formData.get("ticker") as string) || undefined;
     const companyName = (formData.get("companyName") as string) || undefined;
     const sourceUrl = (formData.get("sourceUrl") as string) || undefined;
@@ -53,6 +55,8 @@ export async function POST(request: Request) {
       mimeType: file.type,
       fileSizeBytes: file.size,
       documentType,
+      documentKind,
+      fiscalPeriod,
       ticker,
       companyName,
       sourceUrl,

@@ -57,6 +57,20 @@ export type HolisticReviewFacts = {
   investmentMemory: unknown;
   previousReview: unknown | null;
   alertResolutionContext: string;
+  financialStatements: Array<{
+    ticker: string;
+    market: string;
+    fiscalPeriod: string;
+    revenue: number | null;
+    operatingIncome: number | null;
+    netIncome: number | null;
+    eps: number | null;
+    dividendPerShare: number | null;
+    equityRatio: number | null;
+    currency: string;
+    filedAt: string | null;
+    source: string;
+  }>;
 };
 
 export type HolisticReviewResult = {
@@ -71,6 +85,7 @@ export type HolisticReviewResult = {
 
 type ReviewPositionRow = {
   ticker?: unknown;
+  market?: unknown;
   company_name?: unknown;
   market_value?: unknown;
   rule_session_id?: unknown;
@@ -107,12 +122,14 @@ export function buildHolisticReviewFacts(params: {
   investmentMemory: unknown;
   previousReview?: unknown | null;
   alertResolutionContext?: string;
+  financialStatements?: Array<Record<string, unknown>>;
   now?: Date;
 }): HolisticReviewFacts {
   const now = params.now ?? new Date();
   const period = params.period ?? getReviewPeriod(now);
   const normalizedPositions = params.positions.map((position) => ({
     ticker: String(position.ticker ?? ""),
+    market: String(position.market ?? "JP"),
     companyName:
       position.company_name == null ? null : String(position.company_name),
     marketValue: toNumber(position.market_value),
@@ -188,6 +205,13 @@ export function buildHolisticReviewFacts(params: {
       lastReviewedAt: normalizeNullableString(session.last_reviewed_at),
     }));
 
+  const heldTickerKeys = new Set(
+    normalizedPositions.map((position) => `${position.market}:${position.ticker}`),
+  );
+  const financialStatements = (params.financialStatements ?? [])
+    .map(normalizeFinancialStatement)
+    .filter((statement) => heldTickerKeys.has(`${statement.market}:${statement.ticker}`));
+
   return {
     period,
     portfolio: {
@@ -212,6 +236,7 @@ export function buildHolisticReviewFacts(params: {
     investmentMemory: params.investmentMemory,
     previousReview: params.previousReview ?? null,
     alertResolutionContext: params.alertResolutionContext ?? "",
+    financialStatements,
   };
 }
 
@@ -278,7 +303,13 @@ export async function generateHolisticReview(params: {
     ]);
   if (previousReviewError) throw previousReviewError;
 
-  const [{ data: portfolio, error: portfolioError }, positionsResult, sessionsResult, memoryResult] =
+  const [
+    { data: portfolio, error: portfolioError },
+    positionsResult,
+    sessionsResult,
+    memoryResult,
+    financialStatementsResult,
+  ] =
     await Promise.all([
       db
         .from("portfolios")
@@ -298,11 +329,13 @@ export async function generateHolisticReview(params: {
         .eq("user_id", params.userId)
         .neq("status", "archived"),
       getInvestmentMemory(params.userId),
+      db.from("financial_statements").select("*"),
     ]);
 
   if (portfolioError) throw portfolioError;
   if (positionsResult.error) throw positionsResult.error;
   if (sessionsResult.error) throw sessionsResult.error;
+  if (financialStatementsResult.error) throw financialStatementsResult.error;
 
   const facts = buildHolisticReviewFacts({
     period,
@@ -312,6 +345,7 @@ export async function generateHolisticReview(params: {
     investmentMemory: memoryResult.data,
     previousReview: previousReview ?? null,
     alertResolutionContext: alertResolutionContext.contextText,
+    financialStatements: (financialStatementsResult.data ?? []) as Array<Record<string, unknown>>,
     now: params.now,
   });
   const prompt = buildHolisticReviewPrompt(facts);
@@ -502,6 +536,29 @@ function hasExitCondition(rule: {
 function toNumber(value: unknown) {
   const result = Number(value ?? 0);
   return Number.isFinite(result) ? result : 0;
+}
+
+function normalizeFinancialStatement(row: Record<string, unknown>) {
+  return {
+    ticker: String(row.ticker ?? ""),
+    market: String(row.market ?? "JP"),
+    fiscalPeriod: String(row.fiscal_period ?? ""),
+    revenue: nullableNumber(row.revenue),
+    operatingIncome: nullableNumber(row.operating_income),
+    netIncome: nullableNumber(row.net_income),
+    eps: nullableNumber(row.eps),
+    dividendPerShare: nullableNumber(row.dividend_per_share),
+    equityRatio: nullableNumber(row.equity_ratio),
+    currency: String(row.currency ?? "JPY"),
+    filedAt: row.filed_at == null ? null : String(row.filed_at),
+    source: String(row.source ?? "unknown"),
+  };
+}
+
+function nullableNumber(value: unknown) {
+  if (value == null) return null;
+  const result = Number(value);
+  return Number.isFinite(result) ? result : null;
 }
 
 function normalizeNullableString(value: unknown) {

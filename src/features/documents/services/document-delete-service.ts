@@ -28,7 +28,19 @@ export async function deleteDocument(params: {
     });
   }
 
-  // DBから削除（cascadeで関連テーブルも消える）
+  await db
+    .from("rag_chunks")
+    .delete()
+    .eq("user_id", params.userId)
+    .in("source_type", ["manual_note", "earnings_report"])
+    .eq("source_id", params.documentId);
+  await db
+    .from("rag_documents")
+    .delete()
+    .eq("user_id", params.userId)
+    .in("source_type", ["manual_note", "earnings_report"])
+    .eq("source_id", params.documentId);
+
   const { error: deleteError } = await db
     .from("user_documents")
     .delete()
