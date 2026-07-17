@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { AttentionBadge } from "@/components/status/attention-badge";
 import {
   Card,
   CardContent,
@@ -62,8 +63,13 @@ const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
 
 export function AgentWorkbench({
   ruleSessions = [],
+  attentionStatuses = {},
 }: {
   ruleSessions?: RuleSessionSummary[];
+  attentionStatuses?: Record<
+    string,
+    "on_track" | "needs_check" | "condition_met"
+  >;
 }) {
   const ruleValidation = validateTradingRule(sampleRule);
 
@@ -87,6 +93,13 @@ export function AgentWorkbench({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Link
+                href="/today"
+                className={buttonVariants({ variant: "outline" })}
+                data-testid="dashboard-today-link"
+              >
+                Today
+              </Link>
               <Button variant="outline">
                 <GitBranch />
                 Review flow
@@ -152,6 +165,11 @@ export function AgentWorkbench({
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <AttentionBadge
+                          status={
+                            attentionStatuses[session.id] ?? "needs_check"
+                          }
+                        />
                         <span className="rounded-md border px-2 py-1 text-xs font-medium">
                           {ruleSessionStatusLabels[session.status] ??
                             session.status}

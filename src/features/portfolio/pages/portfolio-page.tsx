@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { PortfolioSummaryCard } from "@/features/portfolio/components/portfolio-summary-card";
 import { PortfolioPositionTable } from "@/features/portfolio/components/portfolio-position-table";
@@ -13,6 +14,11 @@ export function PortfolioPage() {
 
   return (
     <main className="mx-auto max-w-6xl p-6" data-testid="portfolio-page">
+      <nav className="mb-6 flex flex-wrap gap-3 text-sm text-muted-foreground" aria-label="メインナビゲーション">
+        <Link href="/today" className="underline-offset-4 hover:underline">Today</Link>
+        <Link href="/dashboard" className="underline-offset-4 hover:underline">ダッシュボード</Link>
+        <Link href="/portfolio/review/monthly" className="underline-offset-4 hover:underline">月次総合レビュー</Link>
+      </nav>
       <div className="flex items-start justify-between gap-4">
         <div>
           <a

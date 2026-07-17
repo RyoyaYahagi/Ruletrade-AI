@@ -34,8 +34,8 @@ export function SignupForm() {
       return;
     }
 
-    setMessage("アカウントを作成しました。ダッシュボードへ移動します。");
-    router.replace("/dashboard");
+    setMessage("アカウントを作成しました。Todayへ移動します。");
+    router.replace("/today");
   }
 
   return (

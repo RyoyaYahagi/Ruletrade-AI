@@ -179,5 +179,19 @@ function getMockObject(taskType: string, schemaName: string): unknown {
     };
   }
 
+  if (schemaName === "HolisticReview" || taskType === "holistic_review") {
+    return {
+      findings: [
+        {
+          category: "constraint_check",
+          status: "ok",
+          message: "登録された制約について、確認事項はありません。",
+          relatedSymbols: [],
+        },
+      ],
+      overallNote: "登録された情報とルールの整合を確認しました。",
+    };
+  }
+
   return {};
 }

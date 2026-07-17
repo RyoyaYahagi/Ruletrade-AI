@@ -227,6 +227,19 @@ const schemaStatements = [
     created_at text not null default (datetime('now')),
     unique (pair, rate_date)
   )`,
+  `create table if not exists holistic_reviews (
+    id text primary key,
+    user_id text not null,
+    period text not null,
+    review_json text not null,
+    summary_text text not null,
+    model text not null,
+    estimated_cost_usd real,
+    safety_passed integer not null default 1,
+    notification_id text,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now'))
+  )`,
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
@@ -238,6 +251,7 @@ const schemaStatements = [
   `create index if not exists idx_drift_alert_events_portfolio_target on drift_alert_events(portfolio_id, target_type, target_key, quote_date desc)`,
   `create index if not exists idx_news_ticker_matches_symbol on news_ticker_matches(symbol, market)`,
   `create index if not exists idx_news_assessments_user_created on news_assessments(user_id, created_at desc)`,
+  `create unique index if not exists idx_holistic_reviews_user_period on holistic_reviews(user_id, period)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
 ];
@@ -245,6 +259,19 @@ const schemaStatements = [
 export function initializeSqliteSchema(db: Database.Database) {
   db.pragma("foreign_keys = on");
   db.pragma("journal_mode = WAL");
+
+  // 旧フェーズでは price_quotes に ticker 列だけが存在し、後続の
+  // symbol インデックスを作る前に列を追加しないと既存DBの起動に失敗する。
+  if (hasTable(db, "price_quotes")) {
+    ensureColumn(db, "price_quotes", "symbol", "text");
+    ensureColumn(db, "price_quotes", "market", "text not null default 'JP'");
+    ensureColumn(db, "price_quotes", "source", "text not null default 'mock'");
+    if (hasColumn(db, "price_quotes", "ticker")) {
+      db.prepare(
+        `update price_quotes set symbol = ticker where symbol is null`,
+      ).run();
+    }
+  }
 
   const migrate = db.transaction(() => {
     for (const statement of schemaStatements) {
@@ -279,6 +306,14 @@ function hasColumn(db: Database.Database, table: string, column: string) {
     .prepare(`pragma table_info("${table.replaceAll('"', '""')}")`)
     .all() as Array<{ name: string }>).some(
     (candidate) => candidate.name === column,
+  );
+}
+
+function hasTable(db: Database.Database, table: string) {
+  return Boolean(
+    db
+      .prepare("select 1 from sqlite_master where type = 'table' and name = ?")
+      .get(table),
   );
 }
 

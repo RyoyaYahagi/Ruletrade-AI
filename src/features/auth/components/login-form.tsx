@@ -40,7 +40,7 @@ export function LoginForm() {
         return;
       }
 
-      router.replace("/dashboard");
+      router.replace("/today");
     } catch {
       setErrorMessage(
         "ログインに失敗しました。メールアドレスとパスワードを確認してください。",
@@ -64,7 +64,7 @@ export function LoginForm() {
         return;
       }
 
-      router.replace("/dashboard");
+      router.replace("/today");
     } catch {
       setErrorMessage(
         "ゲストログインに失敗しました。時間をおいてもう一度お試しください。",
@@ -129,7 +129,7 @@ export function LoginForm() {
         variant="outline"
         className="w-full"
         disabled={isLoading}
-        formAction="/api/auth/guest?redirect=/dashboard"
+        formAction="/api/auth/guest?redirect=/today"
         formMethod="post"
         formNoValidate
         data-testid="guest-login-button"

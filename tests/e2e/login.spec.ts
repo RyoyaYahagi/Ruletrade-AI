@@ -36,7 +36,7 @@ test.describe("Login Page", () => {
     await expect(guestButton).toHaveAttribute("type", "submit");
     await expect(guestButton).toHaveAttribute(
       "formaction",
-      "/api/auth/guest?redirect=/dashboard",
+      "/api/auth/guest?redirect=/today",
     );
     await expect(guestButton).toHaveAttribute("formmethod", "post");
     await expect(guestButton).toHaveAttribute("formnovalidate", "");

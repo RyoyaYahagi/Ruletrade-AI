@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { CreateNotificationSchema } from "@/schemas/notifications/notification-schema";
+import {
+  CreateNotificationSchema,
+  NotificationTypeSchema,
+} from "@/schemas/notifications/notification-schema";
 
 const validNotification = {
   notificationType: "rule_review_due",
@@ -131,5 +134,34 @@ describe("CreateNotificationSchema", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("NotificationTypeSchema", () => {
+  it("全フェーズの通知種別を受け付ける", () => {
+    const types = [
+      "rule_review_due",
+      "rule_questions_pending",
+      "rule_quality_gate_failed",
+      "rule_finalizable",
+      "watchlist_item_needs_rule",
+      "watchlist_review_due",
+      "portfolio_missing_rules",
+      "portfolio_review_due",
+      "holistic_review_ready",
+      "document_extraction_completed",
+      "document_summary_completed",
+      "document_index_failed",
+      "system_notice",
+      "ai_budget_warning",
+      "rule_price_condition_met",
+      "price_data_stale",
+      "portfolio_drift_exceeded",
+      "news_thesis_impact",
+    ] as const;
+
+    for (const type of types) {
+      expect(NotificationTypeSchema.safeParse(type).success).toBe(true);
+    }
   });
 });

@@ -3,10 +3,11 @@ import "server-only";
 import { z } from "zod";
 import { callAi } from "@/lib/ai/provider-gateway";
 import { AppError } from "@/lib/errors/app-error";
-import { checkAiCostLimit } from "@/lib/cost-limit/check-ai-cost-limit";
-import { incrementAiCostUsage } from "@/lib/cost-limit/increment-ai-cost-usage";
+import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
+import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
+import { runComplianceGate } from "@/features/legal/services/compliance-gate-service";
 import {
   FALLBACK_BREAKER_CANDIDATES,
 } from "@/features/rules/constants/question-catalog";
@@ -14,8 +15,6 @@ import {
   buildThesisDraftPrompt,
   THESIS_DRAFT_SYSTEM_PROMPT,
 } from "@/features/rules/prompts/thesis-draft-prompt";
-
-const ESTIMATED_AI_THESIS_DRAFT_COST_USD = 0.02;
 
 const ThesisDraftOutputSchema = z.object({
   thesis: z.string().min(1).max(400),
@@ -51,11 +50,6 @@ export async function generateThesisDraft(params: {
     throw new AppError("NOT_FOUND", "ルール作成セッションが見つかりません。", 404);
   }
 
-  await checkAiCostLimit({
-    userId: params.userId,
-    estimatedNextCostUsd: ESTIMATED_AI_THESIS_DRAFT_COST_USD,
-  });
-
   const { data: answers, error: answersError } = await db
     .from("rule_answers")
     .select("question_key, answer_text, answer_json")
@@ -73,34 +67,45 @@ export async function generateThesisDraft(params: {
     );
   }
 
-  const result = await callAi({
-    weight: "standard",
-    taskType: "rule_draft_generation",
-    agentName: "rule_builder_agent",
-    system: THESIS_DRAFT_SYSTEM_PROMPT,
-    prompt: buildThesisDraftPrompt({
-      ticker: session.ticker,
-      companyName: session.company_name,
-      answers: (answers ?? []).map(
-        (answer: {
-          question_key: string;
-          answer_text?: string | null;
-          answer_json?: unknown;
-        }) => ({
-        questionKey: answer.question_key,
-        answerText: answer.answer_text,
-        answerJson: answer.answer_json,
-        }),
-      ),
-    }),
-    outputSchema: ThesisDraftOutputSchema,
-    schemaName: "ThesisDraft",
-    promptVersion: "thesis-draft-v1",
+  const result = await runMeteredAiCall({
     userId: params.userId,
-    sourceType: "rule_session",
-    sourceId: params.sessionId,
-    sessionId: params.sessionId,
-    inputJson: { sessionId: params.sessionId, answers: answers ?? [] },
+    feature: "thesis_draft",
+    estimatedCostUsd: ESTIMATED_AI_COST_USD.thesis_draft,
+    execute: async () => {
+      const response = await callAi({
+        weight: "standard",
+        taskType: "rule_draft_generation",
+        agentName: "rule_builder_agent",
+        system: THESIS_DRAFT_SYSTEM_PROMPT,
+        prompt: buildThesisDraftPrompt({
+          ticker: session.ticker,
+          companyName: session.company_name,
+          answers: (answers ?? []).map(
+            (answer: {
+              question_key: string;
+              answer_text?: string | null;
+              answer_json?: unknown;
+            }) => ({
+              questionKey: answer.question_key,
+              answerText: answer.answer_text,
+              answerJson: answer.answer_json,
+            }),
+          ),
+        }),
+        outputSchema: ThesisDraftOutputSchema,
+        schemaName: "ThesisDraft",
+        promptVersion: "thesis-draft-v1",
+        userId: params.userId,
+        sourceType: "rule_session",
+        sourceId: params.sessionId,
+        sessionId: params.sessionId,
+        inputJson: { sessionId: params.sessionId, answers: answers ?? [] },
+      });
+      return {
+        result: response,
+        actualCostUsd: response.ok ? response.estimatedCostUsd : undefined,
+      };
+    },
   });
 
   if (!result.ok) {
@@ -126,16 +131,26 @@ export async function generateThesisDraft(params: {
     );
   }
 
+  const compliance = await runComplianceGate({
+    userId: params.userId,
+    reviewType: "thesis_draft",
+    text: `${result.data.thesis}\n${JSON.stringify(result.data.breakers)}`,
+  });
+  if (!compliance.passed) {
+    throw new AppError(
+      "SAFETY_FAILED",
+      "仮説の下書きにコンプライアンス上の問題があったため表示できません。",
+      422,
+      { compliance },
+      false,
+    );
+  }
+
   await updateBreakerQuestion({
     userId: params.userId,
     sessionId: params.sessionId,
     candidates: result.data.breakers,
     source: "ai",
-  });
-
-  await incrementAiCostUsage({
-    userId: params.userId,
-    costUsd: result.estimatedCostUsd ?? 0,
   });
 
   return {
