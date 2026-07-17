@@ -14,6 +14,10 @@ type RuleSessionData = {
     rule_json: unknown;
     completion_score: number | null;
   };
+  answers: Array<{
+    question_key: string;
+    answer_json?: unknown;
+  }>;
   questions: Array<{
     id: string;
     question_key: string;
@@ -49,6 +53,7 @@ function isRuleSessionData(data: unknown): data is RuleSessionData {
     typeof d.session === "object" &&
     d.session !== null &&
     Array.isArray(d.questions) &&
+    Array.isArray(d.answers) &&
     (d.latestReview === null || typeof d.latestReview === "object") &&
     Array.isArray(d.qualityChecks)
   );
@@ -88,7 +93,8 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
     );
   }
 
-  const { session, questions, latestReview, qualityChecks } = data;
+  const { session, questions, answers, latestReview, qualityChecks } = data;
+  const agentAnswers = answers.filter((answer) => hasAgentOrigin(answer.answer_json));
 
   const pendingQuestion = questions?.find(
     (question) => question.status === "pending",
@@ -127,6 +133,16 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
           </div>
         </div>
 
+        {agentAnswers.length > 0 ? (
+          <section className="rounded-lg border border-blue-200 bg-blue-50 p-4" aria-label="外部エージェント入力の確認">
+            <h2 className="font-semibold">外部エージェントが入力した回答があります</h2>
+            <p className="mt-1 text-sm">完成保存の前に、次の回答を本人が確認してください。</p>
+            <ul className="mt-2 list-disc pl-5 text-sm">
+              {agentAnswers.map((answer) => <li key={answer.question_key}>{answer.question_key}</li>)}
+            </ul>
+          </section>
+        ) : null}
+
         {pendingQuestion ? (
           <QuestionCard
             sessionId={sessionId}
@@ -162,4 +178,9 @@ export function RuleSessionShell({ sessionId }: { sessionId: string }) {
       </aside>
     </div>
   );
+}
+
+function hasAgentOrigin(value: unknown) {
+  return typeof value === "object" && value !== null && !Array.isArray(value) &&
+    (value as { enteredBy?: unknown }).enteredBy === "api_agent";
 }

@@ -35,6 +35,8 @@ tags:
     description: Plans and usage
   - name: Watchlist
     description: Watchlist items
+  - name: Agents
+    description: Personal Access Tokens and MCP tools
 
 paths:
   /api/rule-sessions:
@@ -58,10 +60,19 @@ paths:
   /api/watchlist/items:
     $ref: "./paths/watchlist.yaml#/paths/~1api~1watchlist~1items"
 
+  /api/settings/api-tokens:
+    $ref: "./paths/api-tokens.yaml#/paths/~1api~1settings~1api-tokens"
+
+  /api/mcp:
+    $ref: "./paths/api-tokens.yaml#/paths/~1api~1mcp"
+
 components:
   securitySchemes:
     cookieAuth:
       $ref: "./components/security-schemes.yaml#/cookieAuth"
+
+    bearerAuth:
+      $ref: "./components/security-schemes.yaml#/bearerAuth"
 
   schemas:
     ApiSuccess:

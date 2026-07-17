@@ -23,6 +23,27 @@ const schemaStatements = [
     expires_at text not null,
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists api_access_tokens (
+    id text primary key,
+    user_id text not null,
+    token_hash text not null,
+    label text not null,
+    scopes text not null default 'read',
+    last_used_at text,
+    expires_at text,
+    revoked_at text,
+    created_at text not null default (datetime('now')),
+    unique (token_hash)
+  )`,
+  `create table if not exists api_tool_audit_logs (
+    id text primary key,
+    user_id text not null,
+    token_id text not null,
+    tool_name text not null,
+    status text not null,
+    latency_ms integer not null,
+    created_at text not null default (datetime('now'))
+  )`,
   `create table if not exists user_ui_preferences (
     id text primary key,
     user_id text not null unique,
@@ -254,6 +275,8 @@ const schemaStatements = [
   `create unique index if not exists idx_holistic_reviews_user_period on holistic_reviews(user_id, period)`,
   `create index if not exists idx_auth_sessions_user on auth_sessions(user_id)`,
   `create index if not exists idx_auth_sessions_expiry on auth_sessions(expires_at)`,
+  `create index if not exists idx_api_access_tokens_user on api_access_tokens(user_id, created_at desc)`,
+  `create index if not exists idx_api_tool_audit_logs_token on api_tool_audit_logs(token_id, created_at desc)`,
 ];
 
 export function initializeSqliteSchema(db: Database.Database) {

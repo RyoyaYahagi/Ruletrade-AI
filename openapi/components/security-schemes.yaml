@@ -3,3 +3,9 @@ cookieAuth:
   in: cookie
   name: ruletrade_session
   description: Ruletrade local session cookie.
+
+bearerAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: rta_<64-hex-characters>
+  description: Personal Access Token for read access and explicitly permitted draft writes.

@@ -11,8 +11,10 @@ export async function saveRuleAnswer(params: {
   questionKey: string;
   answerText?: string;
   answerJson: unknown;
+  enteredBy?: "user" | "api_agent";
 }) {
   const db = await createDatabaseClient();
+  const answerJson = addAnswerOrigin(params.answerJson, params.enteredBy);
   const { data: answer, error: answerError } = await db
     .from("rule_answers")
     .insert({
@@ -21,7 +23,7 @@ export async function saveRuleAnswer(params: {
       question_id: params.questionId ?? null,
       question_key: params.questionKey,
       answer_text: params.answerText ?? null,
-      answer_json: params.answerJson,
+      answer_json: answerJson,
     })
     .select("id")
     .single();
@@ -52,8 +54,16 @@ export async function saveRuleAnswer(params: {
     userId: params.userId,
     sessionId: params.sessionId,
     questionKey: params.questionKey,
-    answerJson: params.answerJson,
+    answerJson,
     answerText: params.answerText,
   });
   return { answerId: answer.id, sessionId: params.sessionId, ruleJson };
+}
+
+function addAnswerOrigin(answerJson: unknown, enteredBy?: "user" | "api_agent") {
+  if (!enteredBy) return answerJson;
+  if (typeof answerJson !== "object" || answerJson === null || Array.isArray(answerJson)) {
+    return { value: answerJson, enteredBy };
+  }
+  return { ...(answerJson as Record<string, unknown>), enteredBy };
 }

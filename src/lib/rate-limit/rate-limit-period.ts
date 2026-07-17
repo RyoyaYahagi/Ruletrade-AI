@@ -1,4 +1,6 @@
-export function getRateLimitPeriod(window: "hour" | "day" | "month") {
+export function getRateLimitPeriod(
+  window: "minute" | "hour" | "day" | "month",
+) {
   const now = new Date();
   const utcNow = new Date(
     Date.UTC(
@@ -14,6 +16,12 @@ export function getRateLimitPeriod(window: "hour" | "day" | "month") {
 
   const start = new Date(utcNow);
   const end = new Date(utcNow);
+
+  if (window === "minute") {
+    start.setUTCSeconds(0, 0);
+    end.setUTCSeconds(0, 0);
+    end.setUTCMinutes(end.getUTCMinutes() + 1);
+  }
 
   if (window === "hour") {
     start.setUTCMinutes(0, 0, 0);
