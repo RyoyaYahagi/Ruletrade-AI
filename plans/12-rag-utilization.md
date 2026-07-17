@@ -20,6 +20,24 @@
 
 **この計画で足すもの**: 新しい RAG ソース 3 種と、利用箇所 3 つ。
 
+## このアプリの RAG 利用箇所の全体像（この表が正）
+
+取得方法の原則: **キーで引けるなら SQL、意味で引くなら RAG。source of truth は常に SQL**
+（RAG チャンクは `reindex` で再構築できる派生索引にすぎない）。
+
+| 利用箇所 | 検索するソース | 状態 |
+|---------|--------------|------|
+| ルールレビュー | investor_profile / rule_session / rule_review / watchlist_item / portfolio_position（実装済み）+ alert_resolution（本計画） | 一部実装済み |
+| 仮説下書き（thesis draft） | rule_session / alert_resolution / holistic_review（似た仮説・過去判断の横断参照） | 本計画 |
+| 月次レビュー | alert_resolution（今月の判断の想起） | 本計画 |
+| 決算資料テキスト節の参照 | earnings_report（期タグ付き・ユーザー文書） | 計画 14 |
+| 専門家解説の検索 | 共有ナレッジ（分離基盤・条件付き） | 計画 15 |
+
+**RAG を使わない場所（意図的）**: 株価・財務数値・ドリフト計算（数値はキーで引く）、
+同一銘柄の判定履歴（session_id で引ける→SQL）、前月レビュー（period で引ける→SQL）、
+ニュース原文（保存しない）、網羅性が必要な集計（遵守率・欠落ルール一覧は SQL でなければ取りこぼす）、
+外部エージェントへの直接公開（計画 11 のツールはサービス層経由のみ）。
+
 ## 依存関係
 
 - 各ステップが依存する計画: ステップ 2 → 計画 06、ステップ 3 → 計画 04、
@@ -104,7 +122,8 @@ const ragResult = await retrieveRagContext({
   userId: params.userId,
   taskType: "rule_generation",   // 既存の taskType 語彙を確認して合わせる
   queryText: `${ticker} ${companyName} 投資仮説`,
-  sourceTypes: ["rule", "alert_resolution", "holistic_review"],  // "rule" は既存語彙を確認
+  // 既存語彙は "rule_session"（upsert-rag-sources.ts で確認済み）
+  sourceTypes: ["rule_session", "alert_resolution", "holistic_review"],
   maxContextChars: 1500,   // 下書き生成は light な用途なので小さく絞る
 });
 ```
@@ -114,18 +133,19 @@ const ragResult = await retrieveRagContext({
 - 検索結果が 0 件でもエラーにしない（新規ユーザーは必ず 0 件。これは欠損ではなく正常系。
   その旨をコメントに書く）。
 
-### ステップ 4: ニュース分類への過去判定の注入（計画 08 の強化）
+### ステップ 4: ニュース分類への過去判定の注入（計画 08 の強化・**RAG ではなく SQL**）
 
-ファイル: 計画 08 の分類処理（変更）
+ファイル: `src/features/news/services/news-assess-service.ts`（計画 08 の成果物。変更）
 
-- 同一 ticker の直近 `news_assessments` を RAG 経由（sourceTypes: `news_assessment`、
-  maxContextChars: 1000）で 2〜3 件取り、分類プロンプトに
-  「このユーザーの仮説に対する過去の判定例」として渡す。
+- 同一セッションの直近判定を **SQL で直接取得**する（RAG を使わない）:
+  `news_assessments` を `.eq("user_id", ...)` + `.eq("session_id", ...)` +
+  `relevance = 'affects_thesis'` で絞り、`created_at` 降順 2 件。
+  各件は `thesis_relation` と `summary_text` の先頭 100 文字だけをプロンプトに入れる。
+- **RAG を使わない理由（コメントに書く）**: 検索キー（session_id）が自明なので
+  ベクトル検索は不要。SQL なら無料・決定的・取りこぼしゼロで、
+  埋め込み計算のコストとレイテンシも発生しない。
 - 目的は判定の一貫性（同種のニュースで supports / challenges が揺れない）。
-- コスト注意: 分類は件数が多いので、この注入で入力トークンが増えすぎないよう
-  `maxContextChars` を必ず 1000 以下にする（コメントで理由を書く）。
-  埋め込み検索自体のコストは分類 LLM より桁で小さいが、`ai_run_logs` には記録される
-  （既存の embedding 呼び出しの記録方法を確認し、漏れていれば揃える）。
+- コスト注意: 分類は件数が多いので、注入は合計 300 文字以内に切り詰める。
 
 ### ステップ 5: 月次レビューへの前月比較の注入（計画 09 の強化）
 
@@ -162,7 +182,8 @@ RAG 由来の内容を AI 出力に含めて表示する場合の共通規約
 3. プライバシー削除: rag-memory 削除後、新 source_type 3 種のチャンクが検索から消える
 4. リインデックス: `reindex-user-rag-documents` 実行後に新 source_type が再構築される
 5. 検索 0 件時に `generateThesisDraft` がエラーにならず通常の下書きを返す
-6. 分類プロンプトへの注入が `maxContextChars: 1000` を超えない
+6. ニュース分類への過去判定注入が SQL 直取得で行われ、埋め込みプロバイダが
+   呼ばれない（embedding をモックして呼び出し回数 0 を検証）
 
 ## 完了条件
 
