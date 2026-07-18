@@ -16,6 +16,7 @@ test("新規セッションを10問のルール質問で完了直前まで進め
     const questionText = await questionHeading.innerText();
 
     if (questionText.includes("投資仮説")) {
+      await expect(page.locator("form textarea")).toHaveValue(/事業の成長/);
       await page.locator("form textarea").fill("私は事業の成長を観測する。");
       await page.getByRole("button", { name: "回答を保存" }).click();
     } else {

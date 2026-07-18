@@ -20,6 +20,15 @@ describe("GeminiProvider", () => {
   });
 
   const dummySchema = z.object({ result: z.string() });
+  const thesisDraftSchema = z.object({
+    thesis: z.string(),
+    breakers: z.array(
+      z.object({
+        description: z.string(),
+        newsKeywords: z.array(z.string()),
+      }),
+    ),
+  });
 
   function createSuccessResponse(text: string, usage?: object) {
     return {
@@ -139,6 +148,54 @@ describe("GeminiProvider", () => {
       expect(JSON.stringify(body.generationConfig.responseSchema)).not.toContain(
         "$ref",
       );
+    });
+
+    it("ThesisDraft uses Gemini responseSchema", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createSuccessResponse(
+          JSON.stringify({
+            thesis: "私は事業の成長を観測する。",
+            breakers: [
+              { description: "業績が悪化する", newsKeywords: ["減収"] },
+              { description: "競争力が低下する", newsKeywords: ["競争"] },
+              { description: "統治上の問題が確認される", newsKeywords: ["不祥事"] },
+              { description: "保有理由を説明できなくなる", newsKeywords: ["仮説"] },
+            ],
+          }),
+        ),
+      );
+
+      const provider = new GeminiProvider();
+      await provider.generateObject({
+        taskType: "rule_draft_generation",
+        schema: thesisDraftSchema,
+        schemaName: "ThesisDraft",
+        messages: [{ role: "user", content: "test" }],
+      });
+
+      const lastCall = mockFetch.mock.calls.at(-1);
+      const body = JSON.parse(String(lastCall?.[1]?.body));
+      expect(body.generationConfig.responseSchema).toEqual({
+        type: "OBJECT",
+        required: ["thesis", "breakers"],
+        properties: {
+          thesis: { type: "STRING" },
+          breakers: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              required: ["description", "newsKeywords"],
+              properties: {
+                description: { type: "STRING" },
+                newsKeywords: {
+                  type: "ARRAY",
+                  items: { type: "STRING" },
+                },
+              },
+            },
+          },
+        },
+      });
     });
 
     it("一時的な 503 はリトライして成功する", async () => {

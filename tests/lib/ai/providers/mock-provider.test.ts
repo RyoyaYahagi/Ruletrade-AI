@@ -59,6 +59,28 @@ describe("MockProvider", () => {
       expect(result.data.riskLevel).toBe("low");
     });
 
+    it("ThesisDraft schemaName で仮説と破れ条件を返す", async () => {
+      const schema = z.object({
+        thesis: z.string(),
+        breakers: z.array(
+          z.object({
+            description: z.string(),
+            newsKeywords: z.array(z.string()),
+          }),
+        ),
+      });
+
+      const result = await provider.generateObject({
+        taskType: "rule_draft_generation",
+        schema,
+        schemaName: "ThesisDraft",
+        messages: [{ role: "user", content: "test" }],
+      });
+
+      expect(result.data.thesis).toBeTruthy();
+      expect(result.data.breakers).toHaveLength(4);
+    });
+
     it("portfolio_rule_guidance taskType で追加質問なしに未定項目の目安を返す", async () => {
       const result = await provider.generateObject({
         taskType: "portfolio_rule_guidance",

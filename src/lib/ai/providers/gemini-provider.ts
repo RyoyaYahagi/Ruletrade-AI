@@ -245,6 +245,30 @@ function toGeminiPart(part: AIMessagePart) {
 }
 
 function getGeminiResponseSchema(schemaName: string): unknown {
+  if (schemaName === "ThesisDraft") {
+    return {
+      type: "OBJECT",
+      required: ["thesis", "breakers"],
+      properties: {
+        thesis: { type: "STRING" },
+        breakers: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            required: ["description", "newsKeywords"],
+            properties: {
+              description: { type: "STRING" },
+              newsKeywords: {
+                type: "ARRAY",
+                items: { type: "STRING" },
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
   if (schemaName !== "RuleReview") return undefined;
 
   return {

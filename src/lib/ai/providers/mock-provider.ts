@@ -81,6 +81,18 @@ function getMockObject(taskType: string, schemaName: string): unknown {
     };
   }
 
+  if (schemaName === "ThesisDraft" || taskType === "rule_draft_generation") {
+    return {
+      thesis: "私は、事業の成長を観測し、定期的に保有理由を見直す。",
+      breakers: [
+        { description: "主力事業の業績が継続的に悪化する。", newsKeywords: ["業績悪化"] },
+        { description: "競争力が低下したと判断する事実が確認される。", newsKeywords: ["競争力低下"] },
+        { description: "経営や統治に重大な問題が確認される。", newsKeywords: ["不祥事"] },
+        { description: "保有理由を自分の言葉で説明できなくなる。", newsKeywords: ["事業方針"] },
+      ],
+    };
+  }
+
   if (schemaName === "RuleReview" || taskType === "rule_review") {
     return {
       summary:
