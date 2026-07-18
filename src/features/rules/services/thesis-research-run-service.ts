@@ -4,6 +4,11 @@ import { createDatabaseClient } from "@/lib/db/database-client";
 import { hashContent } from "@/lib/rag/hash-content";
 import type { ThesisDraftOutput, ThesisResearchSource } from "@/schemas/rules/thesis-research-schema";
 
+export type CachedThesisResearchSourceContent = {
+  source: ThesisResearchSource;
+  content: string;
+};
+
 export type ThesisResearchRunStatus =
   | "running"
   | "completed"
@@ -78,6 +83,15 @@ export function parseCachedSources(value: unknown): ThesisResearchSource[] {
   return value.filter(isThesisResearchSource);
 }
 
+export function parseCachedSourceContents(
+  value: unknown,
+): CachedThesisResearchSourceContent[] {
+  if (!value || typeof value !== "object") return [];
+  const sourceContents = (value as Record<string, unknown>).sourceContents;
+  if (!Array.isArray(sourceContents)) return [];
+  return sourceContents.filter(isCachedThesisResearchSourceContent);
+}
+
 export function parseCachedDraft(value: unknown): ThesisDraftOutput | null {
   if (!value || typeof value !== "object") return null;
   return isThesisDraftOutput(value) ? value : null;
@@ -94,6 +108,17 @@ function isThesisResearchSource(value: unknown): value is ThesisResearchSource {
     typeof source.excerpt === "string" &&
     typeof source.highlightText === "string" &&
     typeof source.verified === "boolean"
+  );
+}
+
+function isCachedThesisResearchSourceContent(
+  value: unknown,
+): value is CachedThesisResearchSourceContent {
+  if (!value || typeof value !== "object") return false;
+  const sourceContent = value as Record<string, unknown>;
+  return (
+    typeof sourceContent.content === "string" &&
+    isThesisResearchSource(sourceContent.source)
   );
 }
 

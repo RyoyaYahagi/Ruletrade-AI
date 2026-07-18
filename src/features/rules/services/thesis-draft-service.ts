@@ -14,6 +14,7 @@ import {
 import {
   createThesisResearchInputHash,
   getCachedThesisResearchRun,
+  parseCachedSourceContents,
   parseCachedDraft,
   parseCachedSources,
   saveThesisResearchRun,
@@ -152,7 +153,7 @@ export async function generateThesisDraft(params: {
   }
 
   params.onPhase?.("researching_company");
-  const ragResult = await retrieveRagContext({
+  const ragPromise = retrieveRagContext({
     userId: params.userId,
     taskType: "rule_draft_generation",
     queryText: `${session.ticker} ${session.company_name ?? ""} 投資仮説`,
@@ -161,12 +162,22 @@ export async function generateThesisDraft(params: {
   });
 
   params.onPhase?.("researching_financials");
-  const collection = await collectThesisResearchSources({
-    userId: params.userId,
-    ticker: session.ticker,
-    market: session.market ?? "JP",
-    companyName: session.company_name,
-  });
+  const cachedSourceContents = parseCachedSourceContents(cachedRun?.research_json);
+  const collectionPromise = cachedSourceContents.length > 0
+    ? Promise.resolve({
+        sources: cachedSourceContents,
+        errors: readResearchErrors(cachedRun?.research_json),
+      })
+    : collectThesisResearchSources({
+        userId: params.userId,
+        ticker: session.ticker,
+        market: session.market ?? "JP",
+        companyName: session.company_name,
+      });
+  const [ragResult, collection] = await Promise.all([
+    ragPromise,
+    collectionPromise,
+  ]);
   params.onPhase?.("researching_news");
   if (collection.sources.length === 0) {
     await saveThesisResearchRun({
@@ -186,6 +197,21 @@ export async function generateThesisDraft(params: {
       { errors: collection.errors },
       true,
     );
+  }
+
+  if (cachedSourceContents.length === 0) {
+    // Keep fetched source text so a retry after an AI failure does not repeat external HTTP requests.
+    await saveThesisResearchRun({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      inputHash,
+      status: "running",
+      sources: collection.sources.map((item) => item.source),
+      research: {
+        errors: collection.errors,
+        sourceContents: collection.sources,
+      },
+    });
   }
 
   const researchContext = buildResearchContext(collection.sources);
@@ -456,16 +482,19 @@ async function persistBreakerCandidates(params: {
 function buildResearchContext(
   sources: Array<{ source: ThesisResearchSource; content: string }>,
 ) {
+  const MAX_SOURCE_CONTEXT_CHARS = 4_000;
+  const MAX_RESEARCH_CONTEXT_CHARS = 16_000;
+
   return sources
     .map(({ source, content }) =>
       [
         `[${source.ref}] ${source.title} / ${source.publisher}`,
         `URL: ${source.url ?? "内部データ"}`,
-        `本文: ${content.slice(0, 7000)}`,
+        `本文: ${content.slice(0, MAX_SOURCE_CONTEXT_CHARS)}`,
       ].join("\n"),
     )
     .join("\n\n")
-    .slice(0, 32_000);
+    .slice(0, MAX_RESEARCH_CONTEXT_CHARS);
 }
 
 function verifyDraftEvidence(params: {

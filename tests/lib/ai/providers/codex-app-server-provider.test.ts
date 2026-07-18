@@ -109,4 +109,21 @@ describe("CodexAppServerProvider", () => {
       required: ["answer"],
     });
   });
+
+  it("rule_draft_generation は軽量推論を使う", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    vi.stubEnv("CODEX_APP_SERVER_MODEL", "gpt-5.4-mini");
+    vi.stubEnv("AI_TIMEOUT_MS", "1000");
+
+    await new CodexAppServerProvider().generateObject({
+      taskType: "rule_draft_generation",
+      schema: z.object({ answer: z.string() }),
+      schemaName: "Answer",
+      messages: [{ role: "user", content: "Return the answer." }],
+    });
+
+    expect(FakeWebSocket.sentMessages[3]?.params).toMatchObject({
+      effort: "low",
+    });
+  });
 });

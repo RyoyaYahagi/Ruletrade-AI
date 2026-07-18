@@ -56,7 +56,10 @@ describe("thesis research run service", () => {
       inputHash,
       status: "completed",
       sources: [source],
-      research: { errors: [] },
+      research: {
+        errors: [],
+        sourceContents: [{ source, content: "事業の成長を確認できる本文" }],
+      },
       draft,
     });
 
@@ -67,6 +70,9 @@ describe("thesis research run service", () => {
     });
     expect(cached?.status).toBe("completed");
     expect(service.parseCachedSources(cached?.sources_json)).toEqual([source]);
+    expect(service.parseCachedSourceContents(cached?.research_json)).toEqual([
+      { source, content: "事業の成長を確認できる本文" },
+    ]);
     expect(service.parseCachedDraft(cached?.draft_json)?.thesis).toBe(
       "私は受注の伸びを観測する。",
     );

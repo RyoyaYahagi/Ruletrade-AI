@@ -58,7 +58,7 @@ export const DEFAULT_AI_MODEL_CONFIGS: Record<AITaskType, AIModelConfig> = {
     provider: defaultProvider,
     model: envModel("rule_draft_generation", "gpt-4.1"),
     temperature: 0.4,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 3072,
     costTier: "balanced",
     timeoutMs: 30_000,
     requireStructuredOutput: true,

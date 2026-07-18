@@ -325,6 +325,7 @@ function runTurn(
   userText: string,
   timeoutMs: number,
   outputSchema?: unknown,
+  taskType?: string,
 ): Promise<{ text: string }> {
   return new Promise((resolve, reject) => {
     let collected = "";
@@ -396,7 +397,7 @@ function runTurn(
     const turnParams: Record<string, unknown> = {
       threadId,
       input: [{ type: "text", text: userText }],
-      effort: CODEX_REASONING_EFFORT,
+      effort: taskType === "rule_draft_generation" ? "low" : CODEX_REASONING_EFFORT,
     };
     if (outputSchema !== undefined) turnParams.outputSchema = outputSchema;
 
@@ -585,6 +586,7 @@ export class CodexAppServerProvider implements AIProvider {
           buildUserText(params.messages, params.schemaName),
           timeoutMs,
           outputSchema.strict,
+          params.taskType,
         );
         return {
           text: result.text,

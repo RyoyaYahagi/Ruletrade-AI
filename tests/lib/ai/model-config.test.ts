@@ -124,6 +124,13 @@ describe("model-config", () => {
         expect(config.enabled).toBe(true);
       }
     });
+
+    it("rule_draft_generation は下書きに必要な出力上限へ絞る", () => {
+      expect(
+        resolveAIModelConfig({ taskType: "rule_draft_generation" })
+          .maxOutputTokens,
+      ).toBe(3072);
+    });
   });
 
   describe("resolveAIModelConfig", () => {

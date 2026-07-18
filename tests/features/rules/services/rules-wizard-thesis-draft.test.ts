@@ -217,6 +217,85 @@ describe("generateThesisDraft", () => {
     expect(callAi).not.toHaveBeenCalled();
   });
 
+  it("uses cached research text when the previous AI attempt has no draft", async () => {
+    const runService = await import(
+      "@/features/rules/services/thesis-research-run-service"
+    );
+    const sourceService = await import(
+      "@/features/rules/services/thesis-research-source-service"
+    );
+    const sourceVersion = await sourceService.getThesisResearchSourceVersion({
+      userId: "user-a",
+      ticker: "7203",
+      market: "JP",
+    });
+    const inputHash = runService.createThesisResearchInputHash({
+      ticker: "7203",
+      companyName: "A社",
+      sourceVersion,
+      answers: [],
+    });
+    const source = {
+      ref: "S1",
+      sourceType: "ir" as const,
+      url: "https://example.com/cached-ir",
+      title: "A社 IR",
+      publisher: "A社",
+      publishedAt: "2026-07-18T00:00:00.000Z",
+      retrievedAt: "2026-07-18T00:00:00.000Z",
+      excerpt: "キャッシュ済み本文",
+      highlightText: "キャッシュ済み本文",
+      verified: true,
+    };
+    await runService.saveThesisResearchRun({
+      userId: "user-a",
+      sessionId: "session-a",
+      inputHash,
+      status: "running",
+      sources: [source],
+      research: {
+        errors: [],
+        sourceContents: [{ source, content: "キャッシュ済み本文" }],
+      },
+    });
+    vi.mocked(callAi).mockResolvedValue({
+      ok: true,
+      data: {
+        thesis: "キャッシュ本文から作成した仮説",
+        thesisSegments: [
+          { text: "キャッシュ本文から作成した仮説", sourceRefs: ["S1"] },
+        ],
+        evidence: [
+          { sourceRef: "S1", quote: "キャッシュ済み本文", reason: "確認" },
+        ],
+        growthDefinition: "事業が成長すること。",
+        growthIndicators: ["受注"],
+        nearTermFactors: ["決算"],
+        invalidationConditions: ["受注減少"],
+        breakers: [
+          { description: "1", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "2", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "3", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "4", newsKeywords: [], sourceRefs: ["S1"] },
+        ],
+      },
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      model: "mock",
+      estimatedCostUsd: 0,
+    });
+
+    const result = await generateThesisDraft({
+      userId: "user-a",
+      sessionId: "session-a",
+    });
+
+    expect(result.thesisDraft).toBe("キャッシュ本文から作成した仮説");
+    expect(callAi).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(callAi).mock.calls[0]?.[0].prompt).toContain(
+      "キャッシュ済み本文",
+    );
+  });
+
   it("does not accept evidence that does not match a collected source", async () => {
     vi.mocked(callAi).mockResolvedValue({
       ok: true,
