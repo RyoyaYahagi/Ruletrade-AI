@@ -51,4 +51,24 @@ test.describe("Developer AI Settings", () => {
     await expect(page.getByRole("link", { name: "ChatGPTログイン画面を開く" })).toBeVisible();
     await expect(page.getByTestId("developer-ai-save")).toBeDisabled();
   });
+
+  test("records an LLM experiment note in the developer dashboard", async ({ page }) => {
+    await page.goto("/settings/developer");
+
+    await expect(page.getByTestId("developer-ai-observability")).toBeVisible();
+    await page.getByTestId("developer-ai-experiment-title").fill("文脈長を短くする");
+    await page.getByLabel("仮説").fill("入力文脈を短くすると、品質を保ったまま遅延を減らせる");
+    await page.getByTestId("developer-ai-experiment-change").fill("取得チャンクを8件から4件へ変更");
+    await page.getByLabel("結果・観測できたこと").fill("平均レイテンシを比較中");
+    await page.getByLabel("詰まった点").fill("評価ケースがまだ少ない");
+    await page.getByLabel("次の一手").fill("固定evalを追加する");
+    await page.getByTestId("developer-ai-experiment-save").click();
+
+    await expect(page.getByTestId("developer-ai-experiment-message")).toContainText(
+      "試行ノートを保存しました",
+    );
+    await expect(page.getByTestId("developer-ai-experiment-note").first()).toContainText(
+      "文脈長を短くする",
+    );
+  });
 });
