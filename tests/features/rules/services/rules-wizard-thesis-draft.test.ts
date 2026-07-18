@@ -45,7 +45,7 @@ describe("generateThesisDraft", () => {
       id: "news-1",
       source: "test",
       external_id: "news-1",
-      title: "A社の事業成長に関する発表",
+      title: "A社の事業成長に関する発表資料",
       summary: "事業の成長と受注の拡大を確認する。",
       url: "https://example.com/news-1",
       published_at: "2026-07-18T00:00:00.000Z",
@@ -98,7 +98,13 @@ describe("generateThesisDraft", () => {
       data: {
         thesis: "私は事業の成長を観測する。",
         thesisSegments: [{ text: "私は事業の成長を観測する。", sourceRefs: ["S1"] }],
-        evidence: [{ sourceRef: "S1", quote: "事業の成長", reason: "事業の確認" }],
+        evidence: [
+          {
+            sourceRef: "S1",
+            quote: "事業の成長と受注の拡大を確認する。",
+            reason: "事業の確認",
+          },
+        ],
         growthDefinition: "事業の売上と受注が拡大すること。",
         growthIndicators: ["受注の拡大"],
         nearTermFactors: ["決算発表"],
@@ -122,6 +128,9 @@ describe("generateThesisDraft", () => {
 
     expect(result.thesisDraft).toBe("私は事業の成長を観測する。");
     expect(result.research.sources[0].ref).toBe("S1");
+    expect(vi.mocked(callAi).mock.calls[0]?.[0].promptVersion).toBe(
+      "thesis-draft-v2",
+    );
     const question = await db
       .from("rule_questions")
       .select("options, breaker_source")
@@ -160,6 +169,7 @@ describe("generateThesisDraft", () => {
       ticker: "7203",
       companyName: "A社",
       sourceVersion,
+      promptVersion: "thesis-draft-v2",
       answers: [],
     });
     await runService.saveThesisResearchRun({
@@ -191,7 +201,13 @@ describe("generateThesisDraft", () => {
       draft: {
         thesis: "キャッシュ済みの仮説",
         thesisSegments: [{ text: "キャッシュ済みの仮説", sourceRefs: ["S1"] }],
-        evidence: [{ sourceRef: "S1", quote: "事業の成長", reason: "確認" }],
+        evidence: [
+          {
+            sourceRef: "S1",
+            quote: "事業の成長と受注の拡大を確認する。",
+            reason: "確認",
+          },
+        ],
         growthDefinition: "受注の拡大",
         growthIndicators: ["受注"],
         nearTermFactors: ["決算"],
@@ -233,6 +249,7 @@ describe("generateThesisDraft", () => {
       ticker: "7203",
       companyName: "A社",
       sourceVersion,
+      promptVersion: "thesis-draft-v2",
       answers: [],
     });
     const source = {
@@ -243,8 +260,8 @@ describe("generateThesisDraft", () => {
       publisher: "A社",
       publishedAt: "2026-07-18T00:00:00.000Z",
       retrievedAt: "2026-07-18T00:00:00.000Z",
-      excerpt: "キャッシュ済み本文",
-      highlightText: "キャッシュ済み本文",
+      excerpt: "キャッシュ済み本文から受注の変化を確認する。",
+      highlightText: "キャッシュ済み本文から受注の変化を確認する。",
       verified: true,
     };
     await runService.saveThesisResearchRun({
@@ -255,7 +272,12 @@ describe("generateThesisDraft", () => {
       sources: [source],
       research: {
         errors: [],
-        sourceContents: [{ source, content: "キャッシュ済み本文" }],
+        sourceContents: [
+          {
+            source,
+            content: "キャッシュ済み本文から受注の変化を確認する。",
+          },
+        ],
       },
     });
     vi.mocked(callAi).mockResolvedValue({
@@ -266,7 +288,11 @@ describe("generateThesisDraft", () => {
           { text: "キャッシュ本文から作成した仮説", sourceRefs: ["S1"] },
         ],
         evidence: [
-          { sourceRef: "S1", quote: "キャッシュ済み本文", reason: "確認" },
+          {
+            sourceRef: "S1",
+            quote: "キャッシュ済み本文から受注の変化を確認する。",
+            reason: "確認",
+          },
         ],
         growthDefinition: "事業が成長すること。",
         growthIndicators: ["受注"],
@@ -292,7 +318,7 @@ describe("generateThesisDraft", () => {
     expect(result.thesisDraft).toBe("キャッシュ本文から作成した仮説");
     expect(callAi).toHaveBeenCalledTimes(1);
     expect(vi.mocked(callAi).mock.calls[0]?.[0].prompt).toContain(
-      "キャッシュ済み本文",
+      "キャッシュ済み本文から受注の変化を確認する。",
     );
   });
 
@@ -322,6 +348,139 @@ describe("generateThesisDraft", () => {
     await expect(
       generateThesisDraft({ userId: "user-a", sessionId: "session-a" }),
     ).rejects.toMatchObject({ code: "AI_OUTPUT_INVALID", status: 422 });
+  });
+
+  it("rejects evidence shorter than the minimum quote length", async () => {
+    vi.mocked(callAi).mockResolvedValue({
+      ok: true,
+      data: {
+        thesis: "短い引用を使った仮説",
+        thesisSegments: [{ text: "短い引用を使った仮説", sourceRefs: ["S1"] }],
+        evidence: [{ sourceRef: "S1", quote: "受注の拡大", reason: "確認" }],
+        growthDefinition: "受注が拡大すること。",
+        growthIndicators: ["受注"],
+        nearTermFactors: ["決算"],
+        invalidationConditions: ["受注が減少する"],
+        breakers: [
+          { description: "1", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "2", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "3", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "4", newsKeywords: [], sourceRefs: ["S1"] },
+        ],
+      },
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      model: "mock",
+      estimatedCostUsd: 0,
+    });
+
+    await expect(
+      generateThesisDraft({ userId: "user-a", sessionId: "session-a" }),
+    ).rejects.toMatchObject({ code: "AI_OUTPUT_INVALID", status: 422 });
+  });
+
+  it("rejects evidence that only repeats the source title", async () => {
+    vi.mocked(callAi).mockResolvedValue({
+      ok: true,
+      data: {
+        thesis: "タイトルを使った仮説",
+        thesisSegments: [{ text: "タイトルを使った仮説", sourceRefs: ["S1"] }],
+        evidence: [
+          {
+            sourceRef: "S1",
+            quote: "A社の事業成長に関する発表資料",
+            reason: "タイトル確認",
+          },
+        ],
+        growthDefinition: "受注が拡大すること。",
+        growthIndicators: ["受注"],
+        nearTermFactors: ["決算"],
+        invalidationConditions: ["受注が減少する"],
+        breakers: [
+          { description: "1", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "2", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "3", newsKeywords: [], sourceRefs: ["S1"] },
+          { description: "4", newsKeywords: [], sourceRefs: ["S1"] },
+        ],
+      },
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      model: "mock",
+      estimatedCostUsd: 0,
+    });
+
+    await expect(
+      generateThesisDraft({ userId: "user-a", sessionId: "session-a" }),
+    ).rejects.toMatchObject({ code: "AI_OUTPUT_INVALID", status: 422 });
+  });
+
+  it("does not verify a heading-only quote but accepts the same source body", async () => {
+    await db.from("user_documents").insert({
+      id: "document-heading-1",
+      user_id: "user-a",
+      title: "見出し付き資料",
+      document_type: "note",
+      document_kind: "note",
+      ticker: "7203",
+      extracted_text: "# 成長方針\n本文の説明として受注残が増加しています。",
+      source_url: "https://example.com/heading-note",
+    });
+
+    const baseDraft = {
+      thesis: "資料から作成した仮説",
+      thesisSegments: [{ text: "資料から作成した仮説", sourceRefs: ["S2"] }],
+      growthDefinition: "受注残が増加すること。",
+      growthIndicators: ["受注残"],
+      nearTermFactors: ["決算"],
+      invalidationConditions: ["受注残が減少する"],
+      breakers: [
+        { description: "1", newsKeywords: [], sourceRefs: ["S2"] },
+        { description: "2", newsKeywords: [], sourceRefs: ["S2"] },
+        { description: "3", newsKeywords: [], sourceRefs: ["S2"] },
+        { description: "4", newsKeywords: [], sourceRefs: ["S2"] },
+      ],
+    };
+
+    vi.mocked(callAi).mockResolvedValue({
+      ok: true,
+      data: {
+        ...baseDraft,
+        evidence: [{ sourceRef: "S2", quote: "成長方針", reason: "見出し" }],
+      },
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      model: "mock",
+      estimatedCostUsd: 0,
+    });
+    await expect(
+      generateThesisDraft({ userId: "user-a", sessionId: "session-a" }),
+    ).rejects.toMatchObject({ code: "AI_OUTPUT_INVALID", status: 422 });
+
+    vi.mocked(callAi).mockResolvedValue({
+      ok: true,
+      data: {
+        ...baseDraft,
+        evidence: [
+          {
+            sourceRef: "S2",
+            quote: "本文の説明として受注残が増加しています。",
+            reason: "本文",
+          },
+        ],
+      },
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      model: "mock",
+      estimatedCostUsd: 0,
+    });
+
+    const result = await generateThesisDraft({
+      userId: "user-a",
+      sessionId: "session-a",
+    });
+    expect(result.evidence).toEqual([
+      {
+        sourceRef: "S2",
+        quote: "本文の説明として受注残が増加しています。",
+        reason: "本文",
+      },
+    ]);
   });
 
   it("stops before the AI call when the monthly cost limit is exceeded", async () => {

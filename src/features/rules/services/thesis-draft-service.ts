@@ -26,6 +26,7 @@ import {
 } from "@/features/rules/constants/question-catalog";
 import {
   buildThesisDraftPrompt,
+  THESIS_DRAFT_PROMPT_VERSION,
   THESIS_DRAFT_SYSTEM_PROMPT,
 } from "@/features/rules/prompts/thesis-draft-prompt";
 import {
@@ -115,6 +116,7 @@ export async function generateThesisDraft(params: {
     ticker: session.ticker,
     companyName: session.company_name,
     sourceVersion,
+    promptVersion: THESIS_DRAFT_PROMPT_VERSION,
     answers: answerInput,
   });
   const cachedRun = await getCachedThesisResearchRun({
@@ -236,7 +238,7 @@ export async function generateThesisDraft(params: {
         }),
         outputSchema: ThesisDraftOutputSchema,
         schemaName: "ThesisDraft",
-        promptVersion: "thesis-draft-v1",
+        promptVersion: THESIS_DRAFT_PROMPT_VERSION,
         userId: params.userId,
         sourceType: "rule_session",
         sourceId: params.sessionId,
@@ -340,7 +342,7 @@ export async function generateThesisDraft(params: {
     },
     provider: result.provider,
     model: result.model,
-    promptVersion: "thesis-draft-v1",
+    promptVersion: THESIS_DRAFT_PROMPT_VERSION,
     schemaValid: true,
     safetyPassed: safety.passed,
     compliancePassed: compliance.passed,
@@ -501,12 +503,20 @@ function verifyDraftEvidence(params: {
   draft: ThesisDraftOutput;
   sources: Array<{ source: ThesisResearchSource; content: string }>;
 }) {
+  const MIN_EVIDENCE_QUOTE_CHARS = 15;
   const sourceByRef = new Map(
     params.sources.map((item) => [item.source.ref, item]),
   );
   const verifiedEvidence = params.draft.evidence.filter((evidence) => {
     const source = sourceByRef.get(evidence.sourceRef);
-    return Boolean(source && containsNormalized(source.content, evidence.quote));
+    if (!source) return false;
+    const normalizedQuote = normalizeText(evidence.quote);
+    if (normalizedQuote.length < MIN_EVIDENCE_QUOTE_CHARS) return false;
+    if (containsNormalized(source.source.title, evidence.quote)) return false;
+    return containsNormalized(
+      stripMarkdownHeadingLines(source.content),
+      evidence.quote,
+    );
   });
   if (verifiedEvidence.length === 0) {
     throw new AppError(
@@ -563,6 +573,13 @@ function containsNormalized(content: string, quote: string) {
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function stripMarkdownHeadingLines(value: string) {
+  return value
+    .split("\n")
+    .filter((line) => !/^\s*#{1,6}\s/.test(line))
+    .join("\n");
 }
 
 function readResearchErrors(value: unknown) {

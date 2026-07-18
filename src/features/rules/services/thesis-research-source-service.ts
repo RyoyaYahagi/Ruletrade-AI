@@ -3,6 +3,7 @@ import "server-only";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { ThesisResearchSourceInputSchema } from "@/schemas/rules/thesis-research-schema";
+import { convertHtmlToMarkdown } from "@/lib/html/html-to-markdown";
 import {
   assertPublicHttpsUrl,
 } from "@/features/rules/services/thesis-research-url-service";
@@ -18,6 +19,7 @@ import type {
 } from "@/schemas/rules/thesis-research-schema";
 
 const FETCH_TIMEOUT_MS = 12_000;
+const MAX_FETCHED_HTML_CHARS = 300_000;
 const MAX_FETCHED_TEXT_CHARS = 40_000;
 const MAX_SOURCE_EXCERPT_CHARS = 1_500;
 type LooseRow = Record<string, unknown>;
@@ -418,25 +420,17 @@ async function fetchPublicSource(url: string) {
   if (!contentType.includes("text/html") && !contentType.includes("text/plain")) {
     throw new Error("HTMLまたはテキスト形式ではありません");
   }
-  const raw = (await response.text()).slice(0, MAX_FETCHED_TEXT_CHARS);
-  const content = stripHtml(raw).replace(/\s+/g, " ").trim();
+  const raw = await response.text();
+  const content = contentType.includes("text/html")
+    ? convertHtmlToMarkdown({
+        html: raw.slice(0, MAX_FETCHED_HTML_CHARS),
+        url,
+      }).markdown.slice(0, MAX_FETCHED_TEXT_CHARS).trim()
+    : raw.slice(0, MAX_FETCHED_TEXT_CHARS).trim();
   if (content.length < 30) throw new Error("本文を抽出できませんでした");
   return {
     content,
     excerpt: content.slice(0, MAX_SOURCE_EXCERPT_CHARS),
     highlightText: chooseHighlightText(content),
   };
-}
-
-function stripHtml(value: string) {
-  return value
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'");
 }

@@ -7,6 +7,7 @@ import { QuestionFeedbackPanel } from "@/features/rules/components/question-feed
 import { getThesisDraftStreamErrorNotice } from "@/features/rules/services/thesis-draft-error-message";
 import {
   ThesisDraftResearchPanel,
+  type ResearchEvidence,
   type ThesisResearch,
   type ThesisSegment,
 } from "@/features/rules/components/thesis-draft-research-panel";
@@ -14,7 +15,7 @@ import {
 type ThesisDraftCompleted = {
   thesisDraft?: unknown;
   thesisSegments?: ThesisSegment[];
-  evidence?: Array<{ sourceRef: string; quote: string; reason: string }>;
+  evidence?: ResearchEvidence[];
   research?: ThesisResearch | null;
   fallbackUsed?: boolean;
   notice?: string;
@@ -78,6 +79,7 @@ export function QuestionCard({
   const [draftResearch, setDraftResearch] = useState<ThesisResearch | null>(null);
   const [draftTraceId, setDraftTraceId] = useState<string | null>(null);
   const [draftSegments, setDraftSegments] = useState<ThesisSegment[]>([]);
+  const [draftEvidence, setDraftEvidence] = useState<ResearchEvidence[]>([]);
   const [draftRetryKey, setDraftRetryKey] = useState(0);
   const [showUnknownDefault, setShowUnknownDefault] = useState(false);
   const startedEventSent = useRef(false);
@@ -114,6 +116,7 @@ export function QuestionCard({
       setDraftNotice(null);
       setDraftPhase(null);
       setDraftTraceId(null);
+      setDraftEvidence([]);
       const requestKey = `${sessionId}:${question.id}:${question.question_key}`;
       activeRequest = getOrCreateThesisDraftRequest(requestKey, sessionId);
       phaseListener = (label) => {
@@ -129,6 +132,7 @@ export function QuestionCard({
           setAnswerJson({ text: draft });
         }
         setDraftSegments(completed.thesisSegments ?? []);
+        setDraftEvidence(completed.evidence ?? []);
         setDraftResearch(completed.research ?? null);
         setDraftTraceId(completed.traceId ?? null);
         if (completed.notice) {
@@ -277,6 +281,7 @@ export function QuestionCard({
         <ThesisDraftResearchPanel
           sessionId={sessionId}
           segments={draftSegments}
+          evidence={draftEvidence}
           research={draftResearch}
           onSourceAdded={() => setDraftRetryKey((key) => key + 1)}
         />

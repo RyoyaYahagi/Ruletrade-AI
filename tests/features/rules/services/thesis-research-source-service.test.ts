@@ -65,7 +65,23 @@ describe("thesis research source service", () => {
 
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
-        "<html><body>A社の主力事業は受注と売上の拡大を目指しています。設備稼働も確認します。</body></html>",
+        `
+          <html>
+            <head><title>A社 IR</title></head>
+            <body>
+              <header>ヘッダーの一般案内</header>
+              <nav>トップページ / 会社情報</nav>
+              <article>
+                <h1>決算説明資料</h1>
+                <p>A社の主力事業は受注と売上の拡大を目指しています。</p>
+                <h2>今後の確認事項</h2>
+                <p>設備稼働も確認します。</p>
+              </article>
+              <script>window.unwanted = true;</script>
+              <footer>フッターの一般案内</footer>
+            </body>
+          </html>
+        `,
         { headers: { "content-type": "text/html" } },
       ),
     );
@@ -85,6 +101,13 @@ describe("thesis research source service", () => {
       publishedAt: "2026-07-10",
       verified: false,
     });
+    expect(result.sources[0].content).toContain(
+      "A社の主力事業は受注と売上の拡大を目指しています。",
+    );
+    expect(result.sources[0].content).toContain("## 今後の確認事項");
+    expect(result.sources[0].content).not.toContain("トップページ");
+    expect(result.sources[0].content).not.toContain("window.unwanted");
+    expect(result.sources[0].content).not.toContain("フッターの一般案内");
     expect(fetchMock).toHaveBeenCalledWith(
       "https://example.com/ir",
       expect.objectContaining({ redirect: "error" }),
