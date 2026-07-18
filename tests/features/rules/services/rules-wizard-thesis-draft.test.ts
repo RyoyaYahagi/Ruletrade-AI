@@ -71,11 +71,25 @@ describe("generateThesisDraft", () => {
     vi.mocked(callAi).mockResolvedValue({
       ok: false,
       error: "invalid structured output",
+      code: "AI_OUTPUT_SCHEMA_INVALID",
     });
 
     await expect(
       generateThesisDraft({ userId: "user-a", sessionId: "session-a" }),
     ).rejects.toMatchObject({ code: "AI_OUTPUT_INVALID", status: 422 });
+  });
+
+  it("returns a timeout error separately from invalid structured output", async () => {
+    vi.mocked(callAi).mockResolvedValue({
+      ok: false,
+      error: "AI provider call failed: AI_PROVIDER_TIMEOUT: timed out",
+      code: "AI_PROVIDER_TIMEOUT",
+      retryable: true,
+    });
+
+    await expect(
+      generateThesisDraft({ userId: "user-a", sessionId: "session-a" }),
+    ).rejects.toMatchObject({ code: "AI_PROVIDER_TIMEOUT", status: 504 });
   });
 
   it("stores AI breaker candidates on the next question", async () => {

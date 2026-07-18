@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnswerInput } from "@/features/rules/components/answer-input";
 import { KnowledgeArticleLinks } from "@/features/knowledge/components/knowledge-article-links";
 import { QuestionFeedbackPanel } from "@/features/rules/components/question-feedback-panel";
+import { getThesisDraftStreamErrorNotice } from "@/features/rules/services/thesis-draft-error-message";
 import {
   ThesisDraftResearchPanel,
   type ThesisResearch,
@@ -89,6 +90,7 @@ export function QuestionCard({
       setDraftNotice(null);
       setDraftPhase(null);
       setDraftTraceId(null);
+      let streamErrorNotice: string | null = null;
       try {
         const response = await fetch(
           `/api/rule-sessions/${encodeURIComponent(sessionId)}/thesis-draft`,
@@ -117,6 +119,9 @@ export function QuestionCard({
             } else if (event.event === "completed") {
               completed = event.data;
             } else if (event.event === "error") {
+              streamErrorNotice = getThesisDraftStreamErrorNotice(
+                event.data.code,
+              );
               throw new Error(event.data.message ?? "draft request failed");
             }
           }
@@ -141,7 +146,10 @@ export function QuestionCard({
         }
       } catch {
         if (!cancelled) {
-          setDraftNotice("企業調査付きの下書きを取得できませんでした。調査ソースを確認して自分の言葉で入力してください。");
+          setDraftNotice(
+            streamErrorNotice ??
+              "企業調査付きの下書きを取得できませんでした。調査ソースを確認して自分の言葉で入力してください。",
+          );
         }
       } finally {
         if (!cancelled) setIsGeneratingDraft(false);

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { callAi } from "@/lib/ai/provider-gateway";
+import type { AIProviderErrorCode } from "@/lib/ai/ai-provider-error";
 import { AppError } from "@/lib/errors/app-error";
 import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
 import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
@@ -224,13 +225,7 @@ export async function generateThesisDraft(params: {
   });
 
   if (!result.ok) {
-    throw new AppError(
-      "AI_OUTPUT_INVALID",
-      "仮説の下書きを構造化できませんでした。",
-      422,
-      { providerError: result.error },
-      true,
-    );
+    throw createThesisDraftProviderError(result);
   }
 
   const parsedDraft = ThesisDraftOutputSchema.safeParse(result.data);
@@ -341,6 +336,44 @@ export async function generateThesisDraft(params: {
     draft: verifiedDraft,
     traceId: trace.traceId,
   });
+}
+
+function createThesisDraftProviderError(result: {
+  ok: false;
+  error: string;
+  code?: AIProviderErrorCode;
+  retryable?: boolean;
+}) {
+  if (result.code === "AI_PROVIDER_TIMEOUT") {
+    return new AppError(
+      "AI_PROVIDER_TIMEOUT",
+      "AI下書きの生成がタイムアウトしました。しばらく待ってから再試行してください。",
+      504,
+      { providerError: result.error, providerCode: result.code },
+      true,
+    );
+  }
+
+  if (
+    result.code === "AI_OUTPUT_PARSE_FAILED" ||
+    result.code === "AI_OUTPUT_SCHEMA_INVALID"
+  ) {
+    return new AppError(
+      "AI_OUTPUT_INVALID",
+      "AIが必要な構造化形式で返答しなかったため、下書きを作成できませんでした。",
+      422,
+      { providerError: result.error, providerCode: result.code },
+      result.retryable ?? true,
+    );
+  }
+
+  return new AppError(
+    "AI_PROVIDER_ERROR",
+    "AI下書きの生成に失敗しました。しばらく待ってから再試行してください。",
+    503,
+    { providerError: result.error, providerCode: result.code },
+    result.retryable ?? true,
+  );
 }
 
 export async function applyFallbackBreakerCandidates(params: {

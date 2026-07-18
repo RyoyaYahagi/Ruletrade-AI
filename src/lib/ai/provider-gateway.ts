@@ -1,7 +1,10 @@
 import "server-only";
 
 import { z } from "zod";
-import { AIProviderError } from "@/lib/ai/ai-provider-error";
+import {
+  AIProviderError,
+  type AIProviderErrorCode,
+} from "@/lib/ai/ai-provider-error";
 import {
   resolveAIModelConfig,
   getConfiguredAIProvider,
@@ -85,6 +88,8 @@ export type AiCallResult<T> =
   | {
       ok: false;
       error: string;
+      code?: AIProviderErrorCode;
+      retryable?: boolean;
       provider?: string;
       usage?: AiUsage;
       model?: string;
@@ -226,16 +231,18 @@ async function callAiWithLogging<TOutput>(
       estimatedCostUsd: result.estimatedCostUsd,
     };
   } catch (error) {
-    const message =
-      error instanceof AIProviderError
-        ? `${error.code}: ${error.message}`
-        : error instanceof Error
-          ? error.message
-          : String(error);
+    const providerError = error instanceof AIProviderError ? error : undefined;
+    const message = providerError
+      ? `${providerError.code}: ${providerError.message}`
+      : error instanceof Error
+        ? error.message
+        : String(error);
 
     return {
       ok: false,
       error: `AI provider call failed: ${message}`,
+      code: providerError?.code ?? "AI_UNKNOWN_ERROR",
+      retryable: providerError?.retryable ?? false,
       provider: options.provider,
       model: options.model ?? defaultModelByWeight[options.weight],
     };
@@ -307,10 +314,14 @@ async function callAiWithoutLogging<TOutput>(
       : lastError instanceof Error
         ? lastError.message
         : String(lastError);
+  const providerError =
+    lastError instanceof AIProviderError ? lastError : undefined;
 
   return {
     ok: false,
     error: `AI provider call failed: ${message}`,
+    code: providerError?.code ?? "AI_UNKNOWN_ERROR",
+    retryable: providerError?.retryable ?? false,
     provider: options.provider ?? resolvedConfig?.provider,
     model:
       options.model ??

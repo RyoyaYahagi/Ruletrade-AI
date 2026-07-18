@@ -80,7 +80,7 @@ function createDraftStream(params: {
               breakerCandidates,
               research: null,
               fallbackUsed: true,
-              notice: "AI下書きの出典を検証できなかったため、仮説欄は空欄にしています。",
+              notice: error.message,
             });
           } else {
             send("error", {
