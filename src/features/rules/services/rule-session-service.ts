@@ -179,12 +179,13 @@ export async function deleteRuleSession(params: {
       );
 
       deleteByNotificationIds(sqlite, tables, params.userId, notificationIds);
-      deleteBySessionId(
+      deleteByIds(
         sqlite,
         tables,
         "rule_quality_checks",
         params.userId,
-        params.sessionId,
+        "review_id",
+        reviewIds,
       );
       deleteBySessionId(
         sqlite,
@@ -379,6 +380,23 @@ function deleteBySessionId(
     .run(userId, sessionId);
 }
 
+function deleteByIds(
+  sqlite: ReturnType<typeof getSqliteDatabase>,
+  tables: Set<string>,
+  table: string,
+  userId: string,
+  column: string,
+  ids: string[],
+) {
+  if (!tables.has(table) || ids.length === 0) return;
+  const placeholders = ids.map(() => "?").join(", ");
+  sqlite
+    .prepare(
+      `delete from "${table}" where user_id = ? and "${column}" in (${placeholders})`,
+    )
+    .run(userId, ...ids);
+}
+
 function deleteById(
   sqlite: ReturnType<typeof getSqliteDatabase>,
   tables: Set<string>,
@@ -458,7 +476,12 @@ function clearPortfolioPositionRuleSession(
   userId: string,
   sessionId: string,
 ) {
-  if (!tables.has("portfolio_positions")) return;
+  if (
+    !tables.has("portfolio_positions") ||
+    !hasTableColumn(sqlite, "portfolio_positions", "rule_session_id")
+  ) {
+    return;
+  }
 
   sqlite
     .prepare(

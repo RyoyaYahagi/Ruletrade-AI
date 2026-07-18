@@ -14,7 +14,7 @@ test("ルール詳細画面から銘柄別ルールを削除できる", async ({
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "ルールを削除" }).click();
 
-  await expect(page).toHaveURL(/.*dashboard/);
-  await expect(page.getByTestId("dashboard-workbench")).toBeVisible();
+  await expect(page).toHaveURL(/.*rules$/);
+  await expect(page.getByTestId("rules-page")).toBeVisible();
   await expect(page.getByText("削除テスト銘柄 (6758)")).not.toBeVisible();
 });

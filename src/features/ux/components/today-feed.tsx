@@ -51,7 +51,7 @@ export function TodayFeed() {
     <main className="mx-auto min-h-screen w-full max-w-5xl px-5 py-8 sm:px-8" data-testid="today-page">
       <nav className="flex flex-wrap gap-3 text-sm text-muted-foreground" aria-label="メインナビゲーション">
         <Link href="/today" className="font-medium text-foreground">Today</Link>
-        <Link href="/dashboard" className="underline-offset-4 hover:underline">ダッシュボード</Link>
+        <Link href="/rules" className="underline-offset-4 hover:underline">ルール体系</Link>
         <Link href="/portfolio" className="underline-offset-4 hover:underline">ポートフォリオ</Link>
         <Link href="/notifications" className="underline-offset-4 hover:underline">通知</Link>
       </nav>

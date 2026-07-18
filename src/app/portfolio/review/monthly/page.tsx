@@ -36,7 +36,7 @@ export default async function MonthlyReviewPage({
     <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8" data-testid="monthly-review-page">
       <nav className="flex flex-wrap gap-3 text-sm text-muted-foreground" aria-label="メインナビゲーション">
         <Link href="/today" className="underline-offset-4 hover:underline">Today</Link>
-        <Link href="/dashboard" className="underline-offset-4 hover:underline">ダッシュボード</Link>
+        <Link href="/rules" className="underline-offset-4 hover:underline">ルール体系</Link>
         <Link href="/portfolio" className="underline-offset-4 hover:underline">ポートフォリオ</Link>
       </nav>
 

@@ -32,7 +32,7 @@ export function DeleteRuleButton({ sessionId }: { sessionId: string }) {
         setErrorMessage(json.error?.message ?? "ルールの削除に失敗しました。");
         return;
       }
-      router.push("/dashboard");
+      router.push("/rules");
       router.refresh();
     } catch {
       setErrorMessage("通信に失敗しました。もう一度お試しください。");
