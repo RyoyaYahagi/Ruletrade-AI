@@ -117,6 +117,14 @@ export async function generateUserDataExport(params: {
       .limit(1000);
     result.ai_logs = logs ?? [];
 
+    const { data: experiments } = await db
+      .from("ai_experiment_notes")
+      .select("*")
+      .eq("user_id", params.userId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    result.ai_experiment_notes = experiments ?? [];
+
     const { data: ruleTraces } = await db
       .from("rule_ai_trace_records")
       .select(

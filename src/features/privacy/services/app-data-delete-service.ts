@@ -42,6 +42,7 @@ export async function deleteUserAppData(params: { userId: string }) {
     "rule_versions",
     "rule_design_sessions",
     "api_error_logs",
+    "ai_experiment_notes",
     "ai_run_logs",
     "investor_profiles",
   ];

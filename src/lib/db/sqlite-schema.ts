@@ -392,6 +392,23 @@ const schemaStatements = [
     created_at text not null default (datetime('now')),
     updated_at text not null default (datetime('now'))
   )`,
+  `create table if not exists ai_experiment_notes (
+    id text primary key,
+    user_id text not null,
+    title text not null,
+    hypothesis text not null,
+    change_summary text not null,
+    result text not null default '',
+    blocked_on text not null default '',
+    next_step text not null default '',
+    status text not null default 'in_progress',
+    prompt_version text,
+    provider text,
+    model text,
+    tags_json text not null default '[]',
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now'))
+  )`,
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
@@ -420,6 +437,7 @@ const schemaStatements = [
   `create index if not exists idx_knowledge_articles_active on knowledge_articles(is_active, updated_at desc)`,
   `create index if not exists idx_api_access_tokens_user on api_access_tokens(user_id, created_at desc)`,
   `create index if not exists idx_api_tool_audit_logs_token on api_tool_audit_logs(token_id, created_at desc)`,
+  `create index if not exists idx_ai_experiment_notes_user_created on ai_experiment_notes(user_id, created_at desc)`,
 ];
 
 export function initializeSqliteSchema(db: Database.Database) {
