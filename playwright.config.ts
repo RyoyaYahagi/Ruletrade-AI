@@ -8,13 +8,19 @@ dotenv.config({
   override: true,
 });
 
-const e2ePort = process.env.E2E_TEST_PORT ?? "3100";
-const e2eBaseUrl =
-  process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${e2ePort}`;
+const isCi = Boolean(process.env.CI);
+const e2ePort = isCi
+  ? process.env.E2E_TEST_PORT ?? "3100"
+  : process.env.E2E_LOCAL_PORT ?? "3000";
+// Some sandboxed runners reject binding the E2E server to all interfaces.
+const e2eServerHost = "127.0.0.1";
+const e2eBaseUrl = isCi
+  ? process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${e2ePort}`
+  : process.env.E2E_LOCAL_BASE_URL ?? `http://${e2eServerHost}:${e2ePort}`;
 const e2eDistDir = process.env.NEXT_DIST_DIR ?? ".next-e2e";
 const e2eServerCommand = `NEXT_DIST_DIR=${e2eDistDir} PORT=${e2ePort} ${
   process.env.CI ? "npm start" : "npm run dev"
-}`;
+} -- --hostname ${e2eServerHost}`;
 
 export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
