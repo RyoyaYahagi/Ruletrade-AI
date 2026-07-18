@@ -135,6 +135,21 @@ const schemaStatements = [
     answer_json text not null default '{}',
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists rule_question_feedback (
+    id text primary key,
+    user_id text not null,
+    session_id text not null,
+    question_id text not null,
+    question_key text not null,
+    question_quality text,
+    choice_quality text,
+    draft_effort text,
+    reason text,
+    draft_run_id text,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now')),
+    unique (user_id, question_id)
+  )`,
   `create table if not exists thesis_research_sources (
     id text primary key,
     user_id text not null,
@@ -328,6 +343,7 @@ const schemaStatements = [
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
+  `create index if not exists idx_rule_question_feedback_user_session on rule_question_feedback(user_id, session_id, created_at desc)`,
   `create index if not exists idx_thesis_research_sources_user_ticker on thesis_research_sources(user_id, ticker, market, active)`,
   `create index if not exists idx_thesis_research_runs_user_session on thesis_research_runs(user_id, session_id, created_at desc)`,
   `create index if not exists idx_rule_reviews_session_created on rule_reviews(session_id, created_at desc)`,

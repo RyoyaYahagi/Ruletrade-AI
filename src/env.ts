@@ -35,6 +35,8 @@ const EnvSchema = z.object({
   PRICE_PROVIDER: z.enum(["mock", "stooq"]).default("mock"),
   FINANCIALS_PROVIDER: z.enum(["mock", "edinet"]).default("mock"),
   EDINET_API_KEY: z.string().optional(),
+  THESIS_SEARCH_API_URL: z.string().url().optional(),
+  THESIS_SEARCH_API_KEY: z.string().optional(),
 
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   GEMINI_EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
@@ -104,6 +106,8 @@ export const env = EnvSchema.parse({
   PRICE_PROVIDER: process.env.PRICE_PROVIDER,
   FINANCIALS_PROVIDER: process.env.FINANCIALS_PROVIDER,
   EDINET_API_KEY: process.env.EDINET_API_KEY,
+  THESIS_SEARCH_API_URL: process.env.THESIS_SEARCH_API_URL,
+  THESIS_SEARCH_API_KEY: process.env.THESIS_SEARCH_API_KEY,
 
   OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
   GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL,

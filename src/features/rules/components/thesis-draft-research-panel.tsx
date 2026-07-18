@@ -21,6 +21,7 @@ export type ThesisSegment = {
 };
 
 export type ThesisResearch = {
+  runId: string;
   status: "completed" | "partial";
   sources: ResearchSource[];
   growthDefinition: string;

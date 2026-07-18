@@ -4,6 +4,7 @@ export const ThesisResearchSourceTypeSchema = z.enum([
   "company_ir",
   "primary",
   "news",
+  "search",
   "user_document",
   "financial_statement",
 ]);

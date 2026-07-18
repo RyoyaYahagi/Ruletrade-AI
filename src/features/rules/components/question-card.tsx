@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnswerInput } from "@/features/rules/components/answer-input";
 import { KnowledgeArticleLinks } from "@/features/knowledge/components/knowledge-article-links";
+import { QuestionFeedbackPanel } from "@/features/rules/components/question-feedback-panel";
 import {
   ThesisDraftResearchPanel,
   type ThesisResearch,
@@ -313,6 +314,13 @@ export function QuestionCard({
           {errorMessage}
         </p>
       ) : null}
+
+      <QuestionFeedbackPanel
+        sessionId={sessionId}
+        questionId={question.id}
+        questionKey={question.question_key}
+        draftRunId={draftResearch?.runId ?? null}
+      />
 
       <button
         type="submit"

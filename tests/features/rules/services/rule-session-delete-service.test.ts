@@ -81,6 +81,16 @@ describe("deleteRuleSession", () => {
       question_key: "time_horizon",
       answer_json: { value: "long_term" },
     });
+    await db.from("rule_question_feedback").insert({
+      id: "feedback-a",
+      user_id: "user-a",
+      session_id: "session-a",
+      question_id: "question-a",
+      question_key: "time_horizon",
+      question_quality: "good",
+      choice_quality: "good",
+      reason: "質問が答えやすかった",
+    });
     await db.from("rule_reviews").insert({
       id: "review-a",
       user_id: "user-a",
@@ -163,6 +173,7 @@ describe("deleteRuleSession", () => {
 
     await expectRows("rule_questions", "session-a", 0);
     await expectRows("rule_answers", "session-a", 0);
+    await expectRows("rule_question_feedback", "session-a", 0);
     await expectRows("rule_reviews", "session-a", 0);
     await expectRows("rule_quality_checks", "session-a", 0);
     await expectRows("rule_alert_events", "session-a", 0);

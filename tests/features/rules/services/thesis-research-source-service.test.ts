@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("thesis research source service", () => {
   const originalDatabasePath = process.env.SQLITE_DATABASE_PATH;
+  const originalSearchApiKey = process.env.THESIS_SEARCH_API_KEY;
+  const originalSearchApiUrl = process.env.THESIS_SEARCH_API_URL;
   let tempDir: string;
   let service: typeof import("@/features/rules/services/thesis-research-source-service");
   let db: import("@/lib/db/sqlite-client").SqliteDatabaseClient;
@@ -22,6 +24,8 @@ describe("thesis research source service", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     process.env.SQLITE_DATABASE_PATH = originalDatabasePath;
+    process.env.THESIS_SEARCH_API_KEY = originalSearchApiKey;
+    process.env.THESIS_SEARCH_API_URL = originalSearchApiUrl;
     fs.rmSync(tempDir, { recursive: true, force: true });
     vi.resetModules();
   });
@@ -183,5 +187,50 @@ describe("thesis research source service", () => {
 
     expect(result.sources).toEqual([]);
     expect(result.errors).toEqual(["取得不能資料: network error"]);
+  });
+
+  it("既存ソースがない場合だけ、設定済み検索APIの結果を調査ソースにする", async () => {
+    process.env.THESIS_SEARCH_API_KEY = "test-search-key";
+    process.env.THESIS_SEARCH_API_URL = "https://search.example.test/search";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            results: [
+              {
+                title: "A社の事業成長",
+                url: "https://example.com/research/a",
+                content: "受注残と顧客数の増加が事業成長の確認材料になる。",
+                published_date: "2026-07-17",
+              },
+              {
+                title: "内部URL",
+                url: "https://127.0.0.1/private",
+                content: "表示してはいけない内容",
+              },
+            ],
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    const result = await service.collectThesisResearchSources({
+      userId: "user-a",
+      ticker: "7203",
+      companyName: "A社",
+      market: "JP",
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources[0].source).toMatchObject({
+      ref: "S1",
+      sourceType: "search",
+      title: "A社の事業成長",
+      publishedAt: "2026-07-17",
+      verified: false,
+    });
   });
 });

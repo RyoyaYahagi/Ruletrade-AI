@@ -3,6 +3,14 @@ import "server-only";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { ThesisResearchSourceInputSchema } from "@/schemas/rules/thesis-research-schema";
+import {
+  assertPublicHttpsUrl,
+} from "@/features/rules/services/thesis-research-url-service";
+export { assertPublicHttpsUrl };
+import {
+  getThesisSearchSourceVersion,
+  searchThesisResearchSources,
+} from "@/features/rules/services/thesis-research-search-service";
 import type {
   ThesisResearchSource,
   ThesisResearchSourceInput,
@@ -160,13 +168,14 @@ export async function getThesisResearchSourceVersion(params: {
   ]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .sort((left, right) => Date.parse(right) - Date.parse(left));
-  return timestamps[0] ?? "none";
+  return `${timestamps[0] ?? "none"}|search:${getThesisSearchSourceVersion()}`;
 }
 
 export async function collectThesisResearchSources(params: {
   userId: string;
   ticker: string;
   market?: string;
+  companyName?: string | null;
 }) {
   const db = await createDatabaseClient();
   const market = params.market ?? "JP";
@@ -312,6 +321,15 @@ export async function collectThesisResearchSources(params: {
     });
   }
 
+  if (sources.length === 0 && errors.length === 0) {
+    const searchCollection = await searchThesisResearchSources({
+      ticker: params.ticker,
+      companyName: params.companyName,
+    });
+    sources.push(...searchCollection.sources);
+    errors.push(...searchCollection.errors);
+  }
+
   return { sources: assignSourceRefs(dedupeSources(sources)), errors };
 }
 
@@ -408,39 +426,6 @@ async function fetchPublicSource(url: string) {
     excerpt: content.slice(0, MAX_SOURCE_EXCERPT_CHARS),
     highlightText: chooseHighlightText(content),
   };
-}
-
-export function assertPublicHttpsUrl(value: string) {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new AppError("VALIDATION_ERROR", "有効なURLを指定してください。", 400);
-  }
-  const hostname = url.hostname.toLowerCase();
-  if (
-    url.protocol !== "https:" ||
-    url.username ||
-    url.password ||
-    hostname === "localhost" ||
-    hostname.endsWith(".local") ||
-    isPrivateIpLiteral(hostname)
-  ) {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      "公開HTTPS URLのみ調査ソースに登録できます。",
-      400,
-    );
-  }
-}
-
-function isPrivateIpLiteral(hostname: string) {
-  if (hostname === "::1" || hostname === "[::1]") return true;
-  if (/^127\./.test(hostname) || /^10\./.test(hostname) || /^192\.168\./.test(hostname)) {
-    return true;
-  }
-  const private172 = /^172\.(\d{1,3})\./.exec(hostname);
-  return Boolean(private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31);
 }
 
 function stripHtml(value: string) {

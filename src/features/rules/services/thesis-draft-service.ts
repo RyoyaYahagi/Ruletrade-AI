@@ -145,6 +145,7 @@ export async function generateThesisDraft(params: {
     userId: params.userId,
     ticker: session.ticker,
     market: session.market ?? "JP",
+    companyName: session.company_name,
   });
   params.onPhase?.("researching_news");
   if (collection.sources.length === 0) {

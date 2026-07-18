@@ -71,6 +71,12 @@ export async function generateUserDataExport(params: {
     .eq("user_id", params.userId);
   result.rule_design_sessions = sessions ?? [];
 
+  const { data: questionFeedback } = await db
+    .from("rule_question_feedback")
+    .select("*")
+    .eq("user_id", params.userId);
+  result.rule_question_feedback = questionFeedback ?? [];
+
   const { data: portfolios } = await db
     .from("portfolios")
     .select("*")

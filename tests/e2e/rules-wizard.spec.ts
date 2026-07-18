@@ -3,6 +3,27 @@ import { expect, test } from "@playwright/test";
 test("新規セッションを10問のルール質問で完了直前まで進められる", async ({
   page,
 }) => {
+  let submittedFeedback: Record<string, unknown> | null = null;
+  await page.route("**/api/rule-sessions/*/question-feedback**", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, data: { feedback: null } }),
+      });
+      return;
+    }
+    submittedFeedback = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: { feedback: { ...submittedFeedback, id: "feedback-e2e" } },
+      }),
+    });
+  });
+
   await page.route("**/api/rule-sessions/*/thesis-draft", async (route) => {
     const body = [
       `event: phase\ndata: ${JSON.stringify({ phase: "researching_company", label: "企業情報を確認中" })}\n\n`,
@@ -64,7 +85,8 @@ test("新規セッションを10問のルール質問で完了直前まで進め
     const questionText = await questionHeading.innerText();
 
     if (questionText.includes("投資仮説")) {
-      await expect(page.locator("form textarea")).toHaveValue(/主力事業の受注/);
+      const answerTextarea = page.getByPlaceholder("必要なら補足を書いてください");
+      await expect(answerTextarea).toHaveValue(/主力事業の受注/);
       await expect(page.getByRole("heading", { name: "企業調査に基づく仮説" })).toBeVisible();
       await expect(page.getByText("主力事業は受注と売上の拡大を目指す").first()).toBeVisible();
       await expect(page.getByRole("link", { name: "S1の出典へ移動" })).toBeVisible();
@@ -75,7 +97,22 @@ test("新規セッションを10問のルール質問で完了直前まで進め
         "href",
         /#:~:text=/,
       );
-      await page.locator("form textarea").fill("私は事業の成長を観測する。");
+      await page.getByRole("button", { name: "👍 良い質問" }).click();
+      await page.getByRole("button", { name: "👍 良い選択肢" }).click();
+      await page.getByRole("button", { name: "減った" }).click();
+      await page
+        .getByPlaceholder("例: この順番だと考えやすかった／選択肢に○○がほしい")
+        .fill("企業調査付きで考える手間が減った。");
+      await page.getByRole("button", { name: "フィードバックを送信" }).click();
+      await expect(page.getByText("フィードバックを保存しました。")).toBeVisible();
+      expect(submittedFeedback).toMatchObject({
+        questionQuality: "good",
+        choiceQuality: "good",
+        draftEffort: "reduced",
+        reason: "企業調査付きで考える手間が減った。",
+        draftRunId: "run-e2e",
+      });
+      await answerTextarea.fill("私は事業の成長を観測する。");
       await page.getByRole("button", { name: "回答を保存" }).click();
     } else {
       await page.getByRole("button", { name: "まだ決めていない" }).click();
