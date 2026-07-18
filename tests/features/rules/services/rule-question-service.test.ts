@@ -5,6 +5,9 @@ import { skipRuleQuestion } from "@/features/rules/services/rule-question-servic
 vi.mock("@/lib/db/database-client", () => ({
   createDatabaseClient: vi.fn(),
 }));
+vi.mock("@/features/rules/services/rule-analytics-service", () => ({
+  trackRuleFunnelEvent: vi.fn().mockResolvedValue({ duplicate: false }),
+}));
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 

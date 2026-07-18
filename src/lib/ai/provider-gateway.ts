@@ -77,6 +77,7 @@ export type AiCallResult<T> =
       ok: true;
       data: T;
       usage: AiUsage;
+      provider: string;
       model: string;
       aiRunLogId?: string;
       estimatedCostUsd?: number;
@@ -84,6 +85,7 @@ export type AiCallResult<T> =
   | {
       ok: false;
       error: string;
+      provider?: string;
       usage?: AiUsage;
       model?: string;
       aiRunLogId?: string;
@@ -218,6 +220,7 @@ async function callAiWithLogging<TOutput>(
         totalTokens:
           (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
       },
+      provider: result.meta.provider,
       model: result.meta.model,
       aiRunLogId: result.aiRunLogId,
       estimatedCostUsd: result.estimatedCostUsd,
@@ -233,6 +236,7 @@ async function callAiWithLogging<TOutput>(
     return {
       ok: false,
       error: `AI provider call failed: ${message}`,
+      provider: options.provider,
       model: options.model ?? defaultModelByWeight[options.weight],
     };
   }
@@ -288,6 +292,7 @@ async function callAiWithoutLogging<TOutput>(
           completionTokens: result.usage.outputTokens ?? 0,
           totalTokens: result.usage.totalTokens ?? 0,
         },
+        provider: candidate,
         model: result.meta.model || modelName,
       };
     } catch (error) {
@@ -306,6 +311,7 @@ async function callAiWithoutLogging<TOutput>(
   return {
     ok: false,
     error: `AI provider call failed: ${message}`,
+    provider: options.provider ?? resolvedConfig?.provider,
     model:
       options.model ??
       resolvedConfig?.model ??

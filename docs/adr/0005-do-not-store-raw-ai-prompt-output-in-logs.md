@@ -16,6 +16,11 @@ Prompt / Outputには投資メモ・Document由来のprivate dataが含まれる
 
 本番ではraw prompt/output本文を原則保存しない。
 
+ただし、ルール作成フローの改善分析に限り、既存のユーザー設定
+`ai_payload_logging_enabled` がONの場合、運用ログとは分離した
+`rule_ai_trace_records` に伏字済み本文を30日保存する。設定OFF時は本文を保存せず、
+既存本文も削除する。参照は管理者の認証済み画面に限定する。
+
 ## Consequences
 
 Debugしづらくなる。代わりにrequestId, status, token count, schema_valid, safety_passedを保存する。

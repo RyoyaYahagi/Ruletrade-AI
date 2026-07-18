@@ -7,6 +7,7 @@ Ruletrade-AI observability strategy:
 - logs are structured
 - secrets and investment content are never logged
 - AI payload logging is off by default in production
+- Rule-flow traces are stored separately from operational logs and only when the user enables AI payload logging
 - cron / webhook / privacy delete are always monitored
 - never weaken ownership checks or safety for observability
 
@@ -118,6 +119,10 @@ Never log:
 - filename
 - email
 - token / cookie / authorization header
+
+ルール作成フローの改善分析では、用途限定の `rule_ai_trace_records` に限り、既存の
+AI入出力ログ設定がONのユーザーの伏字済み本文を30日保存する。通常の
+`product_events` と運用ログには本文を保存しない。
 
 ## Tools
 

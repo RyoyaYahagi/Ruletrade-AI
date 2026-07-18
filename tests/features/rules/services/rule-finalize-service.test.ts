@@ -9,6 +9,9 @@ vi.mock("@/lib/db/database-client", () => ({
 vi.mock("@/features/rules/services/rule-session-service", () => ({
   createRuleVersion: vi.fn(),
 }));
+vi.mock("@/features/rules/services/rule-analytics-service", () => ({
+  trackRuleFunnelEvent: vi.fn().mockResolvedValue({ duplicate: false }),
+}));
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { createRuleVersion } from "@/features/rules/services/rule-session-service";

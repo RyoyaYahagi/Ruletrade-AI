@@ -6,6 +6,7 @@ import { getSqliteDatabase } from "@/lib/db/sqlite-client";
 import type { RuleSessionSummary } from "@/features/rules/model";
 import { TradeRuleSchema } from "@/schemas/rules/trade-rule-schema";
 import { createInitialQuestions } from "@/features/rules/services/rule-question-service";
+import { trackRuleFunnelEvent } from "@/features/rules/services/rule-analytics-service";
 
 export async function createRuleSession(params: {
   userId: string;
@@ -42,6 +43,15 @@ export async function createRuleSession(params: {
     );
   }
   await createInitialQuestions({ userId: params.userId, sessionId: data.id });
+  try {
+    await trackRuleFunnelEvent({
+      userId: params.userId,
+      sessionId: String(data.id),
+      eventName: "session_created",
+    });
+  } catch (eventError) {
+    console.error("Failed to record rule session analytics event:", eventError);
+  }
   return { sessionId: data.id };
 }
 
@@ -180,6 +190,20 @@ export async function deleteRuleSession(params: {
         sqlite,
         tables,
         "rule_question_feedback",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_funnel_events",
+        params.userId,
+        params.sessionId,
+      );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "rule_ai_trace_records",
         params.userId,
         params.sessionId,
       );

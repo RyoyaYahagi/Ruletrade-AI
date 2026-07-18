@@ -82,5 +82,20 @@ export async function updatePrivacySettings(params: {
     );
   }
 
+  if (params.aiPayloadLoggingEnabled === false) {
+    const { error: traceError } = await db
+      .from("rule_ai_trace_records")
+      .update({ input_json: null, output_json: null })
+      .eq("user_id", params.userId);
+    if (traceError) {
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "AIトレース本文の削除に失敗しました。",
+        500,
+        traceError,
+      );
+    }
+  }
+
   return { settings: data };
 }

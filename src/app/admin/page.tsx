@@ -39,6 +39,13 @@ export default function AdminDashboardPage() {
           <p className="text-sm text-gray-500">Review usage and model pricing</p>
         </Link>
         <Link
+          href="/admin/rule-analytics"
+          className="rounded border p-4 hover:bg-gray-50"
+        >
+          <h2 className="font-semibold">Rule Flow Analytics</h2>
+          <p className="text-sm text-gray-500">質問の継続率とAI下書き利用率</p>
+        </Link>
+        <Link
           href="/admin/knowledge"
           className="rounded border p-4 hover:bg-gray-50"
         >

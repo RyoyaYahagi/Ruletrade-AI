@@ -102,10 +102,13 @@ export function QuestionFeedbackPanel({
   }
 
   return (
-    <div className="mt-6 rounded-md border border-dashed p-4">
-      <div className="flex items-start justify-between gap-3">
+    <details className="mt-6 rounded-md border border-dashed p-4">
+      <summary className="cursor-pointer text-sm font-medium">
+        任意のフィードバック（質問を改善するため）
+      </summary>
+      <div className="pt-4">
+        <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium">この質問について教えてください</p>
           <p className="mt-1 text-xs text-muted-foreground">
             回答内容ではなく、質問や下書きの使いやすさへのフィードバックです。
           </p>
@@ -113,7 +116,7 @@ export function QuestionFeedbackPanel({
         {isLoading ? (
           <span className="text-xs text-muted-foreground">読み込み中...</span>
         ) : null}
-      </div>
+        </div>
 
       <FeedbackChoice
         label="この質問は良い質問でしたか？"
@@ -179,7 +182,8 @@ export function QuestionFeedbackPanel({
       >
         {isSaving ? "送信中..." : "フィードバックを送信"}
       </button>
-    </div>
+      </div>
+    </details>
   );
 }
 

@@ -77,6 +77,13 @@ export async function generateUserDataExport(params: {
     .eq("user_id", params.userId);
   result.rule_question_feedback = questionFeedback ?? [];
 
+  const { data: funnelEvents } = await db
+    .from("rule_funnel_events")
+    .select("id, session_id, question_id, question_key, event_id, event_name, metadata_json, occurred_at")
+    .eq("user_id", params.userId)
+    .order("occurred_at", { ascending: false });
+  result.rule_funnel_events = funnelEvents ?? [];
+
   const { data: portfolios } = await db
     .from("portfolios")
     .select("*")
@@ -109,6 +116,16 @@ export async function generateUserDataExport(params: {
       .order("created_at", { ascending: false })
       .limit(1000);
     result.ai_logs = logs ?? [];
+
+    const { data: ruleTraces } = await db
+      .from("rule_ai_trace_records")
+      .select(
+        "id, session_id, question_id, question_key, ai_run_log_id, thesis_research_run_id, trace_type, status, answer_context_hash, input_json, output_json, input_hash, output_hash, provider, model, prompt_version, schema_valid, safety_passed, compliance_passed, redaction_version, created_at, expires_at",
+      )
+      .eq("user_id", params.userId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    result.rule_ai_traces = ruleTraces ?? [];
   }
 
   if (request.include_rag_chunks) {

@@ -3,6 +3,7 @@ import "server-only";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { RULE_QUESTION_CATALOG } from "@/features/rules/constants/question-catalog";
+import { trackRuleFunnelEvent } from "@/features/rules/services/rule-analytics-service";
 
 export async function createInitialQuestions(params: {
   userId: string;
@@ -54,6 +55,7 @@ export async function skipRuleQuestion(params: {
   userId: string;
   sessionId: string;
   questionId: string;
+  requestId?: string;
 }) {
   const db = await createDatabaseClient();
   const { data, error } = await db
@@ -63,7 +65,7 @@ export async function skipRuleQuestion(params: {
     .eq("session_id", params.sessionId)
     .eq("user_id", params.userId)
     .eq("status", "pending")
-    .select("id, status")
+    .select("id, status, question_key")
     .single();
 
   if (error || !data) {
@@ -102,6 +104,19 @@ export async function skipRuleQuestion(params: {
       500,
       sessionUpdateError,
     );
+  }
+
+  try {
+    await trackRuleFunnelEvent({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      eventName: "question_skipped",
+      questionId: params.questionId,
+      questionKey: String(data.question_key ?? ""),
+      requestId: params.requestId,
+    });
+  } catch (eventError) {
+    console.error("Failed to record question analytics event:", eventError);
   }
 
   return { question: data };

@@ -43,6 +43,12 @@ export default async function AdminLayout({
           >
             AI Usage
           </Link>
+          <Link
+            href="/admin/rule-analytics"
+            className="block rounded px-2 py-1 hover:bg-gray-200"
+          >
+            Rule Analytics
+          </Link>
         </nav>
       </aside>
       <main className="flex-1 p-6">{children}</main>

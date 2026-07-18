@@ -2,9 +2,9 @@ import { requireUser } from "@/lib/auth/require-user";
 import { validateJsonRequest } from "@/lib/api/validate-request";
 import { apiSuccess } from "@/lib/api/api-response";
 import { toErrorResponse } from "@/lib/errors/to-error-response";
-import { SaveRuleAnswerRequestSchema } from "@/schemas/api/rule-session-api-schema";
-import { saveRuleAnswer } from "@/features/rules/services/rule-answer-service";
 import { assertOwnRuleSession } from "@/features/rules/services/rule-ownership-service";
+import { trackRuleEngagement } from "@/features/rules/services/rule-analytics-service";
+import { TrackRuleEngagementRequestSchema } from "@/schemas/rules/rule-analytics-schema";
 
 export async function POST(
   request: Request,
@@ -17,16 +17,19 @@ export async function POST(
     await assertOwnRuleSession({ userId: user.id, sessionId });
     const input = await validateJsonRequest(
       request,
-      SaveRuleAnswerRequestSchema,
+      TrackRuleEngagementRequestSchema,
     );
-    const result = await saveRuleAnswer({
+    const result = await trackRuleEngagement({
       userId: user.id,
       sessionId,
-      requestId,
       ...input,
     });
     return apiSuccess(result);
   } catch (error) {
-    return toErrorResponse(error, { requestId });
+    return toErrorResponse(error, {
+      requestId,
+      route: "/api/rule-sessions/[sessionId]/engagement",
+      method: "POST",
+    });
   }
 }

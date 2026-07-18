@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnswerInput } from "@/features/rules/components/answer-input";
 import { KnowledgeArticleLinks } from "@/features/knowledge/components/knowledge-article-links";
 import { QuestionFeedbackPanel } from "@/features/rules/components/question-feedback-panel";
@@ -17,6 +17,7 @@ type ThesisDraftCompleted = {
   research?: ThesisResearch | null;
   fallbackUsed?: boolean;
   notice?: string;
+  traceId?: string | null;
 };
 
 type ThesisDraftStreamEvent =
@@ -52,9 +53,33 @@ export function QuestionCard({
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const [draftPhase, setDraftPhase] = useState<string | null>(null);
   const [draftResearch, setDraftResearch] = useState<ThesisResearch | null>(null);
+  const [draftTraceId, setDraftTraceId] = useState<string | null>(null);
   const [draftSegments, setDraftSegments] = useState<ThesisSegment[]>([]);
   const [draftRetryKey, setDraftRetryKey] = useState(0);
   const [showUnknownDefault, setShowUnknownDefault] = useState(false);
+  const startedEventSent = useRef(false);
+
+  useEffect(() => {
+    void sendQuestionEngagement({
+      sessionId,
+      questionId: question.id,
+      questionKey: question.question_key,
+      eventName: "question_viewed",
+    });
+    startedEventSent.current = false;
+  }, [question.id, question.question_key, sessionId]);
+
+  function markQuestionStarted() {
+    if (startedEventSent.current) return;
+    startedEventSent.current = true;
+    void sendQuestionEngagement({
+      sessionId,
+      questionId: question.id,
+      questionKey: question.question_key,
+      eventName: "question_started",
+    });
+  }
+
   useEffect(() => {
     if (question.question_key !== "thesis_draft") return;
 
@@ -63,6 +88,7 @@ export function QuestionCard({
       setIsGeneratingDraft(true);
       setDraftNotice(null);
       setDraftPhase(null);
+      setDraftTraceId(null);
       try {
         const response = await fetch(
           `/api/rule-sessions/${encodeURIComponent(sessionId)}/thesis-draft`,
@@ -105,6 +131,7 @@ export function QuestionCard({
         }
         setDraftSegments(completed.thesisSegments ?? []);
         setDraftResearch(completed.research ?? null);
+        setDraftTraceId(completed.traceId ?? null);
         if (completed.notice) {
           setDraftNotice(completed.notice);
         } else if (completed.fallbackUsed) {
@@ -140,6 +167,7 @@ export function QuestionCard({
         : next.answerJson;
     setIsSaving(true);
     setErrorMessage(null);
+    markQuestionStarted();
 
     try {
       const response = await fetch(`/api/rule-sessions/${sessionId}/answers`, {
@@ -152,6 +180,10 @@ export function QuestionCard({
           questionKey: question.question_key,
           answerText: next.answerText,
           answerJson: persistedAnswerJson,
+          draftTraceId:
+            question.question_key === "thesis_draft"
+              ? draftTraceId ?? undefined
+              : undefined,
         }),
       });
 
@@ -252,8 +284,14 @@ export function QuestionCard({
           question={question}
           answerText={answerText}
           answerJson={answerJson}
-          onAnswerTextChange={setAnswerText}
-          onAnswerJsonChange={setAnswerJson}
+          onAnswerTextChange={(value) => {
+            markQuestionStarted();
+            setAnswerText(value);
+          }}
+          onAnswerJsonChange={(value) => {
+            markQuestionStarted();
+            setAnswerJson(value);
+          }}
         />
       </div>
 
@@ -370,4 +408,31 @@ function formatDefaultValue(value: unknown) {
   if (Array.isArray(value)) return value.length > 0 ? value.join("、") : "未選択";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+async function sendQuestionEngagement(params: {
+  sessionId: string;
+  questionId: string;
+  questionKey: string;
+  eventName: "question_viewed" | "question_started";
+}) {
+  try {
+    await fetch(
+      `/api/rule-sessions/${encodeURIComponent(params.sessionId)}/engagement`,
+      {
+        method: "POST",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: crypto.randomUUID(),
+          eventName: params.eventName,
+          questionId: params.questionId,
+          questionKey: params.questionKey,
+        }),
+      },
+    );
+  } catch {
+    // Engagement metrics are best-effort and must not interrupt answering.
+    console.debug("Rule engagement event was not recorded.");
+  }
 }

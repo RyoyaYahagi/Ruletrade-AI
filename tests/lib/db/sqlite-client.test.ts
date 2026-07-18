@@ -86,7 +86,7 @@ describe("createSqliteClient", () => {
     await createSqliteClient().from("holistic_reviews").select("id").limit(1);
     const tables = getSqliteDatabase()
       .prepare(
-        "select name from sqlite_master where type = 'table' and name in ('price_quotes', 'fx_rates', 'rule_alert_events', 'portfolio_targets', 'news_items', 'drift_alert_events', 'holistic_reviews')",
+        "select name from sqlite_master where type = 'table' and name in ('price_quotes', 'fx_rates', 'rule_alert_events', 'portfolio_targets', 'news_items', 'drift_alert_events', 'holistic_reviews', 'rule_funnel_events', 'rule_ai_trace_records', 'rule_analytics_daily')",
       )
       .all()
       .map((row) => (row as { name: string }).name);
@@ -98,7 +98,10 @@ describe("createSqliteClient", () => {
       "news_items",
       "portfolio_targets",
       "price_quotes",
+      "rule_ai_trace_records",
       "rule_alert_events",
+      "rule_analytics_daily",
+      "rule_funnel_events",
     ]);
   });
 

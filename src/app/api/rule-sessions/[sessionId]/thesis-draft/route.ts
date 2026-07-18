@@ -7,6 +7,7 @@ import {
 } from "@/features/rules/services/thesis-draft-service";
 import type { ThesisDraftPhase } from "@/features/rules/services/thesis-draft-service";
 import { AppError } from "@/lib/errors/app-error";
+import { trackRuleFunnelEvent } from "@/features/rules/services/rule-analytics-service";
 
 export async function POST(
   request: Request,
@@ -20,7 +21,7 @@ export async function POST(
     const { sessionId } = await params;
     await assertOwnRuleSession({ userId: user.id, sessionId });
 
-    return createDraftStream({ userId: user.id, sessionId });
+    return createDraftStream({ userId: user.id, sessionId, requestId });
   } catch (error) {
     return toErrorResponse(error, {
       requestId,
@@ -31,7 +32,11 @@ export async function POST(
   }
 }
 
-function createDraftStream(params: { userId: string; sessionId: string }) {
+function createDraftStream(params: {
+  userId: string;
+  sessionId: string;
+  requestId: string;
+}) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -43,13 +48,29 @@ function createDraftStream(params: { userId: string; sessionId: string }) {
 
       void (async () => {
         try {
+          await recordDraftEvent({
+            ...params,
+            eventName: "thesis_draft_requested",
+          });
           const result = await generateThesisDraft({
             ...params,
             onPhase: (phase) =>
               send("phase", { phase, label: phaseLabel(phase) }),
           });
+          await recordDraftEvent({
+            ...params,
+            eventName: "thesis_draft_succeeded",
+            metadata: { traceId: result.traceId ?? null },
+          });
           send("completed", { ...result, fallbackUsed: false });
         } catch (error) {
+          await recordDraftEvent({
+            ...params,
+            eventName: "thesis_draft_failed",
+            metadata: {
+              errorCode: error instanceof AppError ? error.code : "PROCESSING_FAILED",
+            },
+          });
           if (error instanceof AppError && error.code === "AI_OUTPUT_INVALID") {
             const breakerCandidates = await applyFallbackBreakerCandidates(params);
             send("completed", {
@@ -84,6 +105,23 @@ function createDraftStream(params: { userId: string; sessionId: string }) {
       Connection: "keep-alive",
     },
   });
+}
+
+async function recordDraftEvent(params: {
+  userId: string;
+  sessionId: string;
+  requestId: string;
+  eventName:
+    | "thesis_draft_requested"
+    | "thesis_draft_succeeded"
+    | "thesis_draft_failed";
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    await trackRuleFunnelEvent(params);
+  } catch (error) {
+    console.error("Failed to record thesis draft analytics event:", error);
+  }
 }
 
 function phaseLabel(phase: ThesisDraftPhase) {

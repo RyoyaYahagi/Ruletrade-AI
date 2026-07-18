@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRuleSession } from "@/features/rules/hooks/use-rule-session";
 import { QuestionCard } from "@/features/rules/components/question-card";
 import { RuleDraftView } from "@/features/rules/components/rule-draft-view";
@@ -75,6 +76,18 @@ function isRuleSessionData(data: unknown): data is RuleSessionData {
 
 export function RuleSessionShell({ sessionId }: { sessionId: string }) {
   const { data, isLoading, errorMessage, reload } = useRuleSession(sessionId);
+
+  useEffect(() => {
+    void fetch(`/api/rule-sessions/${encodeURIComponent(sessionId)}/engagement`, {
+      method: "POST",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId: crypto.randomUUID(),
+        eventName: "session_resumed",
+      }),
+    }).catch(() => undefined);
+  }, [sessionId]);
 
   if (isLoading) {
     return (

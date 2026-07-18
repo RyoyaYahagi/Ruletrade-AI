@@ -21,6 +21,7 @@ export async function POST(
       userId: user.id,
       sessionId,
       questionId,
+      requestId,
     });
     return apiSuccess(result);
   } catch (error) {

@@ -3,6 +3,7 @@ import "server-only";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
+import { recordRuleAnswerEvent } from "@/features/rules/services/rule-analytics-service";
 
 export async function saveRuleAnswer(params: {
   userId: string;
@@ -12,6 +13,8 @@ export async function saveRuleAnswer(params: {
   answerText?: string;
   answerJson: unknown;
   enteredBy?: "user" | "api_agent";
+  draftTraceId?: string;
+  requestId?: string;
 }) {
   const db = await createDatabaseClient();
   const answerJson = addAnswerOrigin(params.answerJson, params.enteredBy);
@@ -57,7 +60,24 @@ export async function saveRuleAnswer(params: {
     answerJson,
     answerText: params.answerText,
   });
-  return { answerId: answer.id, sessionId: params.sessionId, ruleJson };
+  let draftUsage: string = "not_used";
+  try {
+    const analytics = await recordRuleAnswerEvent({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      questionId: params.questionId,
+      questionKey: params.questionKey,
+      answerId: String(answer.id),
+      answerText: params.answerText,
+      answerJson,
+      draftTraceId: params.draftTraceId,
+      requestId: params.requestId,
+    });
+    draftUsage = analytics.draftUsage;
+  } catch (error) {
+    console.error("Failed to record rule answer analytics event:", error);
+  }
+  return { answerId: answer.id, sessionId: params.sessionId, ruleJson, draftUsage };
 }
 
 function addAnswerOrigin(answerJson: unknown, enteredBy?: "user" | "api_agent") {

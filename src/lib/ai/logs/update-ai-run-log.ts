@@ -2,10 +2,12 @@ import "server-only";
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { redactSensitiveData } from "@/lib/security/redact-sensitive-data";
+import { isAiPayloadLoggingEnabled } from "@/lib/ai/logs/ai-payload-logging";
 import type { UpdateAiRunLogInput } from "@/lib/ai/logs/ai-run-log-types";
 
 export async function updateAiRunLog(input: UpdateAiRunLogInput) {
   const db = await createDatabaseClient();
+  const payloadLoggingEnabled = await isAiPayloadLoggingEnabled(input.userId);
 
   const { error } = await db
     .from("ai_run_logs")
@@ -17,12 +19,12 @@ export async function updateAiRunLog(input: UpdateAiRunLogInput) {
       output_tokens: input.outputTokens ?? null,
       estimated_cost_usd: input.estimatedCostUsd ?? null,
       latency_ms: input.latencyMs ?? null,
-      output_json: input.outputJson
+      output_json: payloadLoggingEnabled && input.outputJson
         ? redactSensitiveData(input.outputJson)
         : null,
       error_code: input.errorCode ?? null,
       error_message: input.errorMessage ?? null,
-      error_details: input.errorDetails
+      error_details: payloadLoggingEnabled && input.errorDetails
         ? redactSensitiveData(input.errorDetails)
         : null,
       completed_at: input.completedAt ?? new Date().toISOString(),

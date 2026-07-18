@@ -21,6 +21,7 @@ export const CreateRuleSessionResponseSchema = z.object({
 
 export const SaveRuleAnswerRequestSchema = RuleAnswerSchema.extend({
   questionId: UuidSchema.optional(),
+  draftTraceId: UuidSchema.optional(),
 });
 
 export const SaveRuleAnswerResponseSchema = z.object({

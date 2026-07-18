@@ -4,7 +4,9 @@
 
 | Data category                         | Retention              | Action after period                     |
 | ------------------------------------- | ---------------------- | --------------------------------------- |
-| AI prompt / output / document text    | 90 days                | Hard delete                             |
+| AI prompt / output / document text    | 30 days                | Hard delete                             |
+| Rule funnel raw events                | 30 days                | Hard delete                             |
+| Rule analytics daily aggregates       | 1 year                 | Hard delete                             |
 | Session / client logs                 | 30 days                | Hard delete                             |
 | User-generated content (rules, memos) | Until account deletion | Soft delete → hard delete after 30 days |
 | Billing records                       | 7 years                | Archive only                            |

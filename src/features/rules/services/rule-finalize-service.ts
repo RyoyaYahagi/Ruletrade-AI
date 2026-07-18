@@ -3,6 +3,7 @@ import "server-only";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { AppError } from "@/lib/errors/app-error";
 import { createRuleVersion } from "@/features/rules/services/rule-session-service";
+import { trackRuleFunnelEvent } from "@/features/rules/services/rule-analytics-service";
 
 export async function finalizeRuleSession(params: {
   userId: string;
@@ -58,6 +59,16 @@ export async function finalizeRuleSession(params: {
     changeReason: "完成版として保存",
     createdBy: "user",
   });
+
+  try {
+    await trackRuleFunnelEvent({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      eventName: "session_completed",
+    });
+  } catch (eventError) {
+    console.error("Failed to record rule session completion event:", eventError);
+  }
 
   return { sessionId: params.sessionId, status: "finalized" };
 }

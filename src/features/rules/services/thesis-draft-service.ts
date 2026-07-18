@@ -31,6 +31,12 @@ import {
   type ThesisDraftOutput,
   type ThesisResearchSource,
 } from "@/schemas/rules/thesis-research-schema";
+import {
+  createRuleAiTrace,
+  getRuleAiTraceForResearchRun,
+  hashValue,
+} from "@/features/rules/services/rule-ai-trace-service";
+import { trackRuleFunnelEvent } from "@/features/rules/services/rule-analytics-service";
 
 export type ThesisDraftPhase =
   | "researching_company"
@@ -62,6 +68,7 @@ export async function generateThesisDraft(params: {
     invalidationConditions: string[];
     errors: string[];
   };
+  traceId?: string | null;
 }> {
   const db = await createDatabaseClient();
   const { data: session, error: sessionError } = await db
@@ -116,6 +123,17 @@ export async function generateThesisDraft(params: {
   const cachedDraft = parseCachedDraft(cachedRun?.draft_json);
   const cachedSources = parseCachedSources(cachedRun?.sources_json);
   if (cachedRun?.id && cachedDraft && cachedSources.length > 0) {
+    const cachedTrace = await getRuleAiTraceForResearchRun({
+      userId: params.userId,
+      researchRunId: String(cachedRun.id),
+    });
+    await recordAnalyticsEvent({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      eventName: "thesis_draft_cache_hit",
+      questionKey: "thesis_draft",
+      metadata: { researchRunId: String(cachedRun.id) },
+    });
     params.onPhase?.("completed");
     await persistBreakerCandidates({
       userId: params.userId,
@@ -128,6 +146,7 @@ export async function generateThesisDraft(params: {
       sources: cachedSources.filter((source) => source.verified),
       errors: readResearchErrors(cachedRun.research_json),
       draft: cachedDraft,
+      traceId: cachedTrace?.id ? String(cachedTrace.id) : null,
     });
   }
 
@@ -275,8 +294,36 @@ export async function generateThesisDraft(params: {
       invalidationConditions: verifiedDraft.invalidationConditions,
     },
     draft: verifiedDraft,
-    provider: null,
+    provider: result.provider,
     model: result.model,
+  });
+
+  const trace = await createRuleAiTrace({
+    userId: params.userId,
+    sessionId: params.sessionId,
+    questionKey: "thesis_draft",
+    aiRunLogId: result.aiRunLogId,
+    thesisResearchRunId: String(savedRun.id),
+    traceType: "thesis_draft",
+    status: "succeeded",
+    answerContextHash: hashValue(answerInput),
+    input: {
+      answers: answerInput,
+      researchSourceRefs: verifiedSources.map((item) => item.source.ref),
+      researchErrors: collection.errors,
+    },
+    output: verifiedDraft,
+    comparisonOutput: {
+      thesis: verifiedDraft.thesis,
+      answerJson: { text: verifiedDraft.thesis },
+    },
+    provider: result.provider,
+    model: result.model,
+    promptVersion: "thesis-draft-v1",
+    schemaValid: true,
+    safetyPassed: safety.passed,
+    compliancePassed: compliance.passed,
+    sensitiveValues: [session.ticker, session.company_name ?? ""],
   });
 
   await persistBreakerCandidates({
@@ -292,6 +339,7 @@ export async function generateThesisDraft(params: {
     sources: verifiedSources.map((item) => item.source),
     errors: collection.errors,
     draft: verifiedDraft,
+    traceId: trace.traceId,
   });
 }
 
@@ -467,6 +515,7 @@ function buildDraftResponse(params: {
   sources: ThesisResearchSource[];
   errors: string[];
   draft: ThesisDraftOutput;
+  traceId?: string | null;
 }) {
   const displayedSources = params.sources.filter((source) => source.verified);
   return {
@@ -487,5 +536,20 @@ function buildDraftResponse(params: {
       invalidationConditions: params.draft.invalidationConditions,
       errors: params.errors,
     },
+    traceId: params.traceId ?? null,
   };
+}
+
+async function recordAnalyticsEvent(params: {
+  userId: string;
+  sessionId: string;
+  eventName: "thesis_draft_cache_hit";
+  questionKey: string;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    await trackRuleFunnelEvent(params);
+  } catch (error) {
+    console.error("Failed to record thesis draft analytics event:", error);
+  }
 }

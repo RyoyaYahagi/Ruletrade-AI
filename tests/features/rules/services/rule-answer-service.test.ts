@@ -8,6 +8,9 @@ vi.mock("@/lib/db/database-client", () => ({
 vi.mock("@/features/rules/services/rule-draft-service", () => ({
   applyAnswerToRuleJson: vi.fn(),
 }));
+vi.mock("@/features/rules/services/rule-analytics-service", () => ({
+  recordRuleAnswerEvent: vi.fn().mockResolvedValue({ draftUsage: "not_used" }),
+}));
 
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { applyAnswerToRuleJson } from "@/features/rules/services/rule-draft-service";
