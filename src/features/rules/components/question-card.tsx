@@ -26,6 +26,28 @@ type ThesisDraftStreamEvent =
   | { event: "completed"; data: ThesisDraftCompleted }
   | { event: "error"; data: { code?: string; message?: string } };
 
+class ThesisDraftStreamError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "ThesisDraftStreamError";
+  }
+}
+
+type InFlightThesisDraftRequest = {
+  promise: Promise<ThesisDraftCompleted>;
+  phaseListeners: Set<(label: string) => void>;
+};
+
+// React can re-run effects during development; share the stream so that one
+// draft request does not trigger multiple AI calls for the same session.
+const inFlightThesisDraftRequests = new Map<
+  string,
+  InFlightThesisDraftRequest
+>();
+
 export function QuestionCard({
   sessionId,
   question,
@@ -85,50 +107,22 @@ export function QuestionCard({
     if (question.question_key !== "thesis_draft") return;
 
     let cancelled = false;
+    let activeRequest: InFlightThesisDraftRequest | null = null;
+    let phaseListener: ((label: string) => void) | null = null;
     async function loadDraft() {
       setIsGeneratingDraft(true);
       setDraftNotice(null);
       setDraftPhase(null);
       setDraftTraceId(null);
-      let streamErrorNotice: string | null = null;
+      const requestKey = `${sessionId}:${question.id}:${question.question_key}`;
+      activeRequest = getOrCreateThesisDraftRequest(requestKey, sessionId);
+      phaseListener = (label) => {
+        if (!cancelled) setDraftPhase(label);
+      };
+      activeRequest.phaseListeners.add(phaseListener);
       try {
-        const response = await fetch(
-          `/api/rule-sessions/${encodeURIComponent(sessionId)}/thesis-draft`,
-          { method: "POST" },
-        );
-        if (!response.ok || !response.body) {
-          throw new Error("draft request failed");
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let completed: ThesisDraftCompleted | null = null;
-        while (true) {
-          const chunk = await reader.read();
-          buffer += decoder.decode(chunk.value ?? new Uint8Array(), {
-            stream: !chunk.done,
-          });
-          const events = buffer.split("\n\n");
-          buffer = events.pop() ?? "";
-          for (const rawEvent of events) {
-            const event = parseStreamEvent(rawEvent);
-            if (!event || cancelled) continue;
-            if (event.event === "phase") {
-              setDraftPhase(event.data.label);
-            } else if (event.event === "completed") {
-              completed = event.data;
-            } else if (event.event === "error") {
-              streamErrorNotice = getThesisDraftStreamErrorNotice(
-                event.data.code,
-              );
-              throw new Error(event.data.message ?? "draft request failed");
-            }
-          }
-          if (chunk.done) break;
-        }
-
-        if (cancelled || !completed) return;
+        const completed = await activeRequest.promise;
+        if (cancelled) return;
         const draft = completed.thesisDraft;
         if (typeof draft === "string" && draft.length > 0) {
           setAnswerText(draft);
@@ -144,14 +138,19 @@ export function QuestionCard({
             "AI下書きの出典を検証できなかったため、仮説欄は空欄にしています。自分の言葉で入力してください。",
           );
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
+          const errorCode =
+            error instanceof ThesisDraftStreamError ? error.code : undefined;
           setDraftNotice(
-            streamErrorNotice ??
+            getThesisDraftStreamErrorNotice(errorCode) ??
               "企業調査付きの下書きを取得できませんでした。調査ソースを確認して自分の言葉で入力してください。",
           );
         }
       } finally {
+        if (activeRequest && phaseListener) {
+          activeRequest.phaseListeners.delete(phaseListener);
+        }
         if (!cancelled) setIsGeneratingDraft(false);
       }
     }
@@ -159,6 +158,9 @@ export function QuestionCard({
     void loadDraft();
     return () => {
       cancelled = true;
+      if (activeRequest && phaseListener) {
+        activeRequest.phaseListeners.delete(phaseListener);
+      }
     };
   }, [draftRetryKey, question.id, question.question_key, sessionId]);
 
@@ -377,6 +379,78 @@ export function QuestionCard({
       </button>
     </form>
   );
+}
+
+function getOrCreateThesisDraftRequest(
+  requestKey: string,
+  sessionId: string,
+): InFlightThesisDraftRequest {
+  const existing = inFlightThesisDraftRequests.get(requestKey);
+  if (existing) return existing;
+
+  const phaseListeners = new Set<(label: string) => void>();
+  const promise = fetchThesisDraft(sessionId, (label) => {
+    for (const listener of phaseListeners) listener(label);
+  });
+  const request = { promise, phaseListeners };
+  inFlightThesisDraftRequests.set(requestKey, request);
+  void promise.then(
+    () => {
+      if (inFlightThesisDraftRequests.get(requestKey) === request) {
+        inFlightThesisDraftRequests.delete(requestKey);
+      }
+    },
+    () => {
+      if (inFlightThesisDraftRequests.get(requestKey) === request) {
+        inFlightThesisDraftRequests.delete(requestKey);
+      }
+    },
+  );
+  return request;
+}
+
+async function fetchThesisDraft(
+  sessionId: string,
+  onPhase: (label: string) => void,
+): Promise<ThesisDraftCompleted> {
+  const response = await fetch(
+    `/api/rule-sessions/${encodeURIComponent(sessionId)}/thesis-draft`,
+    { method: "POST" },
+  );
+  if (!response.ok || !response.body) {
+    throw new Error("draft request failed");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let completed: ThesisDraftCompleted | null = null;
+  while (true) {
+    const chunk = await reader.read();
+    buffer += decoder.decode(chunk.value ?? new Uint8Array(), {
+      stream: !chunk.done,
+    });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    for (const rawEvent of events) {
+      const event = parseStreamEvent(rawEvent);
+      if (!event) continue;
+      if (event.event === "phase") {
+        onPhase(event.data.label);
+      } else if (event.event === "completed") {
+        completed = event.data;
+      } else if (event.event === "error") {
+        throw new ThesisDraftStreamError(
+          event.data.message ?? "draft request failed",
+          event.data.code,
+        );
+      }
+    }
+    if (chunk.done) break;
+  }
+
+  if (!completed) throw new Error("draft request completed without a result");
+  return completed;
 }
 
 function parseStreamEvent(rawEvent: string): ThesisDraftStreamEvent | null {
