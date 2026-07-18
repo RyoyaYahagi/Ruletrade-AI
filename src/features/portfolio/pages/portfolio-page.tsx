@@ -16,18 +16,18 @@ export function PortfolioPage() {
     <main className="mx-auto max-w-6xl p-6" data-testid="portfolio-page">
       <nav className="mb-6 flex flex-wrap gap-3 text-sm text-muted-foreground" aria-label="メインナビゲーション">
         <Link href="/today" className="underline-offset-4 hover:underline">Today</Link>
-        <Link href="/dashboard" className="underline-offset-4 hover:underline">ダッシュボード</Link>
+        <Link href="/rules" className="underline-offset-4 hover:underline">ルール体系</Link>
         <Link href="/portfolio/review/monthly" className="underline-offset-4 hover:underline">月次総合レビュー</Link>
       </nav>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <a
-            href="/dashboard"
+          <Link
+            href="/rules"
             className="text-sm text-muted-foreground hover:underline"
-            data-testid="portfolio-back-to-dashboard-link"
+            data-testid="portfolio-back-to-rules-link"
           >
-            &larr; ダッシュボードに戻る
-          </a>
+            &larr; ルール体系に戻る
+          </Link>
           <h1 className="mt-2 text-2xl font-bold" data-testid="portfolio-title">Portfolio</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             保有銘柄の偏り、集中リスク、未設定ルールを確認します。
