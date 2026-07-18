@@ -88,15 +88,28 @@ test("新規セッションを10問のルール質問で完了直前まで進め
       const answerTextarea = page.getByPlaceholder("必要なら補足を書いてください");
       await expect(answerTextarea).toHaveValue(/主力事業の受注/);
       await expect(page.getByRole("heading", { name: "企業調査に基づく仮説" })).toBeVisible();
-      await expect(page.getByText("主力事業は受注と売上の拡大を目指す").first()).toBeVisible();
       await expect(page.getByRole("link", { name: "S1の出典へ移動" })).toBeVisible();
+      await expect(page.locator("#thesis-source-S1")).toBeHidden();
+      await page.getByRole("link", { name: "S1の出典へ移動" }).click();
+      await expect(page.locator("#thesis-source-S1")).toBeVisible();
       await expect(page.locator("#thesis-source-S1 mark")).toHaveText(
         "主力事業は受注と売上の拡大を目指す",
+      );
+      await expect(page.locator("#thesis-source-S1")).toContainText(
+        "引用理由: 成長指標の確認",
       );
       await expect(page.locator("#thesis-source-S1 a")).toHaveAttribute(
         "href",
         /#:~:text=/,
       );
+      await page.goto(`${page.url().split("#", 1)[0]}#thesis-source-S1`);
+      await expect(page.locator("#thesis-source-S1")).toBeVisible();
+      await expect(page.locator("#thesis-source-S1 mark")).toHaveText(
+        "主力事業は受注と売上の拡大を目指す",
+      );
+      await page
+        .getByText("任意のフィードバック（質問を改善するため）")
+        .click();
       await page.getByRole("button", { name: "👍 良い質問" }).click();
       await page.getByRole("button", { name: "👍 良い選択肢" }).click();
       await page.getByRole("button", { name: "減った" }).click();
