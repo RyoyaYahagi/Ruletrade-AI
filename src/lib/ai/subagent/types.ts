@@ -38,6 +38,7 @@ export type SubAgentDispatchOptions<TInput, TOutput> = {
   outputSchema: z.ZodType<TOutput>;
   system?: string;
   temperature?: number;
+  userId?: string;
 };
 
 export type InvestigationSummary = {

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 import { callAi } from "@/lib/ai/provider-gateway";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
+
+vi.mock("@/features/ai/services/ai-developer-settings-service", () => ({
+  getAiDeveloperSettings: vi.fn(),
+}));
 
 const mockFetch = vi.fn();
 
@@ -11,6 +16,7 @@ describe("provider-gateway", () => {
     vi.stubEnv("AI_PROVIDER", "gemini");
     vi.stubEnv("AI_TIMEOUT_MS", "30000");
     mockFetch.mockReset();
+    vi.mocked(getAiDeveloperSettings).mockReset();
   });
 
   afterEach(() => {
@@ -127,7 +133,7 @@ describe("provider-gateway", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.data).toEqual({ answer: "custom" });
-        expect(result.model).toBe("gemini-2.5-flash");
+        expect(result.model).toBe("custom-model");
       }
     });
   });
@@ -148,6 +154,32 @@ describe("provider-gateway", () => {
       if (result.ok) {
         expect(result.data).toEqual({ answer: "logged" });
       }
+    });
+
+    it("ユーザーに保存された provider と model を適用する", async () => {
+      vi.mocked(getAiDeveloperSettings).mockResolvedValue({
+        provider: "gemini",
+        model: "configured-gemini-model",
+      });
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ answer: "configured" }),
+      );
+
+      const result = await callAi({
+        taskType: "rule_draft_generation",
+        weight: "standard",
+        prompt: "test prompt",
+        outputSchema,
+        userId: "user-123",
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.model).toBe("configured-gemini-model");
+      }
+      expect(String(mockFetch.mock.calls[0]?.[0])).toContain(
+        "/models/configured-gemini-model:generateContent",
+      );
     });
   });
 });

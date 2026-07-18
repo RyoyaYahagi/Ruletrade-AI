@@ -48,7 +48,10 @@ const planSchema = z.object({
   reasoning: z.string(),
 });
 
-export async function createPlan(context: WorkflowContext): Promise<
+export async function createPlan(
+  context: WorkflowContext,
+  userId?: string,
+): Promise<
   | {
       ok: true;
       plan: OrchestratorPlan;
@@ -72,6 +75,7 @@ export async function createPlan(context: WorkflowContext): Promise<
     prompt,
     weight: "light",
     outputSchema: planSchema,
+    userId,
   });
 
   if (!result.ok) {
@@ -100,6 +104,7 @@ export type StepResult = {
 export async function executePlan(
   plan: OrchestratorPlan,
   context: WorkflowContext,
+  userId?: string,
 ): Promise<
   | {
       ok: true;
@@ -124,6 +129,7 @@ export async function executePlan(
       const investigation = await investigateAndSummarize(
         step.instruction,
         stepContext,
+        userId,
       );
       if (!investigation.ok) {
         return {
@@ -149,6 +155,7 @@ export async function executePlan(
       },
       weight: step.weight,
       outputSchema: z.object({ result: z.unknown() }),
+      userId,
     });
 
     if (!stepResult.ok) {

@@ -48,8 +48,31 @@ export function getAITimeoutMs(): number {
 }
 
 function envModel(taskType: AITaskType, fallback: string): string {
+  return getTaskModelOverride(taskType) ?? fallback;
+}
+
+function getTaskModelOverride(taskType: AITaskType): string | undefined {
   const envKey = `AI_MODEL_${taskType.toUpperCase().replace(/\W/g, "_")}`;
-  return process.env[envKey] ?? fallback;
+  const value = process.env[envKey]?.trim();
+  return value || undefined;
+}
+
+export function getProviderDefaultModel(
+  provider: AIProviderKey,
+  fallback: string,
+): string {
+  switch (provider) {
+    case "openai":
+      return getOpenAIModel();
+    case "gemini":
+      return getGeminiModel();
+    case "codex-app-server":
+      return getCodexAppServerModel();
+    case "mock":
+      return "mock-model";
+    default:
+      return fallback;
+  }
 }
 
 const defaultProvider: AIProviderKey = getConfiguredAIProvider();
@@ -375,9 +398,13 @@ export function resolveAIModelConfig(
       providerOverride === "mock" ||
       providerOverride === "codex-app-server")
   ) {
+    const modelOverride = getTaskModelOverride(taskType);
     return {
       ...config,
       provider: providerOverride,
+      model:
+        modelOverride ??
+        getProviderDefaultModel(providerOverride, config.model),
       fallbackProvider:
         config.fallbackProvider === providerOverride
           ? undefined

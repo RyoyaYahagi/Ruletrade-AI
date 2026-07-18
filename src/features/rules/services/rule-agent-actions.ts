@@ -44,6 +44,7 @@ export async function runRuleGeneration(input: {
     const result = await generateTradingRule(
       parsed.data.userIntent,
       parsed.data.memory,
+      { userId: user.id },
     );
     return result;
   } catch (err) {
@@ -62,7 +63,9 @@ export async function runRuleReview(input: {
   }
 
   try {
-    const result = await reviewTradingRule(input.rule, input.memory);
+    const result = await reviewTradingRule(input.rule, input.memory, {
+      userId: user.id,
+    });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -77,7 +80,7 @@ export async function runRuleEvaluation(input: { rule: TradingRule }) {
   }
 
   try {
-    const result = await evaluateTradingRule(input.rule);
+    const result = await evaluateTradingRule(input.rule, { userId: user.id });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -92,7 +95,7 @@ export async function runRuleExplanation(input: { rule: TradingRule }) {
   }
 
   try {
-    const result = await explainTradingRule(input.rule);
+    const result = await explainTradingRule(input.rule, { userId: user.id });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

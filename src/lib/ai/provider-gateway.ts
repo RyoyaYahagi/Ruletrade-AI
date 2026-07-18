@@ -5,7 +5,9 @@ import { AIProviderError } from "@/lib/ai/ai-provider-error";
 import {
   resolveAIModelConfig,
   getConfiguredAIProvider,
+  getProviderDefaultModel,
 } from "@/lib/ai/model-config";
+import { getAiDeveloperSettings } from "@/features/ai/services/ai-developer-settings-service";
 import { withAiRunLogging } from "@/lib/ai/logs/with-ai-run-logging";
 import type {
   AIMessage,
@@ -123,18 +125,37 @@ async function callAiWithLogging<TOutput>(
         })
       : undefined;
 
+    const developerSettings =
+      options.userId && (!options.provider || !options.model)
+        ? await getAiDeveloperSettings({ userId: options.userId })
+        : undefined;
     const providerName: string =
-      options.provider ?? resolvedConfig?.provider ?? getConfiguredAIProvider();
+      options.provider ??
+      developerSettings?.provider ??
+      resolvedConfig?.provider ??
+      getConfiguredAIProvider();
     const modelName: string =
       options.model ??
-      resolvedConfig?.model ??
-      defaultModelByWeight[options.weight];
+      (options.provider
+        ? getProviderDefaultModel(
+            options.provider,
+            resolvedConfig?.model ?? defaultModelByWeight[options.weight],
+          )
+        : developerSettings?.model ??
+          resolvedConfig?.model ??
+          getProviderDefaultModel(
+            providerName as AiProvider,
+            defaultModelByWeight[options.weight],
+          ));
     const temperature =
       options.temperature ?? resolvedConfig?.temperature ?? 0.4;
     const maxOutputTokens =
       options.maxTokens ?? resolvedConfig?.maxOutputTokens ?? 2048;
 
-    const provider = getProviderForCall(providerName as AiProvider);
+    const provider = getProviderForCall(
+      providerName as AiProvider,
+      modelName,
+    );
 
     const result = await withAiRunLogging({
       userId: options.userId!,
@@ -232,11 +253,14 @@ async function callAiWithoutLogging<TOutput>(
   let lastError: unknown;
   for (const candidate of candidates) {
     try {
-      const provider = instantiateProvider(candidate);
       const modelName: string =
         options.model ??
         resolvedConfig?.model ??
-        defaultModelByWeight[options.weight];
+        getProviderDefaultModel(
+          candidate,
+          defaultModelByWeight[options.weight],
+        );
+      const provider = instantiateProvider(candidate, modelName);
       const temperature =
         options.temperature ?? resolvedConfig?.temperature ?? 0.4;
       const maxOutputTokens =
@@ -312,9 +336,12 @@ function buildMessages<TOutput>(options: AiCallOptions<TOutput>): AIMessage[] {
   ];
 }
 
-function getProviderForCall(provider?: AiProvider): AIProvider {
+function getProviderForCall(
+  provider?: AiProvider,
+  model?: string,
+): AIProvider {
   if (provider) {
-    return instantiateProvider(provider);
+    return instantiateProvider(provider, model);
   }
   const configured = process.env.AI_PROVIDER;
   if (
@@ -323,7 +350,7 @@ function getProviderForCall(provider?: AiProvider): AIProvider {
     configured === "gemini" ||
     configured === "codex-app-server"
   ) {
-    return instantiateProvider(configured);
+    return instantiateProvider(configured, model);
   }
   const best = pickBestProvider([
     "openai",
@@ -337,22 +364,22 @@ function getProviderForCall(provider?: AiProvider): AIProvider {
       "All providers are unavailable (circuit open or not configured).",
     );
   }
-  return instantiateProvider(best);
+  return instantiateProvider(best, model);
 }
 
-function instantiateProvider(provider: AiProvider): AIProvider {
+function instantiateProvider(provider: AiProvider, model?: string): AIProvider {
   switch (provider) {
     case "mock":
       return new MockProvider();
     case "openai":
-      return new OpenAIProvider();
+      return new OpenAIProvider(model);
     case "gemini":
-      return new GeminiProvider();
+      return new GeminiProvider(model);
     case "codex-app-server":
-      return new CodexAppServerProvider();
+      return new CodexAppServerProvider(model);
     default: {
       const configured = getConfiguredAIProvider();
-      return instantiateProvider(configured as AiProvider);
+      return instantiateProvider(configured as AiProvider, model);
     }
   }
 }

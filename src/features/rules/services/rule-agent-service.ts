@@ -19,7 +19,7 @@ export type AgentServiceResult<T> =
 export async function generateTradingRule(
   userIntent: string,
   memory?: InvestmentMemory,
-  options?: { skipInvestigation?: boolean },
+  options?: { skipInvestigation?: boolean; userId?: string },
 ): Promise<
   AgentServiceResult<
     import("@/schemas/rules/rule-generation-schema").RuleGenerationOutput
@@ -32,6 +32,7 @@ export async function generateTradingRule(
     const investigation = await investigateAndSummarize(
       "What information is needed to generate a well-specified trading rule from this user intent?",
       context,
+      options?.userId,
     );
     if (!investigation.ok) {
       return { ok: false, error: investigation.error };
@@ -49,6 +50,7 @@ export async function generateTradingRule(
     },
     weight: "standard",
     outputSchema: ruleGenerationOutputSchema,
+    userId: options?.userId,
   });
 
   if (!result.ok) {
@@ -65,7 +67,7 @@ export async function generateTradingRule(
 export async function reviewTradingRule(
   rule: TradingRule,
   memory?: InvestmentMemory,
-  options?: { skipInvestigation?: boolean },
+  options?: { skipInvestigation?: boolean; userId?: string },
 ): Promise<
   AgentServiceResult<
     import("@/schemas/rules/rule-review-schema").RuleReviewOutput
@@ -78,6 +80,7 @@ export async function reviewTradingRule(
     const investigation = await investigateAndSummarize(
       "What context or historical patterns could affect the risk assessment of this trading rule?",
       context,
+      options?.userId,
     );
     if (!investigation.ok) {
       return { ok: false, error: investigation.error };
@@ -96,6 +99,7 @@ export async function reviewTradingRule(
     },
     weight: "standard",
     outputSchema: ruleReviewOutputSchema,
+    userId: options?.userId,
   });
 
   if (!result.ok) {
@@ -111,7 +115,7 @@ export async function reviewTradingRule(
 
 export async function evaluateTradingRule(
   rule: TradingRule,
-  options?: { skipInvestigation?: boolean },
+  options?: { skipInvestigation?: boolean; userId?: string },
 ): Promise<
   AgentServiceResult<
     import("@/schemas/rules/rule-evaluation-schema").RuleEvaluationOutput
@@ -124,6 +128,7 @@ export async function evaluateTradingRule(
     const investigation = await investigateAndSummarize(
       "What evidence should be gathered or estimated to evaluate this trading rule fairly?",
       context,
+      options?.userId,
     );
     if (!investigation.ok) {
       return { ok: false, error: investigation.error };
@@ -142,6 +147,7 @@ export async function evaluateTradingRule(
     },
     weight: "standard",
     outputSchema: ruleEvaluationOutputSchema,
+    userId: options?.userId,
   });
 
   if (!result.ok) {
@@ -157,7 +163,7 @@ export async function evaluateTradingRule(
 
 export async function explainTradingRule(
   rule: TradingRule,
-  options?: { skipInvestigation?: boolean },
+  options?: { skipInvestigation?: boolean; userId?: string },
 ): Promise<
   AgentServiceResult<
     import("@/schemas/rules/rule-explanation-schema").RuleExplanationOutput
@@ -170,6 +176,7 @@ export async function explainTradingRule(
     const investigation = await investigateAndSummarize(
       "What aspects of this trading rule should be highlighted for user review and approval?",
       context,
+      options?.userId,
     );
     if (!investigation.ok) {
       return { ok: false, error: investigation.error };
@@ -188,6 +195,7 @@ export async function explainTradingRule(
     },
     weight: "light",
     outputSchema: ruleExplanationOutputSchema,
+    userId: options?.userId,
   });
 
   if (!result.ok) {

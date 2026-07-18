@@ -68,6 +68,7 @@ export async function dispatchSubAgent<TInput, TOutput>(
     weight: options.weight,
     outputSchema: options.outputSchema,
     temperature: options.temperature,
+    userId: options.userId,
   });
 
   if (!result.ok) {
@@ -84,6 +85,7 @@ export async function dispatchSubAgent<TInput, TOutput>(
 export async function runInvestigator<TContext>(
   instruction: string,
   context: TContext,
+  userId?: string,
 ): Promise<
   | {
       ok: true;
@@ -104,11 +106,13 @@ export async function runInvestigator<TContext>(
     },
     weight: weightForRole("investigator"),
     outputSchema: investigationSchema,
+    userId,
   });
 }
 
 export async function runSummarizer(
   investigationResult: InvestigationOutput,
+  userId?: string,
 ): Promise<
   | {
       ok: true;
@@ -130,12 +134,14 @@ export async function runSummarizer(
     },
     weight: weightForRole("summarizer"),
     outputSchema: summarySchema,
+    userId,
   });
 }
 
 export async function investigateAndSummarize<TContext>(
   instruction: string,
   context: TContext,
+  userId?: string,
 ): Promise<
   | {
       ok: true;
@@ -148,12 +154,12 @@ export async function investigateAndSummarize<TContext>(
     }
   | { ok: false; error: string }
 > {
-  const investigation = await runInvestigator(instruction, context);
+  const investigation = await runInvestigator(instruction, context, userId);
   if (!investigation.ok) {
     return { ok: false, error: investigation.error };
   }
 
-  const summary = await runSummarizer(investigation.data);
+  const summary = await runSummarizer(investigation.data, userId);
   if (!summary.ok) {
     return { ok: false, error: summary.error };
   }

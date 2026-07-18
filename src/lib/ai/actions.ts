@@ -6,6 +6,7 @@ import {
   executePlan,
   type WorkflowContext,
 } from "./subagent/orchestrator";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 
 const runAgentWorkflowInputSchema = z.object({
   userIntent: z.string().min(1),
@@ -24,6 +25,11 @@ const runAgentWorkflowInputSchema = z.object({
 export type RunAgentWorkflowInput = z.infer<typeof runAgentWorkflowInputSchema>;
 
 export async function runAgentWorkflow(input: RunAgentWorkflowInput) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です。" };
+  }
+
   const parsed = runAgentWorkflowInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Invalid input", issues: parsed.error.issues };
@@ -35,12 +41,12 @@ export async function runAgentWorkflow(input: RunAgentWorkflowInput) {
     currentRule: parsed.data.currentRule as WorkflowContext["currentRule"],
   };
 
-  const plan = await createPlan(context);
+  const plan = await createPlan(context, user.id);
   if (!plan.ok) {
     return { ok: false, error: plan.error };
   }
 
-  const execution = await executePlan(plan.plan, context);
+  const execution = await executePlan(plan.plan, context, user.id);
   if (!execution.ok) {
     return { ok: false, error: execution.error };
   }
