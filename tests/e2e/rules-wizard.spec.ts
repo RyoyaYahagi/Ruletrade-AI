@@ -3,6 +3,54 @@ import { expect, test } from "@playwright/test";
 test("新規セッションを10問のルール質問で完了直前まで進められる", async ({
   page,
 }) => {
+  await page.route("**/api/rule-sessions/*/thesis-draft", async (route) => {
+    const body = [
+      `event: phase\ndata: ${JSON.stringify({ phase: "researching_company", label: "企業情報を確認中" })}\n\n`,
+      `event: phase\ndata: ${JSON.stringify({ phase: "verifying_sources", label: "出典箇所を確認中" })}\n\n`,
+      `event: completed\ndata: ${JSON.stringify({
+        thesisDraft: "私は主力事業の受注と売上の拡大を数週間から数か月で観測する。",
+        thesisSegments: [
+          {
+            text: "私は主力事業の受注と売上の拡大を数週間から数か月で観測する。",
+            sourceRefs: ["S1"],
+          },
+        ],
+        evidence: [
+          { sourceRef: "S1", quote: "主力事業は受注と売上の拡大を目指す", reason: "成長指標の確認" },
+        ],
+        research: {
+          runId: "run-e2e",
+          status: "completed",
+          sources: [
+            {
+              ref: "S1",
+              sourceType: "company_ir",
+              url: "https://example.com/ir",
+              title: "テスト銘柄 決算説明資料",
+              publisher: "テスト銘柄",
+              publishedAt: "2026-07-18",
+              retrievedAt: "2026-07-18T00:00:00.000Z",
+              excerpt: "主力事業は受注と売上の拡大を目指す",
+              highlightText: "主力事業は受注と売上の拡大を目指す",
+              verified: true,
+            },
+          ],
+          growthDefinition: "主力事業の受注と売上が拡大すること。",
+          growthIndicators: ["受注", "売上"],
+          nearTermFactors: ["決算発表", "受注ニュース"],
+          invalidationConditions: ["受注が減少する"],
+          errors: [],
+        },
+        fallbackUsed: false,
+      })}\n\n`,
+    ].join("");
+    await route.fulfill({
+      status: 200,
+      headers: { "Content-Type": "text/event-stream; charset=utf-8" },
+      body,
+    });
+  });
+
   await page.goto("/rules/new");
   await page.getByTestId("new-rule-ticker-input").fill("9984");
   await page.getByTestId("new-rule-company-name-input").fill("テスト銘柄");
@@ -16,7 +64,17 @@ test("新規セッションを10問のルール質問で完了直前まで進め
     const questionText = await questionHeading.innerText();
 
     if (questionText.includes("投資仮説")) {
-      await expect(page.locator("form textarea")).toHaveValue(/事業の成長/);
+      await expect(page.locator("form textarea")).toHaveValue(/主力事業の受注/);
+      await expect(page.getByRole("heading", { name: "企業調査に基づく仮説" })).toBeVisible();
+      await expect(page.getByText("主力事業は受注と売上の拡大を目指す").first()).toBeVisible();
+      await expect(page.getByRole("link", { name: "S1の出典へ移動" })).toBeVisible();
+      await expect(page.locator("#thesis-source-S1 mark")).toHaveText(
+        "主力事業は受注と売上の拡大を目指す",
+      );
+      await expect(page.locator("#thesis-source-S1 a")).toHaveAttribute(
+        "href",
+        /#:~:text=/,
+      );
       await page.locator("form textarea").fill("私は事業の成長を観測する。");
       await page.getByRole("button", { name: "回答を保存" }).click();
     } else {

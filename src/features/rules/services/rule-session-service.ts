@@ -218,6 +218,13 @@ export async function deleteRuleSession(params: {
         params.userId,
         params.sessionId,
       );
+      deleteBySessionId(
+        sqlite,
+        tables,
+        "thesis_research_runs",
+        params.userId,
+        params.sessionId,
+      );
       deleteById(
         sqlite,
         tables,

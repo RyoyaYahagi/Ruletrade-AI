@@ -1,16 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnswerInput } from "@/features/rules/components/answer-input";
 import { KnowledgeArticleLinks } from "@/features/knowledge/components/knowledge-article-links";
+import {
+  ThesisDraftResearchPanel,
+  type ThesisResearch,
+  type ThesisSegment,
+} from "@/features/rules/components/thesis-draft-research-panel";
 
-type ThesisDraftResponse = {
-  ok?: boolean;
-  data?: {
-    thesisDraft?: unknown;
-    fallbackUsed?: unknown;
-  };
+type ThesisDraftCompleted = {
+  thesisDraft?: unknown;
+  thesisSegments?: ThesisSegment[];
+  evidence?: Array<{ sourceRef: string; quote: string; reason: string }>;
+  research?: ThesisResearch | null;
+  fallbackUsed?: boolean;
+  notice?: string;
 };
+
+type ThesisDraftStreamEvent =
+  | { event: "phase"; data: { phase: string; label: string } }
+  | { event: "completed"; data: ThesisDraftCompleted }
+  | { event: "error"; data: { code?: string; message?: string } };
 
 export function QuestionCard({
   sessionId,
@@ -38,51 +49,71 @@ export function QuestionCard({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  const [draftPhase, setDraftPhase] = useState<string | null>(null);
+  const [draftResearch, setDraftResearch] = useState<ThesisResearch | null>(null);
+  const [draftSegments, setDraftSegments] = useState<ThesisSegment[]>([]);
+  const [draftRetryKey, setDraftRetryKey] = useState(0);
   const [showUnknownDefault, setShowUnknownDefault] = useState(false);
-  const draftRequestRef = useRef<{
-    key: string;
-    promise: Promise<{ ok: boolean; json: ThesisDraftResponse }>;
-  } | null>(null);
-
   useEffect(() => {
     if (question.question_key !== "thesis_draft") return;
 
     let cancelled = false;
-    const requestKey = `${sessionId}:${question.id}`;
     async function loadDraft() {
       setIsGeneratingDraft(true);
       setDraftNotice(null);
+      setDraftPhase(null);
       try {
-        const existingRequest = draftRequestRef.current;
-        const draftRequest =
-          existingRequest?.key === requestKey
-            ? existingRequest.promise
-            : fetch(
-                `/api/rule-sessions/${encodeURIComponent(sessionId)}/thesis-draft`,
-                { method: "POST" },
-              ).then(async (response) => ({
-                ok: response.ok,
-                json: (await response.json()) as ThesisDraftResponse,
-              }));
-        draftRequestRef.current = { key: requestKey, promise: draftRequest };
+        const response = await fetch(
+          `/api/rule-sessions/${encodeURIComponent(sessionId)}/thesis-draft`,
+          { method: "POST" },
+        );
+        if (!response.ok || !response.body) {
+          throw new Error("draft request failed");
+        }
 
-        const result = await draftRequest;
-        if (cancelled) return;
-        if (result.ok && result.json.ok && result.json.data) {
-          const draft = result.json.data.thesisDraft;
-          if (typeof draft === "string" && draft.length > 0) {
-            setAnswerText(draft);
-            setAnswerJson({ text: draft });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let completed: ThesisDraftCompleted | null = null;
+        while (true) {
+          const chunk = await reader.read();
+          buffer += decoder.decode(chunk.value ?? new Uint8Array(), {
+            stream: !chunk.done,
+          });
+          const events = buffer.split("\n\n");
+          buffer = events.pop() ?? "";
+          for (const rawEvent of events) {
+            const event = parseStreamEvent(rawEvent);
+            if (!event || cancelled) continue;
+            if (event.event === "phase") {
+              setDraftPhase(event.data.label);
+            } else if (event.event === "completed") {
+              completed = event.data;
+            } else if (event.event === "error") {
+              throw new Error(event.data.message ?? "draft request failed");
+            }
           }
-          if (result.json.data.fallbackUsed) {
-            setDraftNotice(
-              "AI下書きが作れなかったため、一般的な確認項目を表示しています。仮説は自分の言葉で入力できます。",
-            );
-          }
+          if (chunk.done) break;
+        }
+
+        if (cancelled || !completed) return;
+        const draft = completed.thesisDraft;
+        if (typeof draft === "string" && draft.length > 0) {
+          setAnswerText(draft);
+          setAnswerJson({ text: draft });
+        }
+        setDraftSegments(completed.thesisSegments ?? []);
+        setDraftResearch(completed.research ?? null);
+        if (completed.notice) {
+          setDraftNotice(completed.notice);
+        } else if (completed.fallbackUsed) {
+          setDraftNotice(
+            "AI下書きの出典を検証できなかったため、仮説欄は空欄にしています。自分の言葉で入力してください。",
+          );
         }
       } catch {
         if (!cancelled) {
-          setDraftNotice("下書きの取得に失敗しました。自分の言葉で入力してください。");
+          setDraftNotice("企業調査付きの下書きを取得できませんでした。調査ソースを確認して自分の言葉で入力してください。");
         }
       } finally {
         if (!cancelled) setIsGeneratingDraft(false);
@@ -93,7 +124,7 @@ export function QuestionCard({
     return () => {
       cancelled = true;
     };
-  }, [question.id, question.question_key, sessionId]);
+  }, [draftRetryKey, question.id, question.question_key, sessionId]);
 
   const unknownDefault = parseUnknownDefault(question.unknown_default_json);
 
@@ -189,7 +220,7 @@ export function QuestionCard({
 
       {isGeneratingDraft ? (
         <p className="mt-5 rounded-md bg-gray-50 p-3 text-sm text-muted-foreground">
-          仮説の下書きを準備しています...
+          {draftPhase ?? "仮説の下書きを準備しています..."}
         </p>
       ) : null}
 
@@ -197,6 +228,15 @@ export function QuestionCard({
         <p className="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
           {draftNotice}
         </p>
+      ) : null}
+
+      {draftResearch ? (
+        <ThesisDraftResearchPanel
+          sessionId={sessionId}
+          segments={draftSegments}
+          research={draftResearch}
+          onSourceAdded={() => setDraftRetryKey((key) => key + 1)}
+        />
       ) : null}
 
       {question.question_key === "thesis_breakers_pick" &&
@@ -283,6 +323,17 @@ export function QuestionCard({
       </button>
     </form>
   );
+}
+
+function parseStreamEvent(rawEvent: string): ThesisDraftStreamEvent | null {
+  const eventName = rawEvent.match(/^event:\s*(\w+)/m)?.[1];
+  const dataLine = rawEvent.match(/^data:\s*(.+)$/m)?.[1];
+  if (!eventName || !dataLine) return null;
+  try {
+    return { event: eventName, data: JSON.parse(dataLine) } as ThesisDraftStreamEvent;
+  } catch {
+    return null;
+  }
 }
 
 function isUnknownEnabled(value: number | boolean | null | undefined) {

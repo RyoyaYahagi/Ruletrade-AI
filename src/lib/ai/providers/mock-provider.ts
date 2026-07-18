@@ -83,12 +83,33 @@ function getMockObject(taskType: string, schemaName: string): unknown {
 
   if (schemaName === "ThesisDraft" || taskType === "rule_draft_generation") {
     return {
-      thesis: "私は、事業の成長を観測し、定期的に保有理由を見直す。",
+      thesis: "私は、事業の成長を売上と顧客基盤の拡大として観測し、数週間から数か月ごとに保有理由を見直す。",
+      thesisSegments: [
+        {
+          text: "私は、事業の成長を売上と顧客基盤の拡大として観測する。",
+          sourceRefs: ["S1"],
+        },
+        {
+          text: "決算や受注の変化が確認できた場合に、市場評価への影響を確認する。",
+          sourceRefs: ["S1"],
+        },
+      ],
+      evidence: [
+        {
+          sourceRef: "S1",
+          quote: "事業",
+          reason: "事業内容の確認",
+        },
+      ],
+      growthDefinition: "事業の売上と顧客基盤が拡大すること。",
+      growthIndicators: ["売上の増加", "顧客基盤の拡大"],
+      nearTermFactors: ["決算での業績変化", "受注や製品認定の発表"],
+      invalidationConditions: ["主力事業の減収が続く", "受注が減少する"],
       breakers: [
-        { description: "主力事業の業績が継続的に悪化する。", newsKeywords: ["業績悪化"] },
-        { description: "競争力が低下したと判断する事実が確認される。", newsKeywords: ["競争力低下"] },
-        { description: "経営や統治に重大な問題が確認される。", newsKeywords: ["不祥事"] },
-        { description: "保有理由を自分の言葉で説明できなくなる。", newsKeywords: ["事業方針"] },
+        { description: "主力事業の業績が継続的に悪化する。", newsKeywords: ["業績悪化"], sourceRefs: ["S1"] },
+        { description: "競争力が低下したと判断する事実が確認される。", newsKeywords: ["競争力低下"], sourceRefs: ["S1"] },
+        { description: "経営や統治に重大な問題が確認される。", newsKeywords: ["不祥事"], sourceRefs: ["S1"] },
+        { description: "保有理由を自分の言葉で説明できなくなる。", newsKeywords: ["事業方針"], sourceRefs: ["S1"] },
       ],
     };
   }

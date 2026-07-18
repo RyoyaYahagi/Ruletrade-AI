@@ -31,6 +31,8 @@ export async function deleteUserAppData(params: { userId: string }) {
     "portfolios",
     "rule_quality_checks",
     "rule_reviews",
+    "thesis_research_runs",
+    "thesis_research_sources",
     "rule_answers",
     "rule_questions",
     "rule_versions",

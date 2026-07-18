@@ -1,12 +1,22 @@
 import "server-only";
 
-import { z } from "zod";
 import { callAi } from "@/lib/ai/provider-gateway";
 import { AppError } from "@/lib/errors/app-error";
 import { runMeteredAiCall } from "@/lib/cost-limit/run-metered-ai-call";
 import { ESTIMATED_AI_COST_USD } from "@/lib/cost-limit/cost-limit-types";
 import { createDatabaseClient } from "@/lib/db/database-client";
 import { retrieveRagContext } from "@/features/rag/services/retrieve-rag-context";
+import {
+  collectThesisResearchSources,
+  getThesisResearchSourceVersion,
+} from "@/features/rules/services/thesis-research-source-service";
+import {
+  createThesisResearchInputHash,
+  getCachedThesisResearchRun,
+  parseCachedDraft,
+  parseCachedSources,
+  saveThesisResearchRun,
+} from "@/features/rules/services/thesis-research-run-service";
 import { runSafetyCheck } from "@/lib/safety/safety-check-service";
 import { runComplianceGate } from "@/features/legal/services/compliance-gate-service";
 import {
@@ -16,33 +26,47 @@ import {
   buildThesisDraftPrompt,
   THESIS_DRAFT_SYSTEM_PROMPT,
 } from "@/features/rules/prompts/thesis-draft-prompt";
+import {
+  ThesisDraftOutputSchema,
+  type ThesisDraftOutput,
+  type ThesisResearchSource,
+} from "@/schemas/rules/thesis-research-schema";
 
-const ThesisDraftOutputSchema = z.object({
-  thesis: z.string().min(1).max(400),
-  breakers: z
-    .array(
-      z.object({
-        description: z.string().min(1).max(200),
-        newsKeywords: z.array(z.string().min(1).max(50)).max(5),
-      }),
-    )
-    .length(4),
-});
+export type ThesisDraftPhase =
+  | "researching_company"
+  | "researching_financials"
+  | "researching_news"
+  | "drafting"
+  | "verifying_sources"
+  | "completed";
 
 export async function generateThesisDraft(params: {
   userId: string;
   sessionId: string;
+  onPhase?: (phase: ThesisDraftPhase) => void;
 }): Promise<{
   thesisDraft: string;
   breakerCandidates: Array<{
     description: string;
     newsKeywords: string[];
   }>;
+  thesisSegments: ThesisDraftOutput["thesisSegments"];
+  evidence: ThesisDraftOutput["evidence"];
+  research: {
+    runId: string;
+    status: "completed" | "partial";
+    sources: ThesisResearchSource[];
+    growthDefinition: string;
+    growthIndicators: string[];
+    nearTermFactors: string[];
+    invalidationConditions: string[];
+    errors: string[];
+  };
 }> {
   const db = await createDatabaseClient();
   const { data: session, error: sessionError } = await db
     .from("rule_design_sessions")
-    .select("id, ticker, company_name")
+    .select("id, ticker, company_name, market")
     .eq("id", params.sessionId)
     .eq("user_id", params.userId)
     .single();
@@ -68,8 +92,46 @@ export async function generateThesisDraft(params: {
     );
   }
 
-  // 新規ユーザーの検索0件は正常系。過去の自分のメモがない状態でも、
-  // 現在の回答だけで通常どおり下書きを生成する。
+  const answerInput = (answers ?? []).map((answer: Record<string, unknown>) => ({
+    questionKey: String(answer.question_key),
+    answerText: answer.answer_text,
+    answerJson: answer.answer_json,
+  }));
+  const sourceVersion = await getThesisResearchSourceVersion({
+    userId: params.userId,
+    ticker: session.ticker,
+    market: session.market ?? "JP",
+  });
+  const inputHash = createThesisResearchInputHash({
+    ticker: session.ticker,
+    companyName: session.company_name,
+    sourceVersion,
+    answers: answerInput,
+  });
+  const cachedRun = await getCachedThesisResearchRun({
+    userId: params.userId,
+    sessionId: params.sessionId,
+    inputHash,
+  });
+  const cachedDraft = parseCachedDraft(cachedRun?.draft_json);
+  const cachedSources = parseCachedSources(cachedRun?.sources_json);
+  if (cachedRun?.id && cachedDraft && cachedSources.length > 0) {
+    params.onPhase?.("completed");
+    await persistBreakerCandidates({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      candidates: cachedDraft.breakers,
+    });
+    return buildDraftResponse({
+      runId: String(cachedRun.id),
+      status: cachedRun.status === "partial" ? "partial" : "completed",
+      sources: cachedSources.filter((source) => source.verified),
+      errors: readResearchErrors(cachedRun.research_json),
+      draft: cachedDraft,
+    });
+  }
+
+  params.onPhase?.("researching_company");
   const ragResult = await retrieveRagContext({
     userId: params.userId,
     taskType: "rule_draft_generation",
@@ -77,6 +139,36 @@ export async function generateThesisDraft(params: {
     sourceTypes: ["rule_session", "alert_resolution", "holistic_review", "earnings_report"],
     maxContextChars: 1500,
   });
+
+  params.onPhase?.("researching_financials");
+  const collection = await collectThesisResearchSources({
+    userId: params.userId,
+    ticker: session.ticker,
+    market: session.market ?? "JP",
+  });
+  params.onPhase?.("researching_news");
+  if (collection.sources.length === 0) {
+    await saveThesisResearchRun({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      inputHash,
+      status: "failed",
+      sources: [],
+      research: { errors: collection.errors },
+      errorMessage: "有効な調査ソースがありません。",
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    });
+    throw new AppError(
+      "PROCESSING_FAILED",
+      "調査ソースが見つからないため、企業調査付きの下書きを作成できません。企業IR資料のURLを登録するか、決算資料を追加してください。",
+      422,
+      { errors: collection.errors },
+      true,
+    );
+  }
+
+  const researchContext = buildResearchContext(collection.sources);
+  params.onPhase?.("drafting");
 
   const result = await runMeteredAiCall({
     userId: params.userId,
@@ -91,18 +183,9 @@ export async function generateThesisDraft(params: {
         prompt: buildThesisDraftPrompt({
           ticker: session.ticker,
           companyName: session.company_name,
-          answers: (answers ?? []).map(
-            (answer: {
-              question_key: string;
-              answer_text?: string | null;
-              answer_json?: unknown;
-            }) => ({
-              questionKey: answer.question_key,
-              answerText: answer.answer_text,
-              answerJson: answer.answer_json,
-            }),
-          ),
+          answers: answerInput,
           pastContext: ragResult.contextText,
+          researchContext,
         }),
         outputSchema: ThesisDraftOutputSchema,
         schemaName: "ThesisDraft",
@@ -130,8 +213,27 @@ export async function generateThesisDraft(params: {
     );
   }
 
+  const parsedDraft = ThesisDraftOutputSchema.safeParse(result.data);
+  if (!parsedDraft.success) {
+    throw new AppError(
+      "AI_OUTPUT_INVALID",
+      "企業調査の参照情報を含む下書きを構造化できませんでした。",
+      422,
+      parsedDraft.error.flatten(),
+      true,
+    );
+  }
+
+  params.onPhase?.("verifying_sources");
+  const verifiedResult = verifyDraftEvidence({
+    draft: parsedDraft.data,
+    sources: collection.sources,
+  });
+  const verifiedDraft = verifiedResult.draft;
+  const verifiedSources = verifiedResult.sources;
+
   const safety = runSafetyCheck({
-    text: `${result.data.thesis}\n${JSON.stringify(result.data.breakers)}`,
+    text: `${verifiedDraft.thesis}\n${JSON.stringify(verifiedDraft.breakers)}`,
   });
   if (!safety.passed) {
     throw new AppError(
@@ -146,7 +248,7 @@ export async function generateThesisDraft(params: {
   const compliance = await runComplianceGate({
     userId: params.userId,
     reviewType: "thesis_draft",
-    text: `${result.data.thesis}\n${JSON.stringify(result.data.breakers)}`,
+    text: `${verifiedDraft.thesis}\n${JSON.stringify(verifiedDraft.breakers)}`,
   });
   if (!compliance.passed) {
     throw new AppError(
@@ -158,17 +260,38 @@ export async function generateThesisDraft(params: {
     );
   }
 
-  await updateBreakerQuestion({
+  const savedRun = await saveThesisResearchRun({
     userId: params.userId,
     sessionId: params.sessionId,
-    candidates: result.data.breakers,
-    source: "ai",
+    inputHash,
+    status: collection.errors.length > 0 ? "partial" : "completed",
+    sources: verifiedSources.map((item) => item.source),
+    research: {
+      errors: collection.errors,
+      growthDefinition: verifiedDraft.growthDefinition,
+      growthIndicators: verifiedDraft.growthIndicators,
+      nearTermFactors: verifiedDraft.nearTermFactors,
+      invalidationConditions: verifiedDraft.invalidationConditions,
+    },
+    draft: verifiedDraft,
+    provider: null,
+    model: result.model,
   });
 
-  return {
-    thesisDraft: result.data.thesis,
-    breakerCandidates: result.data.breakers,
-  };
+  await persistBreakerCandidates({
+    userId: params.userId,
+    sessionId: params.sessionId,
+    candidates: verifiedDraft.breakers,
+  });
+  params.onPhase?.("completed");
+
+  return buildDraftResponse({
+    runId: String(savedRun.id),
+    status: collection.errors.length > 0 ? "partial" : "completed",
+    sources: verifiedSources.map((item) => item.source),
+    errors: collection.errors,
+    draft: verifiedDraft,
+  });
 }
 
 export async function applyFallbackBreakerCandidates(params: {
@@ -233,4 +356,135 @@ async function updateBreakerQuestion(params: {
       error,
     );
   }
+}
+
+async function persistBreakerCandidates(params: {
+  userId: string;
+  sessionId: string;
+  candidates: ThesisDraftOutput["breakers"];
+}) {
+  await updateBreakerQuestion({
+    userId: params.userId,
+    sessionId: params.sessionId,
+    candidates: params.candidates,
+    source: "ai",
+  });
+}
+
+function buildResearchContext(
+  sources: Array<{ source: ThesisResearchSource; content: string }>,
+) {
+  return sources
+    .map(({ source, content }) =>
+      [
+        `[${source.ref}] ${source.title} / ${source.publisher}`,
+        `URL: ${source.url ?? "内部データ"}`,
+        `本文: ${content.slice(0, 7000)}`,
+      ].join("\n"),
+    )
+    .join("\n\n")
+    .slice(0, 32_000);
+}
+
+function verifyDraftEvidence(params: {
+  draft: ThesisDraftOutput;
+  sources: Array<{ source: ThesisResearchSource; content: string }>;
+}) {
+  const sourceByRef = new Map(
+    params.sources.map((item) => [item.source.ref, item]),
+  );
+  const verifiedEvidence = params.draft.evidence.filter((evidence) => {
+    const source = sourceByRef.get(evidence.sourceRef);
+    return Boolean(source && containsNormalized(source.content, evidence.quote));
+  });
+  if (verifiedEvidence.length === 0) {
+    throw new AppError(
+      "AI_OUTPUT_INVALID",
+      "AIが参照した引用箇所を検証できませんでした。",
+      422,
+      { evidence: params.draft.evidence },
+      true,
+    );
+  }
+
+  const evidenceRefs = new Set(verifiedEvidence.map((item) => item.sourceRef));
+  const sources = params.sources.map((item) => {
+    const evidence = verifiedEvidence.find(
+      (candidate) => candidate.sourceRef === item.source.ref,
+    );
+    return evidence
+      ? {
+          ...item,
+          source: {
+            ...item.source,
+            highlightText: evidence.quote,
+            verified: true,
+          },
+        }
+      : item;
+  });
+
+  return {
+    draft: {
+      ...params.draft,
+      evidence: verifiedEvidence,
+      thesisSegments: params.draft.thesisSegments.map((segment) => ({
+        ...segment,
+        sourceRefs: segment.sourceRefs.filter((ref) => evidenceRefs.has(ref)),
+      })),
+      breakers: params.draft.breakers.map((breaker) => ({
+        ...breaker,
+        sourceRefs: breaker.sourceRefs.filter((ref) => evidenceRefs.has(ref)),
+      })),
+    },
+    sources: sources
+      .filter((item) => item.source.verified)
+      .map((item) => ({
+        ...item,
+        source: { ...item.source },
+      })),
+  };
+}
+
+function containsNormalized(content: string, quote: string) {
+  return normalizeText(content).includes(normalizeText(quote));
+}
+
+function normalizeText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function readResearchErrors(value: unknown) {
+  if (!value || typeof value !== "object") return [];
+  const errors = (value as { errors?: unknown }).errors;
+  return Array.isArray(errors) ? errors.filter((item): item is string => typeof item === "string") : [];
+}
+
+function buildDraftResponse(params: {
+  runId: string;
+  status: "completed" | "partial";
+  sources: ThesisResearchSource[];
+  errors: string[];
+  draft: ThesisDraftOutput;
+}) {
+  const displayedSources = params.sources.filter((source) => source.verified);
+  return {
+    thesisDraft: params.draft.thesis,
+    breakerCandidates: params.draft.breakers.map(({ description, newsKeywords }) => ({
+      description,
+      newsKeywords,
+    })),
+    thesisSegments: params.draft.thesisSegments,
+    evidence: params.draft.evidence,
+    research: {
+      runId: params.runId,
+      status: params.status,
+      sources: displayedSources,
+      growthDefinition: params.draft.growthDefinition,
+      growthIndicators: params.draft.growthIndicators,
+      nearTermFactors: params.draft.nearTermFactors,
+      invalidationConditions: params.draft.invalidationConditions,
+      errors: params.errors,
+    },
+  };
 }

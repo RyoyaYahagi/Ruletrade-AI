@@ -135,6 +135,39 @@ const schemaStatements = [
     answer_json text not null default '{}',
     created_at text not null default (datetime('now'))
   )`,
+  `create table if not exists thesis_research_sources (
+    id text primary key,
+    user_id text not null,
+    ticker text not null,
+    market text not null default 'JP',
+    source_type text not null,
+    url text not null,
+    title text not null,
+    publisher text not null,
+    published_at text,
+    active integer not null default 1,
+    last_fetched_at text,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now')),
+    unique (user_id, ticker, market, url)
+  )`,
+  `create table if not exists thesis_research_runs (
+    id text primary key,
+    user_id text not null,
+    session_id text not null,
+    input_hash text not null,
+    status text not null,
+    sources_json text not null default '[]',
+    research_json text not null default '{}',
+    draft_json text,
+    provider text,
+    model text,
+    error_message text,
+    expires_at text,
+    created_at text not null default (datetime('now')),
+    updated_at text not null default (datetime('now')),
+    unique (user_id, session_id, input_hash)
+  )`,
   `create table if not exists rule_reviews (
     id text primary key,
     user_id text not null,
@@ -295,6 +328,8 @@ const schemaStatements = [
   `create index if not exists idx_rule_design_sessions_user_created on rule_design_sessions(user_id, created_at desc)`,
   `create index if not exists idx_rule_questions_session_order on rule_questions(session_id, display_order, created_at)`,
   `create index if not exists idx_rule_answers_session_created on rule_answers(session_id, created_at)`,
+  `create index if not exists idx_thesis_research_sources_user_ticker on thesis_research_sources(user_id, ticker, market, active)`,
+  `create index if not exists idx_thesis_research_runs_user_session on thesis_research_runs(user_id, session_id, created_at desc)`,
   `create index if not exists idx_rule_reviews_session_created on rule_reviews(session_id, created_at desc)`,
   `create index if not exists idx_rule_quality_checks_review on rule_quality_checks(review_id)`,
   `create index if not exists idx_price_quotes_symbol_date on price_quotes(symbol, market, quote_date desc)`,
@@ -344,6 +379,7 @@ export function initializeSqliteSchema(db: Database.Database) {
   ensureColumn(db, "rule_questions", "breaker_source", "text");
   ensureColumn(db, "rule_alert_events", "resolution", "text");
   ensureColumn(db, "rule_alert_events", "resolved_at", "text");
+  ensureColumn(db, "thesis_research_sources", "published_at", "text");
   ensureColumn(db, "price_quotes", "symbol", "text");
   ensureColumn(db, "price_quotes", "market", "text not null default 'JP'");
   ensureColumn(db, "price_quotes", "source", "text not null default 'mock'");
