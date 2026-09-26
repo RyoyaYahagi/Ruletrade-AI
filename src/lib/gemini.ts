@@ -8,7 +8,7 @@ import {
 
 type GeminiPart =
   | { text: string }
-  | { inline_data: { mime_type: string; data: string } };
+  | { inlineData: { mimeType: string; data: string } };
 
 type GeminiResponse = {
   candidates?: Array<{
@@ -27,7 +27,7 @@ function config() {
 
   return {
     apiKey,
-    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
   };
 }
 
@@ -42,7 +42,7 @@ async function generateJson(parts: GeminiPart[]) {
         contents: [{ role: "user", parts }],
         generationConfig: {
           temperature: 0.1,
-          response_mime_type: "application/json",
+          responseMimeType: "application/json",
         },
       }),
       cache: "no-store",
@@ -106,8 +106,8 @@ export async function structureDecisionAudio(
 ): Promise<DecisionDraft> {
   const raw = await generateJson([
     {
-      inline_data: {
-        mime_type: mimeType,
+      inlineData: {
+        mimeType,
         data: audio.toString("base64"),
       },
     },
