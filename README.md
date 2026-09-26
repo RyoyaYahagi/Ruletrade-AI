@@ -74,7 +74,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The SQLite database is created at `./data/ruletrade.sqlite` by default.
+The new MVP uses `./data/ruletrade-mvp.sqlite` by default so switching branches does not accidentally reuse or mutate the legacy database.
 
 ## Checks
 

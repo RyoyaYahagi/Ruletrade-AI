@@ -38,7 +38,7 @@ export function CapturePanel() {
 
   async function startRecording() {
     try {
-      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
         setStatus("このブラウザでは録音を利用できません。文章入力を使ってください。");
         return;
       }

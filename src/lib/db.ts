@@ -23,7 +23,7 @@ function getDb() {
 
   const databasePath =
     process.env.SQLITE_DATABASE_PATH ||
-    path.join(process.cwd(), "data", "ruletrade.sqlite");
+    path.join(process.cwd(), "data", "ruletrade-mvp.sqlite");
 
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   const db = new Database(databasePath);
