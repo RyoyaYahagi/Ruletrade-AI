@@ -1,15 +1,8 @@
-import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-      "server-only": path.resolve(__dirname, "tests/setup/server-only.ts"),
-    },
-  },
   test: {
-    globals: false,
-    exclude: ["tests/e2e/**", "**/.claude/**", "**/node_modules/**"],
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
   },
 });

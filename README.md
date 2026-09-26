@@ -1,413 +1,94 @@
-# Ruletrade-AI
+# Ruletrade-AI — simplified MVP
 
-AIと一緒に投資ルールを作成・レビューするアプリです。
+Ruletrade-AI is an **investment decision journal with AI**, not a trading-rule engine.
 
-## Safety
+The core problem is small:
 
-Ruletrade-AI does not provide investment advice.
+> I know why I bought something today, but months later I may forget the assumptions I had at the time. Record those thoughts with as little friction as possible, then let AI compare my current thinking with my past thinking.
 
-AI output is used to identify missing rule-design elements, clarify assumptions, and generate follow-up questions. It is checked before display. Outputs that look like buy/sell recommendations, price predictions, or profit guarantees are blocked.
+## MVP
 
-## Roadmap
+1. **Quick capture by text or voice**
+   - Speak or type a rough investment note.
+   - Gemini transcribes/structures it.
+   - The user reviews and edits the structured result before saving.
+2. **Decision timeline per stock**
+   - Keep the original note plus thesis, assumptions, sell/review conditions, and add conditions.
+   - Do not overwrite old thinking.
+3. **AI self-review**
+   - Enter what you think now.
+   - AI compares it only with your own saved history and highlights what stayed the same or changed.
+4. **Review date**
+   - Add an optional date to revisit a decision.
+5. **30-second sell review**
+   - A sell transaction can include a short reflection explaining why it was sold.
+6. **Trade history**
+   - Record buy/sell date, quantity, price, fees, and a short note.
 
-Ruletrade-AI is built in milestones:
+## Intentionally not in this MVP
 
-- v0.1 Foundation
-- v0.2 Rule Creation MVP
-- v0.3 AI Review / Safety MVP
-- v0.4 Memory / RAG MVP
-- v0.5 Product Expansion MVP
-- v1.0 Closed Beta
+- brokerage sync / order execution
+- stock-price or news ingestion
+- RAG / embeddings
+- PDF ingestion
+- multi-agent workflows
+- provider gateway / model routing
+- quality scores and approval-state machines
+- OpenAPI
+- Stripe / billing
+- public multi-user auth
+- portfolio optimization / backtesting
 
-See:
+These are not "planned by default." They should be added only when the current workflow proves they are needed.
 
-- docs/roadmap.md
-- docs/release.md
-- CHANGELOG.md
-- LEARNING_LOG.md
+## Data model
 
-## Development
+Only four domain tables:
 
-### Requirements
+```text
+stocks
+├─ decisions
+├─ transactions
+└─ reviews
+```
 
-- Node.js 20.9+
-- npm
+A decision stores both the user's original text and editable AI-derived fields. The original note is the historical source of truth.
 
-### Setup
+## Stack
+
+- Next.js 16 / React 19 / TypeScript
+- SQLite with direct `better-sqlite3` queries
+- Zod for request and AI-output validation
+- Gemini REST API
+- plain CSS
+- Vitest
+
+No ORM and no custom query-builder are used in this version. The database layer is intentionally a small set of explicit queries.
+
+## Local setup
 
 ```bash
 npm install
 cp .env.example .env.local
+# set GEMINI_API_KEY
 npm run dev
 ```
 
-Open `http://localhost:3000` and confirm that `Ruletrade-AI` is displayed.
+The SQLite database is created at `./data/ruletrade.sqlite` by default.
 
-### SQLite Local
-
-```bash
-npm run dev
-```
-
-The app initializes its SQLite schema automatically at
-`SQLITE_DATABASE_PATH` (default: `data/ruletrade.sqlite`) and stores uploaded
-files under `LOCAL_STORAGE_PATH` (default: `data/storage`). User-owned queries
-must include explicit server-side `user_id` ownership checks.
-
-### Scripts
+## Checks
 
 ```bash
-npm run dev
-npm run build
-npm run lint
 npm run typecheck
+npm run lint
 npm run test
-npm run test:e2e
+npm run build
 ```
 
-### First Run Check
+## Deployment note
 
-After setup, run:
+This branch is intentionally local-first. A filesystem SQLite database is not a good fit for stateless serverless deployment. If multi-device/public deployment becomes a real requirement, replace the persistence boundary then; do not carry that complexity before it is needed.
 
-```bash
-npm run dev
-```
+## Safety boundary
 
-Open `http://localhost:3000` and confirm the app responds with the
-Ruletrade-AI workbench. For a quick terminal check:
-
-```bash
-curl -I http://localhost:3000
-```
-
-The response should return `HTTP/1.1 200 OK`.
-
-## Secret Management
-
-Do not call OpenAI, Anthropic Claude, Gemini, or Stripe APIs directly from the browser.
-
-Client components should call internal API routes or Server Actions.
-
-```text
-Browser
-  ↓
-Next.js API Route / Server Action
-  ↓
-AI Provider Gateway / SQLite / local storage / Stripe
-  ↓
-OpenAI / Anthropic Claude / Gemini / Stripe
-```
-
-Use `.env.local` only for local development. Do not commit `.env.local`.
-
-Use Vercel Environment Variables, GitHub Actions Secrets, or a managed Secret Manager in deployed environments.
-
-### Public Environment Variables
-
-Only values that may be exposed to the browser should use `NEXT_PUBLIC_`.
-
-No database or auth secrets are required in `NEXT_PUBLIC_` variables.
-
-### Server-only Environment Variables
-
-Never create public versions of these variables.
-
-```env
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-GEMINI_API_KEY=
-STRIPE_SECRET_KEY=
-CRON_SECRET=
-VAPID_PRIVATE_KEY=
-```
-
-Never create these variables:
-
-```env
-NEXT_PUBLIC_OPENAI_API_KEY=
-NEXT_PUBLIC_ANTHROPIC_API_KEY=
-NEXT_PUBLIC_GEMINI_API_KEY=
-NEXT_PUBLIC_STRIPE_SECRET_KEY=
-```
-
-Files that read secrets must stay server-only. Add `import "server-only";` to server-only modules that access API keys or service role credentials.
-
-## Auth
-
-Authentication uses local password credentials and an httpOnly
-`ruletrade_session` cookie. Password hashes, session tokens, and the SQLite
-database are server-only.
-
-The initial protected route is `/dashboard`. The initial auth status API is
-`/api/me`.
-
-### AI Provider Configuration
-
-Local development starts with the mock provider.
-
-```env
-AI_PROVIDER=mock
-```
-
-Development-only assistant tooling can be documented separately from production AI execution.
-
-```env
-DEVELOPMENT_AI_ASSISTANT=codex-sdk
-```
-
-Supported provider keys are prepared for later gateway implementation:
-
-```env
-OPENAI_API_KEY=
-OPENAI_MODEL=
-OPENAI_CODEX_MODEL=
-
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=
-
-GEMINI_API_KEY=
-GEMINI_MODEL=
-```
-
-Claude access must go through the server-side AI Provider Gateway. Client Components must never import Anthropic SDKs or read `ANTHROPIC_API_KEY`.
-
-### Codex SDK for Development Only
-
-Use the SDK/API route for development-only Codex experiments when the app needs a programmable integration point.
-
-Do not wire Codex access into production user-facing AI execution. Production routes should call the server-side AI Provider Gateway with explicit provider credentials, usage limits, audit logging, and safety checks.
-
-For local development, prefer:
-
-```text
-Development tool / local script
-  ↓
-OpenAI SDK / Responses API
-  ↓
-Codex-capable model
-  ↓
-Generated implementation notes, test drafts, or debug suggestions
-```
-
-Keep this separate from the product runtime:
-
-```text
-Browser / user-facing feature
-  ↓
-Next.js API Route / Server Action
-  ↓
-AI Provider Gateway
-  ↓
-OpenAI / Anthropic Claude / Gemini
-```
-
-Allowed development uses:
-
-- Running local SDK scripts for repository analysis
-- Running Codex CLI or Codex app tasks against the local repository
-- Generating implementation plans and review notes
-- Drafting tests, fixtures, and migration checks
-- Debugging local build, lint, and type errors
-
-Not allowed:
-
-- Calling Codex SDK/API experiments from browser code
-- Calling Codex SDK/API experiments from production API routes
-- Treating a personal ChatGPT/Codex session as a shared backend credential
-- Bypassing AI Provider Gateway cost limits, safety checks, or logs for user-facing features
-
-### Local ChatGPT Login with Codex App Server
-
-Ruletrade-AI can use the locally running Codex App Server with the ChatGPT
-account managed by Codex. This is intentionally development-only: it must not
-turn one developer's ChatGPT account into a shared production credential.
-
-Start the local server in a separate terminal:
-
-```bash
-npm run codex:app-server
-```
-
-Then configure the app:
-
-```env
-AI_PROVIDER=codex-app-server
-CODEX_APP_SERVER_URL=ws://127.0.0.1:8765
-CODEX_APP_SERVER_MODEL=gpt-5.4-mini
-```
-
-In development, the same settings can be changed from
-`/settings/developer`. Selecting `Codex App Server (ChatGPT)` checks the
-account status and requests a ChatGPT login URL when the account is not
-authenticated. The save button remains disabled until the account is logged
-in.
-
-After signing into the app, start the ChatGPT login flow with:
-
-```bash
-curl -X POST http://localhost:3000/api/ai/codex/login \
-  -H 'Content-Type: application/json' \
-  -d '{"mode":"browser"}'
-```
-
-Open the returned `authUrl` in a browser. The login state can be checked
-without exposing any token:
-
-```bash
-curl http://localhost:3000/api/ai/codex/account
-```
-
-The provider uses the same server-side AI Provider Gateway, structured-output
-validation, safety checks, compliance checks, rate limits, and AI run logging
-as the other providers. The production configuration guard rejects
-`codex-app-server` when `NODE_ENV=production`.
-
-## Safety
-
-Ruletrade-AI does not provide investment advice.
-
-- AI output is used to identify missing rule-design elements, clarify assumptions, and generate follow-up questions.
-- AI output is checked before display. Outputs that look like buy/sell recommendations or guaranteed predictions are blocked.
-- The Safety Check layer scans AI-generated text for prohibited phrases (e.g. buy/sell recommendations, price predictions, profit guarantees, urgency pressure, privacy risks) and enforces a `block` / `warn` / `allow` decision.
-- See `docs/safety.md` for the full Safety Policy and prohibited phrase categories.
-
-## Project Structure
-
-This repository uses the Next.js `src` directory convention. The App Router
-lives in `src/app`, while reusable product code lives under feature and shared
-infrastructure directories.
-
-```text
-src/
-  app/
-    page.tsx
-    layout.tsx
-  components/
-    ui/
-  features/
-    rules/
-      components/
-      services/
-  lib/
-  schemas/
-    rules/
-  types/
-
-docs/
-  adr/
-
-tests/
-  unit/
-  schemas/
-  services/
-  api/
-  safety/
-  evals/
-  e2e/
-  fixtures/
-
-data/
-  ruletrade.sqlite
-  storage/
-```
-
-### Placement Rules
-
-- `src/app/`: Next.js App Router pages, layouts, and route handlers. Keep these
-  files thin and delegate product behavior to feature modules or shared
-  services.
-- `src/features/rules/`: MVP rule creation and review UI, workflow services,
-  prompt builders, hooks, and feature-local types.
-- `src/components/ui/`: reusable shadcn-style UI primitives that do not know
-  about trading concepts.
-- `src/lib/`: shared infrastructure such as auth, database clients, provider
-  gateways, errors, safety checks, config, and utilities.
-- `src/schemas/`: shared validation-ready domain schemas. Rule schemas live in
-  `src/schemas/rules/`.
-- `src/lib/db/sqlite-schema.ts`: database schema initialization.
-- `tests/`: unit, API, schema, ownership, safety, eval, and E2E coverage.
-
-Use the `@/*` import alias for code under `src/`. Prefer direct imports over
-barrel exports during the MVP so feature boundaries remain visible.
-
-### MVP vs Future Structure
-
-Create only the directories needed by the active MVP issue. Future feature
-areas such as portfolio, watchlist, documents, billing, notifications, RAG,
-analytics, and eval infrastructure should be added when their implementation
-issues start, not as empty placeholders.
-
-Server-only modules that read secrets or privileged credentials must include
-`import "server-only";`. Browser code must never import provider gateways,
-SQLite access, Stripe secret clients, or other privileged
-runtime modules directly.
-
-## AI Agent Development
-
-This repository includes instructions for AI coding agents.
-
-See:
-
-- `AGENTS.md`
-- `.github/copilot-instructions.md`
-- `.github/instructions/`
-- `.github/prompts/`
-- `docs/agents.md`
-
-AI agents should only work on small, scoped tasks.
-
-All agent PRs require human review and CI checks.
-
-
-## Closed Beta
-
-Ruletrade-AI supports a closed beta workflow:
-
-- beta cohorts
-- invite codes
-- beta access grants
-- beta feature flags
-- launch stop switches
-- launch readiness reviews
-
-See:
-
-- `docs/closed-beta.md`
-- `docs/launch-readiness.md`
-
-## Roadmap / Release Management
-
-Ruletrade-AI includes a lightweight release management process:
-
-- GitHub Projects for planning
-- GitHub Milestones for beta phases
-- release plans
-- release checklists
-- changelog entries
-- release approvals
-- rollback strategies
-- public roadmap / changelog
-
-See:
-
-- `docs/roadmap.md`
-- `docs/release-management.md`
-
-## Engineering Governance
-
-Ruletrade-AI uses lightweight engineering governance:
-
-- Architecture Decision Records
-- Pull Request template
-- CODEOWNERS
-- Issue Forms
-- Technical Debt Register
-- Engineering Exception Register
-- Dependency Review
-- Release Gates
-
-See:
-
-- `docs/adr.md`
-- `docs/engineering-standards.md`
-- `docs/technical-debt.md`
+Ruletrade-AI does not tell the user what to buy or sell. AI is used for transcription, structuring the user's own notes, and comparing current notes with past notes.
