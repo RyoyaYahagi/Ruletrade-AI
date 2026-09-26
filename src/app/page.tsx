@@ -1,102 +1,61 @@
-import type { Metadata } from "next";
+import { CaptureForm } from "@/features/capture/capture-form";
 import Link from "next/link";
+import { listDueDecisionsAction, listRecentDecisionsAction, listStocksAction } from "@/features/decisions/actions";
 
-export const metadata: Metadata = {
-  title: "Ruletrade-AI — 投資ルールを整理するAI補助アプリ",
-  description:
-    "AIが投資ルールの拘り抜け・おさらいを確認し、自分だけの利断基準を明文化する。投資助言ではありません。",
-  openGraph: {
-    title: "Ruletrade-AI",
-    description: "投資ルールを整理するAI補助アプリ",
-    url: "https://ruletrade-ai.vercel.app",
-    siteName: "Ruletrade-AI",
-    locale: "ja_JP",
-    type: "website",
-  },
+export const dynamic = "force-dynamic";
+
+const typeLabel: Record<string, string> = {
+  buy: "購入",
+  add: "買い増し",
+  sell_consideration: "売却を検討",
+  sell: "売却",
+  thesis_update: "仮説の更新",
+  note: "メモ",
 };
 
-export default function LandingPage() {
+function shortDate(date: string) {
+  return new Intl.DateTimeFormat("ja-JP", { month: "numeric", day: "numeric" }).format(new Date(date));
+}
+
+export default async function HomePage() {
+  const [dueItems, recentItems, stocks] = await Promise.all([
+    listDueDecisionsAction(),
+    listRecentDecisionsAction({ limit: 5 }),
+    listStocksAction(),
+  ]);
   return (
-    <main className="flex flex-col">
-      <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          投資ルールを整理し、判断を明文化する
-        </h1>
-        <p className="mt-6 text-lg text-gray-600">
-          Ruletrade-AIは、自分の投資ルールをセッション単位で作成・管理し、
-          AIが拘り抜けやおさらいをフィードバックする補助ツールです。
-        </p>
-        <p className="mt-4 text-sm text-gray-500">
-          ※投資助言、売買推奨、資産運用の代行ではありません。
-        </p>
-        <div className="mt-8 flex items-center justify-center gap-4">
-          <Link
-            href="/login"
-            className="rounded bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            ログイン
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded border px-5 py-2.5 text-sm font-medium hover:bg-gray-50"
-          >
-            新規登録
-          </Link>
+    <main className="page-shell">
+      <CaptureForm stocks={stocks} />
+      {dueItems.length > 0 && (
+        <section className="mt-10" aria-labelledby="due-heading">
+          <h2 id="due-heading" className="text-lg font-semibold">レビュー時期です</h2>
+          <div className="mt-3 divide-y rounded-2xl border bg-card">
+            {dueItems.map(({ stock, decision }) => (
+              <Link key={decision.id} href={`/stocks/${stock.id}?review=${decision.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-secondary/50">
+                <span><span className="block font-medium">{stock.name}</span><span className="mt-1 block text-sm text-muted-foreground">{decision.thesis ?? decision.rawInput}</span></span>
+                <span className="shrink-0 text-sm text-muted-foreground">{decision.reviewAt ? shortDate(decision.reviewAt) : "振り返る"} →</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className="mt-10" aria-labelledby="recent-heading">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="recent-heading" className="text-lg font-semibold">最近の判断</h2>
+          <Link href="/transactions" className="text-sm font-medium text-primary hover:underline">売買履歴を見る</Link>
         </div>
-      </section>
-
-      <section className="mx-auto max-w-3xl px-6 py-16">
-        <h2 className="text-2xl font-bold">まず使ってみる</h2>
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
-          <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">投資ルールの作成</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              セッション単位で自分の判断基準を言語化します。
-            </p>
+        {recentItems.length === 0 ? (
+          <p className="mt-3 rounded-2xl border bg-card p-5 text-sm text-muted-foreground">記録はまだありません。上の入力欄から最初の判断を残せます。</p>
+        ) : (
+          <div className="mt-3 divide-y rounded-2xl border bg-card">
+            {recentItems.map(({ stock, decision }) => (
+              <Link key={decision.id} href={`/stocks/${stock.id}`} className="flex items-start justify-between gap-4 p-4 hover:bg-secondary/50">
+                <span className="min-w-0"><span className="block font-medium">{stock.name}</span><span className="mt-1 block truncate text-sm text-muted-foreground">{decision.thesis ?? decision.rawInput}</span></span>
+                <span className="shrink-0 text-right text-sm text-muted-foreground"><span className="block">{shortDate(decision.createdAt)}</span><span className="block">{typeLabel[decision.type]}</span></span>
+              </Link>
+            ))}
           </div>
-          <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">AIフィードバック</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              AIがルールの拘り抜けや矛盾を指摘します。
-            </p>
-          </div>
-          <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">資料管理</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              投資資料をアップロードして再利用できます。
-            </p>
-          </div>
-          <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">ウォッチリスト</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              気になる銘柄をリストアップして管理します。
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-3xl px-6 py-16">
-        <h2 className="text-2xl font-bold">よくある質問</h2>
-        <dl className="mt-6 space-y-4">
-          <div className="rounded border p-4">
-            <dt className="font-medium">投資助言はしてくれますか？</dt>
-            <dd className="mt-1 text-sm text-gray-600">
-              いいえ。Ruletrade-AIは投資助言、売買推奨、資産運用の代行ではありません。あなた自身の判断基準を整理するツールです。
-            </dd>
-          </div>
-          <div className="rounded border p-4">
-            <dt className="font-medium">課金はありますか？</dt>
-            <dd className="mt-1 text-sm text-gray-600">
-              Closed Beta期間中は無料でご利用いただけます。
-            </dd>
-          </div>
-          <div className="rounded border p-4">
-            <dt className="font-medium">データは安全ですか？</dt>
-            <dd className="mt-1 text-sm text-gray-600">
-              ユーザーデータは暗号化されて保存され、貴方だけがアクセスできます。
-            </dd>
-          </div>
-        </dl>
+        )}
       </section>
     </main>
   );

@@ -6,17 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/dashboard",
-          "/admin",
-          "/rules",
-          "/documents",
-          "/portfolio",
-          "/watchlist",
-          "/settings",
-          "/beta",
-          "/api/",
-        ],
+        disallow: ["/api/"],
       },
     ],
     sitemap: "https://ruletrade-ai.vercel.app/sitemap.xml",

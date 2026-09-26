@@ -16,17 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
-      NODE_ENV: test
-      NEXT_PUBLIC_APP_URL: http://localhost:3100
       E2E_TEST_PORT: 3100
       NEXT_DIST_DIR: .next-e2e
-      SQLITE_DATABASE_PATH: ./data/e2e-test.sqlite
-      LOCAL_STORAGE_PATH: ./data/e2e-test-storage
-      MOCK_AUTH_EMAIL: e2e@example.com
-      MOCK_AUTH_USER_ID: e2e-test-user
-      MOCK_AUTH_ROLE: user
-      E2E_TEST_AUTH: true
-      AI_PROVIDER: mock
     steps:
       - uses: actions/checkout@v4
 
@@ -44,14 +35,14 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
       - name: Build for production
         run: npm run build
 
       - name: Run E2E tests
-        run: npm run test:e2e -- --project=chromium
+        run: npm run test:e2e
 
       - name: Upload Playwright report
         if: always()

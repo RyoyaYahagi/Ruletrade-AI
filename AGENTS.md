@@ -1,112 +1,58 @@
 # AGENTS.md
 
-This repository is Ruletrade-AI.
+Ruletrade-AI is a personal investment decision journal. Users record their own thinking and review it later. The app does not provide investment advice, buy/sell recommendations, asset management, brokerage services, or order execution.
 
-Ruletrade-AI is an AI-assisted investment rule design app.
+## Product and architecture
 
-It helps users organize their own investment rules, identify missing fields, and review saved notes.
+- Treat the user's original words as the source of truth. AI extraction, summaries, and comparisons are derived data.
+- Save each new thought as a new timeline event; do not overwrite earlier decisions.
+- Keep Gemini calls server-side. Never expose API keys or other secrets to the browser, and never use `NEXT_PUBLIC_` for secrets.
+- Validate AI output with Zod before saving or displaying it. AI may organize notes and compare a user's current thinking with past notes, but must not recommend buying or selling.
+- The app is single-user and has no authentication or ownership layer. Add neither unless the product scope changes explicitly.
+- Prefer direct use of the existing framework and libraries. Keep domain logic small and easy to change.
 
-It does not provide investment advice, buy/sell recommendations, asset management, brokerage services, or order execution.
+## YAGNI
 
-## Core principles
+- Do not implement a feature because it might be useful in the future.
+- Add an abstraction only when at least two concrete current use cases need it.
+- Keep Gemini as the sole AI integration; do not add a provider abstraction.
+- Do not add repository patterns, factories, or manager layers ahead of a demonstrated need.
+- Remove unused code, dependencies, scripts, and documentation when their feature is removed.
+- Do not preserve old features with feature flags.
+- Before adding a dependency, check whether the standard platform or an existing dependency already solves the need.
+- Keep each feature within the fewest useful modules.
 
-- Do not expose secrets to the browser.
-- Do not use `NEXT_PUBLIC_` for server secrets.
-- Do not call AI providers directly from Client Components.
-- Do not bypass server-side ownership checks in normal user APIs.
-- Do not weaken financial safety or compliance checks.
-- Do not add buy/sell recommendation copy.
-- Keep changes small and scoped to the issue.
-- Enforce server-side ownership checks in every new API route or service
-  that touches user-owned data, not only preserve existing ones.
-- Before writing new logic, search for existing similar implementations and
-  shared utilities; reuse or extend them instead of duplicating.
+## Implementation
 
-## Required checks before completing a task
+- Search for existing related code before adding new logic; extend it when that keeps the design simpler.
+- Fail explicitly when required data is missing or an operation fails. Add a fallback only for a stated product requirement, and explain why it is safe where it is used.
+- Write comments only for non-obvious intent, external constraints, domain reasons, or relied-on invariants.
+- Do not edit `.env.local`, commit real secrets, or commit SQLite/database files.
+- Do not change production deployment settings.
 
-Run or mention why you could not run:
+## Required checks
+
+Before completing a change, run or report why these checks could not run:
 
 ```bash
 npm run typecheck
 npm run lint
 npm run test
-```
-
-If database ownership or schema changed, add or update the corresponding SQLite
-service tests.
-
-If UI changed:
-
-```bash
 npm run test:e2e
 ```
 
-## Testing rules
-
-- When a test fails, suspect the implementation first. Change a test's
-  expectations only when the intended behavior changed, and state that
-  change and its reason when reporting the task.
-- Do not commit `.skip` or `.only` in test files. CI rejects them via
-  `npm run check:test-hygiene`.
-- Every new API route or service that reads or writes user-owned data must
-  ship with a test proving access with another user's ID fails.
-
-## Architecture rules
-
-- Next.js App Router
-- TypeScript
-- Local session authentication
-- SQLite database
-- Server-side ownership checks
-- Local file storage
-- AI Provider Gateway
-- Mock/OpenAI/Gemini provider switching
-- Safety Check before displaying AI output
-- Compliance Gate before displaying financial output
-
-## Comment rules
-
-Write comments only for intent that cannot be derived from the code itself:
-
-- Why this approach was chosen, especially when a simpler-looking alternative
-  was deliberately rejected (so a later reader does not "simplify" it back).
-- External constraints being worked around (SQLite behavior, Next.js App
-  Router quirks, AI provider API limitations).
-- Domain or compliance reasons (e.g. why wording avoids buy/sell
-  recommendations, why the Compliance Gate runs at this point).
-- Preconditions and invariants the code relies on (e.g. "caller has already
-  verified ownership").
-
-Do not write comments that restate what the code does. If a function has no
-non-derivable intent, it needs no comment. For module-level "why does this
-exist" context, use a short comment at the top of the file or a doc under
-`docs/`.
-
-## Fallback rules
-
-Do not add fallbacks casually:
-
-- When an operation fails or required data is missing, fail explicitly
-  (throw or return an error) instead of silently falling back to a default
-  value, an empty result, or an alternate code path. Silent fallbacks hide
-  bugs and corrupt downstream state.
-- Add a fallback only when it is an explicit requirement, and document at
-  the fallback site why it is safe and what triggers it.
-- Never use a fallback to bypass Safety Check, Compliance Gate, or
-  ownership checks.
+Do not commit `.skip` or `.only` in tests. When a test fails, investigate the implementation first; change an expectation only when the intended behavior changed and explain why.
 
 ## Review
 
-When reviewing a diff or PR, also apply the checklist in
-`.agents/skills/review-checklist/SKILL.md` (symlinked from
-`.claude/skills/review-checklist`).
+For repository reviews, also apply [the Ruletrade-AI review checklist](.agents/skills/review-checklist/SKILL.md). It supplements these product principles with checks for correctness, test quality, and scope.
 
-## Forbidden
+<!-- BEGIN:nextjs-agent-rules -->
 
-- Do not edit `.env.local`.
-- Do not commit real secrets.
-- Do not commit database files (`*.sqlite*`, anything under `.data/`).
-- Do not disable tests to pass CI.
-- Do not remove ownership checks.
-- Do not change production deployment settings.
-- Do not make broad refactors unless explicitly requested.
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

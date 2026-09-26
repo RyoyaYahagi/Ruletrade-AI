@@ -4,8 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Ruletrade-AI",
     short_name: "Ruletrade",
-    description:
-      "AI-assisted investment rule design app. Organize your own investment rules.",
+    description: "投資判断を残し、過去の自分の考えを振り返るジャーナルです。",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
