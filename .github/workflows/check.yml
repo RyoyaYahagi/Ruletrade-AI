@@ -6,23 +6,14 @@ on:
     branches:
       - main
       - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
-
-    env:
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
-      AI_PROVIDER: mock
-      EMBEDDING_PROVIDER: mock
-      ENABLE_SAFETY_CHECK: true
-      ENABLE_AI_LOGGING: true
-      ENABLE_EVAL_MODE: false
-      AI_LOG_PAYLOADS: false
-      ENABLE_RATE_LIMIT: true
-      ENABLE_COST_LIMIT: true
-      DEFAULT_MONTHLY_AI_COST_LIMIT_USD: 1
-      CRON_SECRET: dummy-secret
 
     steps:
       - name: Checkout
@@ -31,7 +22,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
