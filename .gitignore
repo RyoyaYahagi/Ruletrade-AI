@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-systemd/
 /.next-e2e/
 /.next-backend-build/
 /.next-backend-webpack/
