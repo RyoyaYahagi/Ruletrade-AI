@@ -205,7 +205,7 @@ export function ImportPanel({ batches }: { batches: Batches }) {
           取引履歴を読み込む
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          楽天証券の日本株・米国株、SBI証券・野村證券の日本株CSVに対応しています。投資信託は対象外です。
+          楽天証券の日本株・米国株、SBI証券・野村證券・マネックス証券の日本株CSVに対応しています。投資信託は対象外です。
         </p>
         <label className="mt-4 block text-sm">
           CSVを選択

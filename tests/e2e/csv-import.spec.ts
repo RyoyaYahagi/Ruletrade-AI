@@ -194,3 +194,60 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
     }
   }
 });
+
+test("imports Monex CP932 history, prevents duplicates and undoes the batch", async ({
+  page,
+}) => {
+  await page.goto("/data");
+  const before = await (await page.request.get("/api/export")).json();
+  const upload = () =>
+    page
+      .getByLabel("CSVを選択")
+      .setInputFiles(
+        path.join(
+          process.cwd(),
+          "tests/fixtures/csv-import/monex-jp-cp932.csv",
+        ),
+      );
+  await upload();
+  await expect(
+    page.getByRole("button", { name: "7件をインポート" }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "7件をインポート" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "7件をインポートしました",
+  );
+  const after = await (await page.request.get("/api/export")).json();
+  const trades = after.transactions.filter(
+    (transaction: { sourceBroker: string }) =>
+      transaction.sourceBroker === "monex",
+  );
+  expect(trades).toHaveLength(7);
+  expect(
+    trades.every(
+      (transaction: { fee: number | null }) => transaction.fee === null,
+    ),
+  ).toBe(true);
+  expect(
+    trades
+      .map(
+        (transaction: { settlementAmount: number }) =>
+          transaction.settlementAmount,
+      )
+      .sort(),
+  ).toEqual([-1000, -1000, -1000, -1000, 990, 990, 990].sort());
+  await upload();
+  await expect(
+    page.getByRole("button", { name: "0件をインポート" }),
+  ).toBeDisabled();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "取り消す", exact: true })
+    .first()
+    .click();
+  await expect(page.getByRole("status")).toHaveText(
+    "インポートを取り消しました。",
+  );
+  const undone = await (await page.request.get("/api/export")).json();
+  expect(undone.transactions).toEqual(before.transactions);
+});

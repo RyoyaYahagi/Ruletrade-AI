@@ -1,10 +1,11 @@
-export type Broker = "rakuten" | "sbi" | "nomura";
+export type Broker = "rakuten" | "sbi" | "nomura" | "monex";
 export type CsvFormat =
   | "rakuten-jp"
   | "rakuten-us"
   | "rakuten-investment-fund"
   | "sbi-jp"
-  | "nomura-jp";
+  | "nomura-jp"
+  | "monex-jp";
 export type Currency = "JPY" | "USD";
 
 export type NormalizedTransaction = {

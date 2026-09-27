@@ -19,7 +19,10 @@ export const TransactionSchema = z.object({
   settlementAmount: z.number().nullable().optional(),
   exchangeRate: z.number().positive().nullable().optional(),
   accountType: z.string().nullable().optional(),
-  sourceBroker: z.enum(["rakuten", "sbi", "nomura"]).nullable().optional(),
+  sourceBroker: z
+    .enum(["rakuten", "sbi", "nomura", "monex"])
+    .nullable()
+    .optional(),
   sourceTradeType: z.string().nullable().optional(),
   importBatchId: z.string().nullable().optional(),
   sourceFingerprint: z.string().nullable().optional(),
