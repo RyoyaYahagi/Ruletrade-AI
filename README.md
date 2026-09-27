@@ -113,7 +113,7 @@ cp .env.example .env.local
 
 `.env.local` や記録を保存したデータベースはGitにコミットしないでください。APIキーはサーバー側で使用します。
 
-文字起こしには `gemini-3.5-transcribe` を使用します。音声をBase64形式でInteractions APIへ直接送信し、Files APIへのアップロードは行いません。言い直しや繰り返しを残す `verbatim` モードを使います。音声ファイルの上限は、Base64変換後のリクエストサイズを考慮して14 MiBです。
+文字起こしには `gemini-3.5-transcribe` を使用します。音声をBase64形式でInteractions APIへ直接送信し、Files APIへのアップロードは行いません。[Googleの公式仕様](https://ai.google.dev/gemini-api/docs/transcribe)にある `smart` モードで「えー」「あのー」などのフィラーや繰り返しを除去し、言い直しや句読点も整えます。文字起こしの結果は、保存や送信の前に確認・修正できます。音声ファイルの上限は、Base64変換後のリクエストサイズを考慮して14 MiBです。
 
 ```bash
 npm run dev

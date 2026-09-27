@@ -99,8 +99,8 @@ describe("transcribeAudio", () => {
     vi.unstubAllEnvs();
   });
 
-  it("sends audio directly and preserves negation and spoken corrections", async () => {
-    const transcript = "トヨタを100株、いや200株。今は買いません。";
+  it("requests filler removal and returns the transcription without further rewriting", async () => {
+    const transcript = "トヨタを200株。今は買いません。";
     fetchMock.mockResolvedValue(
       Response.json({
         status: "completed",
@@ -125,7 +125,7 @@ describe("transcribeAudio", () => {
       model: "gemini-3.5-transcribe",
       input: [{ type: "audio", data: "AQID", mime_type: "audio/webm" }],
       generation_config: {
-        transcription_config: { language_codes: ["ja-JP"], mode: "verbatim" },
+        transcription_config: { language_codes: ["ja-JP"], mode: "smart" },
       },
       store: false,
     });
