@@ -192,7 +192,8 @@ cd "$REPO_ROOT"
 SERVICE_NAME="ruletrade-ai.service"
 UNIT_PATH="/etc/systemd/system/$SERVICE_NAME"
 BUILD_DIR=".next-systemd"
-EXPECTED_PROXY="http://127.0.0.1:3000"
+EXPECTED_PROXY="http://127.0.0.1:3001"
+EXPECTED_HTTPS_PORT="9445"
 NODE_BIN=""
 NODE_BIN_DIR=""
 NPM_BIN=""
@@ -267,7 +268,7 @@ Environment=PATH=$NODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=NEXT_DIST_DIR=$BUILD_DIR
 Restart=on-failure
 RestartSec=5
-ExecStart=$NPM_BIN run start -- --hostname 127.0.0.1 --port 3000
+ExecStart=$NPM_BIN run start -- --hostname 127.0.0.1 --port 3001
 
 [Install]
 WantedBy=multi-user.target
@@ -297,7 +298,7 @@ else
 fi
 
 stage "Install and enable the systemd service"
-say "The service runs as $(id -un) and binds only to 127.0.0.1:3000. It honors RULETRADE_DATABASE_PATH from the existing .env.local; otherwise the app uses .data/ruletrade-mvp.sqlite."
+say "The service runs as $(id -un) and binds only to 127.0.0.1:3001. It honors RULETRADE_DATABASE_PATH from the existing .env.local; otherwise the app uses .data/ruletrade-mvp.sqlite."
 say "Next.js loads .env.local at runtime from this repository. The unit has no secret values and does not copy or edit .env.local."
 say "Unmanaged units are left untouched. Existing units created by this script require confirmation before replacement."
 UNIT_CANDIDATE="$(mktemp)"
@@ -324,13 +325,13 @@ fi
 stage "Verify the local service"
 say "Waiting up to 30 seconds for Ruletrade-AI to respond on loopback."
 for _ in {1..30}; do
-  if systemctl is-active --quiet "$SERVICE_NAME" && curl --silent --fail --output /dev/null http://127.0.0.1:3000/; then
+  if systemctl is-active --quiet "$SERVICE_NAME" && curl --silent --fail --output /dev/null http://127.0.0.1:3001/; then
     say "The systemd service is active and the local HTTP check passed."
     break
   fi
   sleep 1
 done
-if ! systemctl is-active --quiet "$SERVICE_NAME" || ! curl --silent --fail --output /dev/null http://127.0.0.1:3000/; then
+if ! systemctl is-active --quiet "$SERVICE_NAME" || ! curl --silent --fail --output /dev/null http://127.0.0.1:3001/; then
   fail "The service did not become healthy. Inspect it with: sudo journalctl -u $SERVICE_NAME -n 80 --no-pager"
 fi
 
@@ -340,44 +341,54 @@ SERVE_STATUS="$(timeout 5s sudo tailscale serve status --json 2>/dev/null)" || f
 SERVE_STATE="$(printf '%s' "$SERVE_STATUS" | python3 -c '
 import json,sys
 d=json.load(sys.stdin)
-target="http://127.0.0.1:3000"
-def values(x):
-    if isinstance(x,dict):
-        for v in x.values(): yield from values(v)
-    elif isinstance(x,list):
-        for v in x: yield from values(v)
+target="http://127.0.0.1:3001"
+if not isinstance(d,dict): raise SystemExit(1)
+def member(obj,name):
+    for k,v in obj.items():
+        if isinstance(k,str) and k.lower()==name.lower(): return v
+    return {}
+web=member(d,"Web")
+tcp=member(d,"TCP")
+funnel=member(d,"AllowFunnel")
+if not all(isinstance(x,dict) for x in (web,tcp,funnel)): raise SystemExit(1)
+web_entries=[(k,v) for k,v in web.items() if isinstance(k,str) and k.endswith(":9445")]
+tcp_entries=[(k,v) for k,v in tcp.items() if isinstance(k,str) and (k=="9445" or k.endswith(":9445"))]
+funnel_entries=[(k,v) for k,v in funnel.items() if isinstance(k,str) and k.endswith(":9445")]
+funnel_enabled=any(bool(v) for _,v in funnel_entries)
+def is_https_listener(v):
+    if not isinstance(v,dict): return False
+    found=False
+    for k,z in v.items():
+        if isinstance(k,str) and k.lower()=="https" and z is True: found=True
+        elif z is not False: return False
+    return found
+https_tcp=[v for k,v in tcp_entries if k=="9445" and is_https_listener(v)]
+other_tcp=[(k,v) for k,v in tcp_entries if not (k=="9445" and is_https_listener(v))]
+if funnel_enabled or other_tcp:
+    print("conflict")
+elif not web_entries and not tcp_entries:
+    print("empty")
+elif len(web_entries)==1 and len(tcp_entries)==1 and len(https_tcp)==1:
+    handlers=member(web_entries[0][1],"Handlers")
+    root=member(handlers,"/")
+    proxy=next((v for k,v in root.items() if isinstance(k,str) and k.lower()=="proxy"),None) if isinstance(root,dict) else None
+    if len(handlers)==1 and len(root)==1 and proxy==target:
+        print("same")
     else:
-        yield x
-all_values=[str(v) for v in values(d)]
-def walk(x):
-    if isinstance(x,dict):
-        for k,v in x.items():
-            yield k.lower(),v
-            yield from walk(v)
-    elif isinstance(x,list):
-        for v in x: yield from walk(v)
-def configured(x):
-    if isinstance(x,dict): return any(configured(v) for v in x.values())
-    if isinstance(x,list): return any(configured(v) for v in x)
-    return bool(x)
-items=list(walk(d))
-if any(k == "allowfunnel" and configured(v) for k,v in items): print("funnel")
-elif any(target in v for v in all_values): print("same")
-elif any(k in ("web","tcp") and configured(v) for k,v in items): print("other")
-else: print("empty")
+        print("conflict")
+else:
+    print("conflict")
 ' 2>/dev/null)" || fail "Could not safely interpret current Tailscale Serve configuration; leaving it unchanged."
-if [[ "$SERVE_STATE" == "funnel" ]]; then
-  fail "A Funnel-enabled Tailscale route was detected. It was left untouched; review it manually before configuring a tailnet-only route."
-elif [[ "$SERVE_STATE" == "other" ]]; then
-  fail "An existing Tailscale Serve configuration was detected. It was left untouched; review it manually before rerunning."
+if [[ "$SERVE_STATE" == "conflict" ]]; then
+  fail "Tailscale Serve HTTPS :9445 is already used or has a conflicting configuration. No Serve settings were changed."
 elif [[ "$SERVE_STATE" == "same" ]]; then
-  say "The expected Tailscale Serve route already exists; leaving the current Serve configuration unchanged."
+  say "The expected Ruletrade HTTPS :9445 route already exists; leaving the current Serve configuration unchanged."
 else
-  say "This adds a persistent HTTPS endpoint within the tailnet and forwards it to the loopback-only app. It does not enable public Funnel access."
-  confirm "Configure Tailscale Serve for this device using $EXPECTED_PROXY?" || fail "Tailscale Serve was left unchanged."
-  sudo tailscale serve --bg --https=443 "$EXPECTED_PROXY" || fail "Tailscale Serve could not be configured. Existing configuration was not reset."
+  say "This adds a persistent HTTPS :9445 endpoint within the tailnet and forwards it to the loopback-only app. It does not enable public Funnel access. Other Serve routes are preserved."
+  confirm "Configure Tailscale Serve HTTPS :$EXPECTED_HTTPS_PORT for this device using $EXPECTED_PROXY?" || fail "Tailscale Serve was left unchanged."
+  sudo tailscale serve --bg --https="$EXPECTED_HTTPS_PORT" "$EXPECTED_PROXY" || fail "Tailscale Serve could not be configured. Existing configuration was not reset."
 fi
-say "On a device connected to the same tailnet, open the HTTPS address shown by: sudo tailscale serve status"
+say "On a device connected to the same tailnet, open this device's HTTPS :$EXPECTED_HTTPS_PORT address shown by: sudo tailscale serve status"
 say "Serve's --bg setting persists across reboot and Tailscale restarts."
 say "The host must remain powered on, awake, and connected to Tailscale for the app to be reachable. This wizard does not change host power settings."
 finish

@@ -38,7 +38,9 @@
     "**/*.mts",
     ".next/dev/dev/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
-    ".next-e2e/dev/types/**/*.ts"
+    ".next-e2e/dev/types/**/*.ts",
+    ".next-systemd/types/**/*.ts",
+    ".next-systemd/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
