@@ -110,7 +110,8 @@ export async function saveDecisionAction(input: unknown): Promise<{
         .select()
         .from(transactions)
         .where(eq(transactions.stockId, stock.id))
-        .all(),
+        .all()
+        .map((row) => TransactionSchema.parse(row)),
       parsed.type,
       decidedAt,
       stock.id,

@@ -6,7 +6,9 @@ import { expect, it } from "vitest";
 import { japanDate } from "@/features/transactions/matching";
 
 it("adds decided_at to a legacy database and preserves created_at as the display fallback", async () => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "ruletrade-date-migration-"));
+  const directory = mkdtempSync(
+    path.join(os.tmpdir(), "ruletrade-date-migration-"),
+  );
   const databasePath = path.join(directory, "legacy.sqlite");
   const legacy = new Database(databasePath);
   legacy.exec(`
@@ -18,14 +20,20 @@ it("adds decided_at to a legacy database and preserves created_at as the display
   legacy.close();
   process.env.RULETRADE_DATABASE_PATH = databasePath;
   const { getDb } = await import("@/lib/db");
-  const { getStockTimelineAction } = await import("@/features/decisions/actions");
+  const { getStockTimelineAction } =
+    await import("@/features/decisions/actions");
   try {
     const timeline = await getStockTimelineAction({ stockId: "stock" });
     const decision = timeline.decisions[0];
     expect(decision.decidedAt).toBeNull();
     expect(decision.rawInput).toBe("旧記録");
     expect(decision.createdAt).toBe("2026-02-13T15:00:00.000Z");
-    expect(japanDate(decision.decidedAt ?? decision.createdAt)).toBe("2026-02-14");
+    expect(japanDate(decision.decidedAt ?? decision.createdAt)).toBe(
+      "2026-02-14",
+    );
     expect(getDb().$client.pragma("foreign_key_check")).toEqual([]);
-  } finally { getDb().$client.close(); rmSync(directory, { recursive: true, force: true }); }
+  } finally {
+    getDb().$client.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

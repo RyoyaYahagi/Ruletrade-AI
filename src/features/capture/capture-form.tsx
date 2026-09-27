@@ -75,13 +75,18 @@ export function CaptureForm({
       ? japanDate(initialTransaction.executedAt)
       : japanDate(new Date()),
   );
-  const [candidateTransactions, setCandidateTransactions] = useState<
-    Transaction[]
-  >(suppliedTransactions ?? []);
-  const [candidatesLoading, setCandidatesLoading] = useState(false);
-  const [selectedTransactionId, setSelectedTransactionId] = useState<
-    string | null
-  >(initialTransaction?.id ?? null);
+  const [fetchedTransactions, setFetchedTransactions] = useState<{
+    stockId: string;
+    items: Transaction[];
+  } | null>(null);
+  const [transactionFetchError, setTransactionFetchError] = useState<{
+    stockId: string;
+    message: string;
+  } | null>(null);
+  const [transactionSelection, setTransactionSelection] = useState<{
+    key: string;
+    id: string | null;
+  } | null>(null);
   const [recordTrade, setRecordTrade] = useState(false);
   const [reviewChoice, setReviewChoice] = useState("none");
   const [reviewDate, setReviewDate] = useState("");
@@ -93,77 +98,69 @@ export function CaptureForm({
       ? stockChoice.slice("existing:".length)
       : null);
   useEffect(() => {
+    if (!effectiveStockId || suppliedTransactions) return;
     let active = true;
-    if (!effectiveStockId) {
-      setCandidateTransactions([]);
-      setCandidatesLoading(false);
-      setSelectedTransactionId(null);
-      return () => {
-        active = false;
-      };
-    }
-    if (suppliedTransactions) {
-      setCandidateTransactions(suppliedTransactions);
-      setCandidatesLoading(false);
-      return () => {
-        active = false;
-      };
-    }
-    setCandidatesLoading(true);
-    setSelectedTransactionId(null);
     void listCaptureTransactionsAction({ stockId: effectiveStockId })
       .then((items) => {
-        if (active) setCandidateTransactions(items);
+        if (active) {
+          setFetchedTransactions({ stockId: effectiveStockId, items });
+          setTransactionFetchError(null);
+        }
       })
       .catch((cause: unknown) => {
-        if (active)
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : "売買履歴を読み込めませんでした。",
-          );
-      })
-      .finally(() => {
-        if (active) setCandidatesLoading(false);
+        if (active) {
+          setTransactionFetchError({
+            stockId: effectiveStockId,
+            message:
+              cause instanceof Error
+                ? cause.message
+                : "売買履歴を読み込めませんでした。",
+          });
+        }
       });
     return () => {
       active = false;
     };
   }, [effectiveStockId, suppliedTransactions]);
 
+  const candidatesLoading = Boolean(
+    effectiveStockId &&
+    !suppliedTransactions &&
+    fetchedTransactions?.stockId !== effectiveStockId &&
+    transactionFetchError?.stockId !== effectiveStockId,
+  );
+  const candidatesError =
+    effectiveStockId && transactionFetchError?.stockId === effectiveStockId
+      ? transactionFetchError.message
+      : null;
+  const availableTransactions = suppliedTransactions
+    ? suppliedTransactions
+    : fetchedTransactions?.stockId === effectiveStockId
+      ? fetchedTransactions.items
+      : [];
   const transactionCandidates = effectiveStockId
     ? findTransactionCandidates(
-        candidateTransactions,
+        availableTransactions,
         extraction.type,
         decisionDate,
         effectiveStockId,
       )
     : [];
+  const selectionKey = `${effectiveStockId ?? "new"}:${extraction.type}:${decisionDate}`;
+  const defaultTransactionId =
+    initialTransaction &&
+    transactionCandidates.some((item) => item.id === initialTransaction.id)
+      ? initialTransaction.id
+      : transactionCandidates.length === 1
+        ? transactionCandidates[0].id
+        : null;
+  const selectedTransactionId =
+    transactionSelection?.key === selectionKey
+      ? transactionSelection.id
+      : defaultTransactionId;
   const selectedLinkedTransaction =
     transactionCandidates.find((item) => item.id === selectedTransactionId) ??
     null;
-  useEffect(() => {
-    const eligible = findTransactionCandidates(
-      candidateTransactions,
-      extraction.type,
-      decisionDate,
-      effectiveStockId ?? "",
-    );
-    const sourceMatch =
-      initialTransaction &&
-      eligible.some((item) => item.id === initialTransaction.id)
-        ? initialTransaction.id
-        : null;
-    setSelectedTransactionId(
-      sourceMatch ?? (eligible.length === 1 ? eligible[0].id : null),
-    );
-  }, [
-    candidateTransactions,
-    extraction.type,
-    decisionDate,
-    effectiveStockId,
-    initialTransaction,
-  ]);
 
   const handleTranscript = useCallback((value: string) => {
     setTranscript(value);
@@ -184,6 +181,15 @@ export function CaptureForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           rawInput,
+          ...(fixedStock
+            ? {
+                stock: {
+                  name: fixedStock.name,
+                  ticker: fixedStock.ticker,
+                  market: fixedStock.market,
+                },
+              }
+            : {}),
           ...(answer ? { followUpAnswer: answer } : {}),
         }),
       });
@@ -231,8 +237,10 @@ export function CaptureForm({
   }
 
   async function save() {
-    if (candidatesLoading) {
-      setError("売買履歴の読み込みが完了するまで保存できません。");
+    if (candidatesLoading || candidatesError) {
+      setError(
+        candidatesError ?? "売買履歴の読み込みが完了するまで保存できません。",
+      );
       return;
     }
     if (!extraction.stock.name.trim()) {
@@ -244,6 +252,7 @@ export function CaptureForm({
       return;
     }
     if (
+      !selectedLinkedTransaction &&
       recordTrade &&
       (!extraction.transaction?.quantity ||
         extraction.transaction.quantity <= 0)
@@ -355,6 +364,11 @@ export function CaptureForm({
         <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
           いま何を考えていますか？
         </h1>
+        {fixedStock && (
+          <p className="mt-2 text-sm font-medium">
+            記録する銘柄: {fixedStock.name}
+          </p>
+        )}
         <p className="mt-2 text-sm text-muted-foreground">
           話すか、書いてください。保存する前に内容を確認できます。
         </p>
@@ -529,7 +543,7 @@ export function CaptureForm({
                 />
               </label>
               <label className="text-sm">
-                記録日
+                判断した日
                 <input
                   type="date"
                   value={decisionDate}
@@ -607,13 +621,20 @@ export function CaptureForm({
                 />
               </label>
             </div>
+            {effectiveStockId && candidatesError && (
+              <p role="alert" className="text-sm text-destructive">
+                {candidatesError}
+              </p>
+            )}
             {effectiveStockId && (
               <LinkedTransactionSelector
                 transactions={transactionCandidates}
                 value={selectedTransactionId}
-                onChange={setSelectedTransactionId}
+                onChange={(id) =>
+                  setTransactionSelection({ key: selectionKey, id })
+                }
                 loading={candidatesLoading}
-                disabled={mode === "saving"}
+                disabled={mode === "saving" || Boolean(candidatesError)}
               />
             )}
             {!selectedLinkedTransaction && (
@@ -795,7 +816,11 @@ export function CaptureForm({
               <button
                 type="button"
                 onClick={() => void save()}
-                disabled={mode === "saving" || candidatesLoading}
+                disabled={
+                  mode === "saving" ||
+                  candidatesLoading ||
+                  Boolean(candidatesError)
+                }
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground disabled:opacity-60"
               >
                 <Check size={17} aria-hidden />

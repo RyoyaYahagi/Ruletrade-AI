@@ -121,6 +121,10 @@ npm run dev
 
 ブラウザーで [http://localhost:3000](http://localhost:3000) を開きます。
 
+## ブランチ運用
+
+機能追加は `feature/<短い英語名>` のブランチで実装します。AIが実装を始める際も、[ブランチ運用ルール](docs/branch-workflow.md)に従ってください。
+
 ## 開発時の確認
 
 ```bash
