@@ -18,9 +18,12 @@ export default function RootLayout({
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <header className="app-header">
-          <Link href="/" className="brand">Ruletrade</Link>
+          <Link href="/" className="brand">
+            Ruletrade
+          </Link>
           <nav aria-label="メインナビゲーション">
             <Link href="/">記録</Link>
+            <Link href="/portfolio">ポートフォリオ</Link>
             <Link href="/transactions">売買履歴</Link>
           </nav>
           <HeaderMenu />

@@ -53,12 +53,14 @@ describe("CSV reconciliation", () => {
   let dbModule: typeof import("@/lib/db");
   let service: typeof import("@/features/csv-import/service");
   let schema: typeof import("@/lib/db/schema");
+  let portfolio: typeof import("@/features/portfolio/actions");
   let db: ReturnType<typeof dbModule.getDb>;
 
   beforeAll(async () => {
     dbModule = await import("@/lib/db");
     service = await import("@/features/csv-import/service");
     schema = await import("@/lib/db/schema");
+    portfolio = await import("@/features/portfolio/actions");
     db = dbModule.getDb();
   });
 
@@ -140,12 +142,24 @@ describe("CSV reconciliation", () => {
 
   it("merges an exact manual match in place and only fills missing price", async () => {
     const manual = addManual({ price: null });
+    expect(await portfolio.listPortfolioAction()).toMatchObject([
+      { quantity: 10, averagePurchasePrice: null, acquisitionAmount: null },
+    ]);
     const bytes = csv(trade());
     const preview = await service.previewCsv(bytes);
     expect(preview.counts.merged).toBe(1);
     const result = await service.importCsv(bytes, "merge.csv", preview.digest);
     const saved = db.select().from(schema.transactions).all();
     expect(result).toMatchObject({ importedCount: 0, mergedCount: 1 });
+    expect(await portfolio.listPortfolioAction()).toMatchObject([
+      {
+        quantity: 10,
+        averagePurchasePrice: 123.5,
+        acquisitionAmount: 1235,
+        currency: "JPY",
+      },
+    ]);
+    expect(await portfolio.listPortfolioAction()).toHaveLength(1);
     expect(saved).toHaveLength(1);
     expect(saved[0]).toMatchObject({
       id: manual.transactionId,
@@ -178,6 +192,9 @@ describe("CSV reconciliation", () => {
 
   it("undoes a price fill by restoring null and keeping the manual transaction", async () => {
     const manual = addManual({ price: null });
+    expect(await portfolio.listPortfolioAction()).toMatchObject([
+      { quantity: 10, averagePurchasePrice: null, acquisitionAmount: null },
+    ]);
     const bytes = csv(trade());
     const preview = await service.previewCsv(bytes);
     const { batchId } = await service.importCsv(
@@ -189,7 +206,13 @@ describe("CSV reconciliation", () => {
     expect(
       db.select().from(schema.transactionImportSources).all(),
     ).toHaveLength(1);
+    expect(await portfolio.listPortfolioAction()).toMatchObject([
+      { quantity: 10, averagePurchasePrice: 123.5 },
+    ]);
     service.undoImport(batchId);
+    expect(await portfolio.listPortfolioAction()).toMatchObject([
+      { quantity: 10, averagePurchasePrice: null, acquisitionAmount: null },
+    ]);
     expect(db.select().from(schema.transactions).all()).toHaveLength(1);
     expect(db.select().from(schema.transactions).all()[0]).toMatchObject({
       id: manual.transactionId,
@@ -592,5 +615,30 @@ describe("CSV reconciliation", () => {
         .map(({ id }) => id)
         .sort(),
     ).toEqual(["later-manual-reference", "manual-transaction"]);
+  });
+  it("derives new CSV holdings on read and removes them after undo", async () => {
+    expect(await portfolio.listPortfolioAction()).toEqual([]);
+    const bytes = csv(trade());
+    const preview = await service.previewCsv(bytes);
+    const { batchId } = await service.importCsv(
+      bytes,
+      "portfolio-new.csv",
+      preview.digest,
+    );
+    expect(await portfolio.listPortfolioAction()).toMatchObject([
+      {
+        ticker: "1234",
+        quantity: 10,
+        averagePurchasePrice: 123.5,
+        acquisitionAmount: 1235,
+        currency: "JPY",
+      },
+    ]);
+    const repeat = await service.previewCsv(bytes);
+    await service.importCsv(bytes, "portfolio-repeat.csv", repeat.digest);
+    expect(await portfolio.listPortfolioAction()).toHaveLength(1);
+    expect((await portfolio.listPortfolioAction())[0].quantity).toBe(10);
+    service.undoImport(batchId);
+    expect(await portfolio.listPortfolioAction()).toEqual([]);
   });
 });
