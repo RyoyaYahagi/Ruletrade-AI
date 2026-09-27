@@ -1,141 +1,163 @@
-# Architecture
+# アーキテクチャ
 
-Ruletrade-AI stores a person's investment thoughts as an append-only journal. The words the person entered are the source of truth. Extracted fields, summaries, and comparisons are derived data and can be regenerated or corrected without rewriting the original input.
+Ruletrade-AI では、投資についてその時点で考えていたことを、追記型のジャーナルとして保存します。ユーザー自身が入力した言葉を一次情報として扱い、AIが抽出した項目・要約・比較結果は派生データとして扱います。派生データは、元の入力を書き換えることなく再生成・修正できる前提です。
 
-The architecture follows a few product constraints:
+このアーキテクチャは、次の考え方に基づいています。
 
-- preserve the reasoning available at the time instead of rewriting history later;
-- keep AI as an organizer rather than an investment decision-maker;
-- reduce the friction of recording thoughts so that the journal is practical to continue;
-- keep the single-user MVP intentionally small until more infrastructure is actually needed.
+- 後から都合よく履歴を書き換えず、その時点での判断過程を残す
+- AIは投資判断を行う主体ではなく、記録と整理を支援する役割に限定する
+- 記録を継続できるよう、入力や振り返りの負担を減らす
+- 本当に必要になるまでは、単一ユーザー向けMVPとして構成を小さく保つ
 
-## Data model
+## データモデル
 
-SQLite stores four entities through Drizzle ORM:
+SQLite には、Drizzle ORM を通して4つのエンティティを保存します。
 
-- `stocks`: a ticker, display name, optional market, and creation time.
-- `decisions`: a stock reference, event type, original input, optional transcript, extracted thesis and conditions, optional review date, and creation time.
-- `transactions`: stock, buy/sell side, quantity, price, optional fee and decision link, execution time, and creation time.
-- `reviews`: a required stock link, an optional decision link, the user's current input, comparison summary and differences, required user reflection, and creation time.
+- `stocks`：ティッカー、表示名、任意の市場情報、作成日時
+- `decisions`：銘柄参照、イベント種別、元の入力、任意の文字起こし、抽出された投資仮説や条件、任意のレビュー日、作成日時
+- `transactions`：銘柄、売買区分、数量、価格、任意の手数料と判断記録への参照、約定日時、作成日時
+- `reviews`：銘柄参照、任意の判断記録への参照、現在の入力、比較要約と差分、ユーザー自身の振り返り、作成日時
 
-Each new decision or review is a new timeline event. A later thought does not replace an earlier one. This append-only approach is deliberate: the change between an earlier belief and a later belief is itself useful information for reflection.
+新しい判断や振り返りは、すべて新しいタイムラインイベントとして追加します。後から考えが変わっても、以前の記録は置き換えません。
 
-The user's original words are kept separately from AI-derived fields. The app stores an answer to its single optional follow-up question separately from the original input. Optional facts such as an unknown purchase price remain absent; the app must not invent a value. The confirmation form explicitly sets an execution date when extraction did not provide one.
+これは意図的な設計です。以前の考えと現在の考えの違いそのものが、振り返りに使える情報だからです。
 
-## Application flow
+ユーザーが入力した原文と、AIが抽出した項目は分けて保存します。任意の追加質問に対する回答も、元の入力とは別に保持します。
 
-The Next.js App Router renders the home page, stock detail pages, and the transaction history. Server Actions handle database mutations. Minimal Route Handlers call a server-only Gemini client for extraction, audio transcription, and comparison.
+購入価格など、分からない情報は欠損のまま扱い、アプリ側で推測して補完しません。AIの抽出結果に約定日が含まれていない場合は、確認画面で明示的に設定します。
 
-A typical decision flow is:
+## アプリケーションフロー
 
-1. The user writes or records an unstructured thought.
-2. Voice input is transcribed and can be edited before extraction.
-3. Gemini converts the input into structured fields such as thesis, assumptions, and review conditions.
-4. Zod validates the model output.
-5. The user reviews and edits the extracted result.
-6. Only the confirmed result is stored alongside the original input.
-7. A later review is added as another event instead of modifying the earlier record.
+Next.js App Router でホーム画面、銘柄詳細画面、売買履歴画面を構成しています。データベースへの更新処理には Server Actions を使い、AI処理には最小限の Route Handlers を用意しています。
 
-Voice capture uses the browser's `MediaRecorder` API. The recording is sent to the server for transcription and decision extraction. The server keeps the Gemini API key private.
+Route Handlers からはサーバー側専用の Gemini クライアントを呼び出し、情報抽出・音声文字起こし・過去記録との比較を行います。
 
-## AI boundary
+典型的な判断記録の流れは次の通りです。
 
-Gemini organizes the user's words and compares current input with the selected stock's recorded decisions. It does not make investment decisions or tell the user to buy or sell. Comparison output describes differences between recorded thinking; it does not decide what those differences mean for a trade.
+1. ユーザーが自由形式で考えを入力する、または音声で記録する
+2. 音声の場合は文字起こしし、必要ならユーザーが修正する
+3. Gemini が入力内容から投資仮説・前提・見直し条件などを構造化する
+4. Zod でモデル出力を検証する
+5. ユーザーが抽出結果を確認し、必要なら修正する
+6. 確認済みの内容だけを、元の入力と一緒に保存する
+7. 後から考えが変わった場合は、以前の記録を編集せず、新しいイベントとして追加する
 
-This boundary is intentional. AI is used where it lowers input and review friction:
+音声入力にはブラウザの `MediaRecorder` API を使用しています。録音データはサーバーへ送り、文字起こしと情報抽出を行います。Gemini API キーはサーバー側だけで扱います。
 
-- transcription;
-- extraction from free-form text;
-- structuring a decision into fields;
-- comparison of earlier and current thinking.
+## AIとの境界
 
-The user's wording remains the source of truth, and AI output is treated as derived data that must be validated and confirmed before persistence.
+Gemini は、ユーザーの言葉を整理し、現在の考えと選択した銘柄の過去記録を比較します。
 
-## Technology choices
+一方で、AI自身が投資判断を行ったり、「買うべき」「売るべき」と結論づけたりはしません。比較結果は、過去と現在の考えの違いを記述するところまでに留め、その違いをどう売買判断へ結びつけるかはユーザーに委ねます。
+
+この境界は意図的です。
+
+AIは、入力や振り返りの負担を下げられる部分に使います。
+
+- 音声の文字起こし
+- 自由形式テキストからの情報抽出
+- 判断内容の構造化
+- 過去と現在の考えの比較
+
+ユーザー自身の入力を一次情報として扱い、AI出力は検証・確認が必要な派生データとして扱います。
+
+## 技術選定
 
 ### Next.js + React + TypeScript
 
-The MVP keeps UI and server-side application logic in one codebase. Next.js provides the App Router, Server Actions, and Route Handlers needed for the current product without introducing a separate frontend and backend service.
+MVPでは、UIとサーバー側のアプリケーションロジックを1つのコードベースで管理しています。
 
-TypeScript is used across the application so that UI data, AI output, validation schemas, and persistence code can share explicit types and fail earlier when their shapes drift apart.
+Next.js の App Router、Server Actions、Route Handlers を使うことで、現在必要な機能を、フロントエンドとバックエンドを別サービスとして分離せずに実装できます。
 
-For a single-user MVP, keeping these concerns together is more valuable than introducing service boundaries that are not yet required.
+TypeScript は、UI、AI出力、バリデーション、データベース処理まで一貫して利用しています。データ構造のずれをできるだけ早い段階で検出しやすくすることが目的です。
+
+単一ユーザー向けMVPの段階では、まだ必要のないサービス境界を増やすより、1つのコードベースで変更しやすく保つことを優先しています。
 
 ### SQLite
 
-Ruletrade-AI is currently a local, single-user application. It does not need concurrent multi-user access, horizontal scaling, or a managed database service.
+Ruletrade-AI は現在、ローカルで利用する単一ユーザー向けアプリです。複数ユーザーによる同時アクセス、水平スケーリング、マネージドDBは必要としていません。
 
-SQLite was chosen because it:
+そのため SQLite を採用しています。
 
-- runs locally with no separate database server;
-- keeps the development and deployment footprint small;
-- makes the application's data easy to inspect and back up;
-- is sufficient for the current access pattern.
+- 別途データベースサーバーを立てずにローカルで動かせる
+- 開発・運用時に管理する構成要素を増やさずに済む
+- データを確認しやすく、バックアップもしやすい
+- 現在の利用規模とアクセスパターンには十分
 
-If the product later requires authentication, multiple users, remote shared access, or higher write concurrency, the database choice can be revisited at that point rather than paying that complexity cost in the MVP.
+将来、認証、複数ユーザー、リモートからの共有利用、高い書き込み並行性などが必要になった時点で、データベース構成を見直す想定です。
+
+MVPの段階から将来の可能性だけを理由に複雑な構成を持ち込まないようにしています。
 
 ### Drizzle ORM
 
-Drizzle is used as a relatively thin persistence layer between TypeScript and SQLite.
+Drizzle は、TypeScript と SQLite の間をつなぐ比較的薄い永続化レイヤーとして利用しています。
 
-The goal is to keep schema definitions and application types close together while preserving visibility into the relational model. The project does not need a highly abstract data layer; understanding exactly what is stored is important because original user input and AI-derived data have different roles.
+スキーマ定義とアプリケーション側の型を近い場所で管理しながら、リレーショナルなデータ構造そのものも追いやすくすることを重視しています。
+
+このプロジェクトでは、ユーザーの原文とAI由来のデータを明確に区別する必要があるため、「何がどのように保存されているか」を把握しやすいことを優先しています。
 
 ### Gemini
 
-Gemini is used for three bounded tasks:
+Gemini は、用途を限定して使っています。
 
-- audio transcription;
-- structured extraction from free-form investment notes;
-- comparison of current and historical thinking.
+- 音声の文字起こし
+- 自由形式の投資メモからの構造化抽出
+- 現在と過去の考えの比較
 
-The project benefits from using one model family for both audio and text-oriented workflows, while keeping all model calls behind a server-only boundary.
+音声とテキストを同じモデル系統で扱えるため、現在のMVPでは構成をシンプルに保ちやすいという利点があります。
 
-Gemini is not used as an autonomous trading agent. It does not place orders or decide whether the user should buy or sell.
+すべてのモデル呼び出しはサーバー側に閉じています。
+
+Gemini を自律的な売買エージェントとして使うことは想定していません。注文を実行したり、ユーザーの代わりに売買判断を確定したりはしません。
 
 ### Zod
 
-LLM output is probabilistic and cannot be treated as valid application data merely because it is syntactically parseable.
+LLMの出力は確率的であり、JSONとして読み取れたからといって、そのまま正しいアプリケーションデータとして扱うことはできません。
 
-Zod validates model output before it reaches the confirmation UI or persistence layer. The user then confirms or edits the extracted data before saving it.
+そのため、Gemini の出力は Zod で検証してから確認UIへ渡します。さらに、ユーザーが内容を確認・修正した後に保存します。
 
-This creates a deliberate boundary:
+処理の境界は次のようになります。
 
 ```
-user input
+ユーザー入力
     ↓
 Gemini
     ↓
-Zod validation
+Zod による検証
     ↓
-user confirmation
+ユーザーによる確認・修正
     ↓
 SQLite
 ```
 
 ### Vitest + Playwright
 
-Vitest covers application logic and focused tests. Playwright covers user-visible flows where multiple layers need to work together.
+Vitest はアプリケーションロジックや個別機能のテストに使い、Playwright は複数レイヤーをまたぐユーザー操作の確認に使っています。
 
-For this project, a particularly important path is:
+このプロジェクトで特に重要なのは、次の一連の流れです。
 
 ```
-input → AI extraction → confirmation → save → later review
+入力 → AIによる整理 → 確認 → 保存 → 後から振り返る
 ```
 
-Testing that flow matters more than maximizing isolated test coverage, because the product's value depends on the full recording and reflection loop continuing to work.
+個別のテスト数を増やすこと自体よりも、この記録と振り返りの流れが壊れていないことを重視しています。
 
-## Deliberate scope
+## 意図的に含めていないもの
 
-This is a local, single-user MVP. It intentionally has no:
+現在はローカルで使う単一ユーザー向けMVPなので、次の機能や構成は意図的に入れていません。
 
-- authentication or user-ownership model;
-- document search or embeddings;
-- vector database;
-- provider gateway;
-- multi-agent routing;
-- external API contract;
-- notification service.
+- 認証やユーザーごとの所有権管理
+- ドキュメント検索や埋め込み
+- ベクトルデータベース
+- 複数LLMプロバイダを切り替えるためのゲートウェイ
+- マルチエージェント構成
+- 外部向けAPI
+- 通知サービス
 
-Those omissions are not placeholders for infrastructure that must automatically be added later. They are features to introduce only when a concrete product requirement makes them necessary.
+これらは「将来必ず追加する予定の未実装機能」という位置づけではありません。
 
-The local database is `.data/ruletrade-mvp.sqlite`, configurable through `RULETRADE_DATABASE_PATH`; it is separate from the former database and has no migration path from the old schema.
+実際の利用から具体的な必要性が生まれたときに、その要件に応じて追加するものと考えています。
+
+ローカルデータベースは `.data/ruletrade-mvp.sqlite` に保存します。保存先は `RULETRADE_DATABASE_PATH` で変更できます。
+
+このデータベースは旧バージョンのデータベースとは分離しており、旧スキーマからの移行処理は用意していません。
