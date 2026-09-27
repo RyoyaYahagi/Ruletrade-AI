@@ -131,9 +131,6 @@ export function CaptureForm({
     };
   }, [effectiveStockId, suppliedTransactions]);
 
-  const selectedLinkedTransaction =
-    candidateTransactions.find((item) => item.id === selectedTransactionId) ??
-    null;
   const transactionCandidates = effectiveStockId
     ? findTransactionCandidates(
         candidateTransactions,
@@ -142,6 +139,9 @@ export function CaptureForm({
         effectiveStockId,
       )
     : [];
+  const selectedLinkedTransaction =
+    transactionCandidates.find((item) => item.id === selectedTransactionId) ??
+    null;
   useEffect(() => {
     const eligible = findTransactionCandidates(
       candidateTransactions,
@@ -795,7 +795,7 @@ export function CaptureForm({
               <button
                 type="button"
                 onClick={() => void save()}
-                disabled={mode === "saving"}
+                disabled={mode === "saving" || candidatesLoading}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground disabled:opacity-60"
               >
                 <Check size={17} aria-hidden />
