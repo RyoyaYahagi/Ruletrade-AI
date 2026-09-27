@@ -22,8 +22,8 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
     ".claude/**",
+    // Historical design prototypes use standalone browser globals.
     "frontend-design/**",
-    "docs/ai-handoffs/**",
   ]),
 ]);
 

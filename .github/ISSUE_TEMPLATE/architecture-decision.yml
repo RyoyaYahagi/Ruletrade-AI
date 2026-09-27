@@ -25,7 +25,18 @@ body:
     id: area
     attributes:
       label: Area
-      options: [db, ownership, auth, ai, rag, privacy, security, billing, admin, infra, other]
+      options:
+        [
+          capture,
+          decisions,
+          reviews,
+          transactions,
+          db,
+          ai,
+          security,
+          operations,
+          other,
+        ]
     validations:
       required: true
   - type: dropdown

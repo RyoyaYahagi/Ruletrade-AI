@@ -1,6 +1,6 @@
 ## Summary
 
-What changed?
+Describe the problem and resulting behavior.
 
 ## Related Issue
 
@@ -8,60 +8,38 @@ Closes #
 
 ## Change Area
 
-- [ ] UI only
-- [ ] API
-- [ ] DB migration
-- [ ] Ownership checks
-- [ ] AI / Prompt / Safety
-- [ ] RAG / Documents
-- [ ] Privacy / Deletion
-- [ ] Security / Auth / Secrets
-- [ ] Billing / Stripe
-- [ ] Admin / Operations
-- [ ] Email / Support
-- [ ] Docs
+- [ ] Capture / confirmation
+- [ ] Decision timeline / stock pages
+- [ ] Review / comparison
+- [ ] Transaction history
+- [ ] Gemini / Zod schemas
+- [ ] SQLite / Drizzle
+- [ ] Docs / tooling
+- [ ] Operations
 
-## Risk
+## Product / Data Checks
 
-- [ ] Low
-- [ ] Medium
-- [ ] High
-- [ ] Critical
+- [ ] Original input is preserved; AI output remains derived data
+- [ ] New thoughts append timeline events without overwriting earlier decisions
+- [ ] Gemini calls and secrets stay server-side
+- [ ] AI output is validated with Zod before saving or displaying it
+- [ ] No buy/sell recommendations or investment advice
+- [ ] No authentication, ownership layer, or additional AI provider introduced
+- [ ] No secrets or database files committed
 
-## ADR / Architecture
+Mark unrelated items as not applicable in the notes.
 
-- [ ] ADR not needed
-- [ ] ADR added or updated
-- [ ] Architecture review requested
+## Validation
 
-ADR:
+Report results, or explain why a check could not run.
 
-## Security / Privacy Checklist
+- `npm run typecheck`:
+- `npm run lint`:
+- `npm run test`:
+- `npm run test:e2e`:
 
-- [ ] No secrets in client bundle
-- [ ] No privileged database access in client code
-- [ ] Ownership checks reviewed
-- [ ] Private user content is not logged
-- [ ] AI prompt/output is not persisted unexpectedly
-- [ ] Email/support/analytics do not include private investment content
+Manual checks / limitations:
 
-## Testing
+## Risks / Recovery
 
-- [ ] Unit
-- [ ] API
-- [ ] DB / ownership
-- [ ] E2E
-- [ ] Manual QA
-
-Evidence:
-
-## Rollback
-
-Can this be rolled back safely?
-
-- [ ] Yes, app-only rollback is enough
-- [ ] Needs DB forward-fix
-- [ ] Needs feature flag rollback
-- [ ] Rollback is risky
-
-Notes:
+Describe any database compatibility changes, deployment impact, and how to recover if this change fails.
