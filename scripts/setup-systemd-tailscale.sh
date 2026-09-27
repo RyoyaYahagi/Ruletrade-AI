@@ -283,7 +283,7 @@ command -v sudo >/dev/null 2>&1 || fail "sudo is required to install a system-wi
 command -v curl >/dev/null 2>&1 || fail "curl is required for the local health check."
 [[ -f .env.local ]] || fail "The existing .env.local file is missing. Create it with GEMINI_API_KEY and GEMINI_MODEL, then rerun; this script will never read or edit it."
 [[ -x node_modules/.bin/next ]] || fail "Dependencies are missing. Run npm install in the repository, then rerun."
-git check-ignore -q "$BUILD_DIR" || fail "$BUILD_DIR is not ignored by git; refusing to place build output in a trackable path."
+git check-ignore -q "$BUILD_DIR/BUILD_ID" || fail "$BUILD_DIR is not ignored by git; refusing to place build output in a trackable path."
 ensure_tailscale_connected
 select_node_24
 say "Using Node.js $($NODE_BIN -v) from $NODE_BIN."
