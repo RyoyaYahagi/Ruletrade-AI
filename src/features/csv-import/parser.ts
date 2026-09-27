@@ -1,4 +1,5 @@
 import { headerIndex, parseCsvRecords } from "./common";
+import { parseMonex } from "./adapters/monex";
 import { parseNomura } from "./adapters/nomura";
 import { parseRakuten } from "./adapters/rakuten";
 import { parseSbi } from "./adapters/sbi";
@@ -93,12 +94,28 @@ function detect(rows: string[][]): { format: CsvFormat; header: number } {
     "単価",
     "手数料（税込）",
   ];
+  const monex = [
+    "銘柄名",
+    "銘柄コード",
+    "市場名",
+    "口座区分",
+    "商品区分",
+    "取引区分",
+    "預り区分",
+    "受渡日",
+    "約定日",
+    "数量",
+    "約定価格",
+    "為替レート",
+    "受渡金額",
+  ];
   const matches = [
     ["rakuten-jp", headerIndex(rows, jp)],
     ["rakuten-us", headerIndex(rows, us)],
     ["rakuten-investment-fund", headerIndex(rows, inv)],
     ["sbi-jp", headerIndex(rows, sbi)],
     ["nomura-jp", headerIndex(rows, nomura)],
+    ["monex-jp", headerIndex(rows, monex)],
   ].filter(([, index]) => (index as number) >= 0) as [CsvFormat, number][];
   if (matches.length !== 1) throw new CsvFormatError();
   return { format: matches[0][0], header: matches[0][1] };
@@ -133,14 +150,23 @@ export function parseCsv(bytes: Uint8Array): ParsedCsv {
             ),
             broker: "sbi" as const,
           }
-        : {
-            ...parseNomura(
-              rows,
-              header,
-              records.map(({ sourceRowNumber }) => sourceRowNumber),
-            ),
-            broker: "nomura" as const,
-          };
+        : format === "monex-jp"
+          ? {
+              ...parseMonex(
+                rows,
+                header,
+                records.map(({ sourceRowNumber }) => sourceRowNumber),
+              ),
+              broker: "monex" as const,
+            }
+          : {
+              ...parseNomura(
+                rows,
+                header,
+                records.map(({ sourceRowNumber }) => sourceRowNumber),
+              ),
+              broker: "nomura" as const,
+            };
   return { ...decoded, format, ...parsed };
 }
 
