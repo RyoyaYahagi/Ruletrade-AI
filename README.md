@@ -1,44 +1,61 @@
 # Ruletrade-AI
 
-Ruletrade-AI is a personal investment decision journal. It helps you record why you made a decision and compare your current thinking with those notes later. It does not provide investment advice or tell you to buy or sell.
+Ruletrade-AI は、投資について「そのとき何を考えていたか」を記録し、後から振り返るための個人用アプリです。テキストや音声で考えを残すと、AIが内容を整理します。銘柄ごとの記録を読み返し、今の考えと過去の判断を比較できます。
 
-## Run locally
+たとえば、「この銘柄を買おうと思った理由」「どんな変化があれば考え直すか」「以前の見通しと今の状況はどう違うか」を残せます。
 
-Requirements: Node.js 24 and npm.
+## できること
+
+- **考えを記録する**：文章を入力するか、音声で話して記録します。音声は文字起こし後に修正できます。
+- **保存前に確認する**：AIが整理した投資仮説や前提、見直し条件を確認・修正してから保存します。
+- **銘柄ごとに振り返る**：購入、買い増し、売却の検討、仮説の更新、メモなどを時系列で読み返せます。
+- **過去と今の考えを比較する**：現在の考えを入力すると、AIがその銘柄の過去の記録との違いを整理します。比較結果と自分の振り返りを保存できます。
+- **売買の事実を残す**：数量・価格・日付などを記録し、売買履歴を確認できます。価格が不明な場合は空欄のまま保存できます。
+- **振り返る時期を決める**：記録にレビュー日を設定できます。期限が来た記録は、アプリを開いたときに表示されます。
+
+## 基本的な使い方
+
+1. ホーム画面で、今考えていることを書いたり話したりします。
+2. AIが整理した内容を確認し、必要な箇所を修正して保存します。
+3. 銘柄の詳細画面で、過去の判断や売買履歴を読み返します。
+4. 考えが変わったときは新しく記録するか、過去との比較を行い、自分の振り返りを残します。
+
+新しい考えは別の記録として追加されます。以前の判断を上書きせず、考えの変化を追えるようにしています。入力した原文や音声の文字起こしと、AIが整理した内容は区別して保存します。
+
+## AIの役割と利用範囲
+
+AIの役割は、あなたの記録を整理し、過去と現在の考えを比較することです。売買の推奨や投資助言、注文の実行は行いません。整理した内容は、保存前に自分で確認してください。
+
+現在は個人利用を前提としており、ログインや複数ユーザー向けのアクセス制御はありません。また、レビュー期限のプッシュ通知やメール通知はありません。
+
+記録は実行環境のデータベースに保存されます。文字起こし・内容の整理・比較を行う際は、処理対象の音声や文章、比較に必要な過去の記録がGoogleのAIサービスであるGeminiに送信されます。
+
+## 自分の環境で起動する
+
+Node.js 24、npm、Gemini APIキーが必要です。APIキーは、アプリがGeminiを利用するための認証情報です。
 
 ```bash
 npm install
 cp .env.example .env.local
+```
+
+作成した `.env.local` に設定します。
+
+| 設定名                    | 内容                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `GEMINI_API_KEY`          | 自分のGemini APIキー                                                                 |
+| `GEMINI_MODEL`            | 利用するGeminiモデル。初期値は `.env.example` を参照してください。                   |
+| `RULETRADE_DATABASE_PATH` | 記録を保存するSQLiteデータベースの場所。初期値は `.data/ruletrade-mvp.sqlite` です。 |
+
+`.env.local` や記録を保存したデータベースはGitにコミットしないでください。APIキーはサーバー側で使用します。
+
+```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`. The local SQLite database is created at `.data/ruletrade-mvp.sqlite` unless `RULETRADE_DATABASE_PATH` is set. Gemini runs on the server and requires `GEMINI_API_KEY`; `GEMINI_MODEL` selects the model.
+ブラウザーで [http://localhost:3000](http://localhost:3000) を開きます。
 
-## Run persistently on a Tailscale host
-
-On the host machine, with Tailscale already connected, run:
-
-```bash
-bash scripts/setup-systemd-tailscale.sh
-```
-
-The interactive wizard builds with Node.js 24, rebuilds the SQLite native module for that runtime, installs and enables a systemd service, checks the local app, and configures tailnet-only HTTPS through Tailscale Serve [Tailscale Docs (2026/01), “tailscale serve command”](https://tailscale.com/docs/reference/tailscale-cli/serve). The systemd service binds the app to `127.0.0.1:3001`, and Ruletrade uses its own HTTPS endpoint on `:9445`; the local development server remains on port `3000`. Existing Serve endpoints, including HaraTomo on `:9443`, are preserved. Node.js 20 reached end of life on March 24, 2026, while Node.js 24 is currently listed as LTS [Node.js (2026/09), “Node.js Releases”](https://nodejs.org/en/about/previous-releases), [Node.js (2026/03), “End-Of-Life”](https://nodejs.org/en/about/eol). Local development and CI also use Node.js 24, matching the host wizard. This avoids compiling the SQLite native module from source in CI because the current `better-sqlite3` release provides a Node.js 24 prebuilt binary but no Node.js 20 prebuilt binary [better-sqlite3 v12.10.0 release](https://github.com/WiseLibs/better-sqlite3/releases/tag/v12.10.0). The existing deployment workflow is unchanged. The wizard reuses the journal database path from `.env.local` when `RULETRADE_DATABASE_PATH` is set; otherwise, it uses `.data/ruletrade-mvp.sqlite`. The existing `.env.local` must contain `GEMINI_API_KEY` and `GEMINI_MODEL`; the wizard leaves that file untouched. Run the script in a host terminal with access to systemd and `sudo`; it stops if container detection identifies a container or if it cannot reach the systemd manager. It will not install, log in to, reset, or enable Tailscale, and it leaves existing Serve or Funnel settings untouched if they conflict on `:9445`.
-
-To migrate an existing host from port `3000`, run `bash scripts/migrate-ruletrade-port.sh` from the repository directory in a host terminal. The migration updates only the systemd service to use `127.0.0.1:3001`; it does not create a new build. After the service passes its local health check, it configures Ruletrade on HTTPS `:9445`. It requires host `sudo` access, and other Serve routes, including `:9443`, are preserved.
-
-Tailscale Serve makes this app reachable only within the tailnet, and the wizard's `--bg` setting keeps the `:9445` endpoint active across reboots and Tailscale restarts [Tailscale Docs (2026/01), “tailscale serve command”](https://tailscale.com/docs/reference/tailscale-cli/serve). The wizard does not configure public Funnel access.
-
-The host must remain powered on, awake, and connected to Tailscale for the app to be reachable. The wizard does not change the host's power settings.
-
-## Record and review
-
-The home page accepts text or a voice recording. Ruletrade-AI prepares a structured draft for you to confirm before saving. The app preserves the original text or transcript and stores any answer to an optional follow-up question separately. Extracted fields and AI comparisons are derived data. Each new thought is saved as a separate timeline event.
-
-On a stock page, you can review its decision timeline, compare a current thought with the full recorded history for that stock, and record transactions. `/transactions` shows the full transaction history. Unknown transaction prices remain empty. If an execution date was not in the original input, the confirmation form shows a date for you to confirm or change. AI output is limited to organizing notes and comparing your own past and current thinking; it does not make investment decisions.
-
-You can set an optional review date when saving a decision. Due reviews appear when you open the app; the MVP does not send push, email, or scheduled notifications.
-
-## Checks
+## 開発時の確認
 
 ```bash
 npm run typecheck
@@ -47,12 +64,4 @@ npm run test
 npm run test:e2e
 ```
 
-See [docs/architecture.md](docs/architecture.md) for the data model and application flow.
-
-## Sources
-
-[Tailscale Docs, 2026/01] Tailscale. "tailscale serve command." Tailscale Docs. https://tailscale.com/docs/reference/tailscale-cli/serve
-
-[Node.js, 2026/09] Node.js. "Node.js Releases." Node.js. https://nodejs.org/en/about/previous-releases
-
-[Node.js, 2026/03] Node.js. "End-Of-Life." Node.js. https://nodejs.org/en/about/eol
+データ構造と処理の流れは [docs/architecture.md](docs/architecture.md) を参照してください。旧画面の試作は、配色や余白などの参考資料として [frontend-design/](frontend-design/README.md) に残しています。

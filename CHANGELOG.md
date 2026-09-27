@@ -2,24 +2,21 @@
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- docs/roadmap.md
-- docs/release.md
-- docs/contributing.md
-- GitHub Issue and PR templates
-- Milestone and release process documentation
+- Replaced the investment-rule workbench with a single-user investment decision journal.
+- Use server-side Gemini with Zod validation and SQLite through Drizzle.
+- Align review and release templates with the current product scope.
+- Retain `frontend-design/` as historical design reference material.
 
-### Security
+### Features
 
-- No changes
+- Text and voice capture with confirmation before saving.
+- Preserve original input and append each new thought to a stock timeline.
+- Compare current thinking with recorded decisions and save personal reflections.
+- Record transactions, allowing unknown prices to remain empty.
+- Show due reviews when the app opens.
 
-## [0.1.0] - TBD
+### Scope
 
-### Added
-
-- Local session authentication foundation
-- Initial database schema
-- Ownership-check baseline
-- API response helpers
-- Local development setup
+The app does not provide investment advice or buy/sell recommendations. It has no authentication, ownership layer, scheduled notifications, or order execution. This file describes the current journal; earlier development history remains available in Git.

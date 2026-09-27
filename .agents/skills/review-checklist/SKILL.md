@@ -5,19 +5,23 @@ description: Ruletrade-AI固有のコードレビュー観点集。diff・PR・�
 
 # Ruletrade-AI Review Checklist
 
-Baseline: the rules in `AGENTS.md` (ownership checks, fallback rules, comment
-rules, testing rules) apply to every diff — verify compliance first. This file
+Baseline: the product scope, data preservation, fallback, comment, and testing
+rules in `AGENTS.md` apply to every diff — verify compliance first. This file
 adds judgment-heavy checks that cannot be enforced mechanically by CI or lint.
 
 ## Domain / safety (highest priority)
 
-- Every new route or service touching user-owned data has a server-side
-  ownership check, and a test proving cross-user access fails.
-- No code path displays AI output without the Safety Check, or financial
-  output without the Compliance Gate.
+- Original input remains the source of truth; extraction and comparison are
+  derived data. Preserve original text, transcripts, and follow-up answers.
+- New thoughts append timeline events rather than overwriting past decisions.
+- Validate Gemini output with Zod before saving or displaying it.
+- Keep the current single-user scope: no authentication, ownership layer,
+  additional AI provider, or provider abstraction without a scope change.
+- Transaction prices that are unknown stay empty rather than becoming zero.
 - No copy that reads as a buy/sell recommendation or investment advice.
-- No server secret reachable from the client: no `NEXT_PUBLIC_` misuse, no
+- Gemini calls and secrets remain server-side: no `NEXT_PUBLIC_` misuse, no
   server-only module imported into a Client Component.
+- Keep private input and secrets out of logs and committed database files.
 
 ## Correctness beyond the happy path
 
