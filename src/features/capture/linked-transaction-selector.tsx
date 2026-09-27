@@ -20,18 +20,28 @@ export function LinkedTransactionSelector({
       関連する既存の売買履歴（任意）
       <select
         value={value ?? "none"}
-        onChange={(event) => onChange(event.target.value === "none" ? null : event.target.value)}
+        onChange={(event) =>
+          onChange(event.target.value === "none" ? null : event.target.value)
+        }
         disabled={disabled || loading}
         className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
       >
         <option value="none">関連付けない</option>
         {transactions.map((transaction) => (
           <option key={transaction.id} value={transaction.id}>
-            {transaction.side === "buy" ? "購入" : "売却"}・{new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo" }).format(new Date(transaction.executedAt))}・{transaction.quantity}株
+            {transaction.side === "buy" ? "購入" : "売却"}・
+            {new Intl.DateTimeFormat("ja-JP", {
+              timeZone: "Asia/Tokyo",
+            }).format(new Date(transaction.executedAt))}
+            ・{transaction.quantity}株
           </option>
         ))}
       </select>
-      {loading && <span className="mt-1 block text-xs text-muted-foreground">売買履歴を読み込んでいます…</span>}
+      {loading && (
+        <span className="mt-1 block text-xs text-muted-foreground">
+          売買履歴を読み込んでいます…
+        </span>
+      )}
     </label>
   );
 }
