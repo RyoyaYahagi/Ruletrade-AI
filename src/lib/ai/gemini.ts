@@ -96,7 +96,7 @@ export async function transcribeAudio(input: {
           },
         ],
         generation_config: {
-          transcription_config: { language_codes: ["ja-JP"], mode: "verbatim" },
+          transcription_config: { language_codes: ["ja-JP"], mode: "smart" },
         },
         store: false,
       }),
