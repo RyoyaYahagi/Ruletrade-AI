@@ -1,1 +1,0 @@
--- Local seed data can be added here as development fixtures become necessary.

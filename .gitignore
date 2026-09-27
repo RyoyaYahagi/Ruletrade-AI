@@ -15,10 +15,21 @@
 
 # next.js
 /.next/
+/.next-systemd/
+/.next-e2e/
+/.next-backend-build/
+/.next-backend-webpack/
 /out/
 
 # production
 /build
+
+# local sqlite data
+/data/
+/.data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # misc
 .DS_Store
@@ -45,8 +56,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Claude
-.claude/
+# Claude (local state stays ignored; project skills are shared)
+.claude/*
+!.claude/skills/
 
 # Agent skills (large external packages)
 .agents/skills/notebooklm/
@@ -58,3 +70,7 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Local explainer artifacts
+/.feature-map/
+/explainer/

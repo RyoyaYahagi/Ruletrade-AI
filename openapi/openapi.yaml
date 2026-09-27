@@ -1,0 +1,108 @@
+openapi: 3.1.0
+
+info:
+  title: Ruletrade-AI API
+  version: 0.1.0
+  license:
+    name: MIT
+    identifier: MIT
+  description: |
+    Ruletrade-AI API contract.
+
+    Ruletrade-AI helps users organize their own investment rules.
+    It does not provide investment advice, buy/sell recommendations,
+    asset management, brokerage services, or order execution.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://app.example.com
+    description: Production
+
+security:
+  - cookieAuth: []
+
+tags:
+  - name: Rules
+    description: Investment rule sessions
+  - name: AI
+    description: AI review and output
+  - name: Documents
+    description: User documents and uploads
+  - name: Privacy
+    description: Privacy settings and data deletion
+  - name: Billing
+    description: Plans and usage
+  - name: Watchlist
+    description: Watchlist items
+
+paths:
+  /api/rule-sessions:
+    $ref: "./paths/rule-sessions.yaml#/paths/~1api~1rule-sessions"
+
+  /api/rule-sessions/{sessionId}:
+    $ref: "./paths/rule-sessions.yaml#/paths/~1api~1rule-sessions~1{sessionId}"
+
+  /api/rule-sessions/{sessionId}/review:
+    $ref: "./paths/ai-review.yaml#/paths/~1api~1rule-sessions~1{sessionId}~1review"
+
+  /api/documents:
+    $ref: "./paths/documents.yaml#/paths/~1api~1documents"
+
+  /api/privacy/settings:
+    $ref: "./paths/privacy.yaml#/paths/~1api~1privacy~1settings"
+
+  /api/billing/plans:
+    $ref: "./paths/billing.yaml#/paths/~1api~1billing~1plans"
+
+  /api/watchlist/items:
+    $ref: "./paths/watchlist.yaml#/paths/~1api~1watchlist~1items"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      $ref: "./components/security-schemes.yaml#/cookieAuth"
+
+  schemas:
+    ApiSuccess:
+      $ref: "./components/schemas.yaml#/ApiSuccess"
+
+    ApiError:
+      $ref: "./components/schemas.yaml#/ApiError"
+
+    ApiErrorCode:
+      $ref: "./components/schemas.yaml#/ApiErrorCode"
+
+    RuleSession:
+      $ref: "./components/schemas.yaml#/RuleSession"
+
+    CreateRuleSessionRequest:
+      $ref: "./components/schemas.yaml#/CreateRuleSessionRequest"
+
+    RuleReview:
+      $ref: "./components/schemas.yaml#/RuleReview"
+
+    PrivacySettings:
+      $ref: "./components/schemas.yaml#/PrivacySettings"
+
+    BillingPlan:
+      $ref: "./components/schemas.yaml#/BillingPlan"
+
+    WatchlistItem:
+      $ref: "./components/schemas.yaml#/WatchlistItem"
+
+  responses:
+    Unauthorized:
+      $ref: "./components/responses.yaml#/Unauthorized"
+
+    Forbidden:
+      $ref: "./components/responses.yaml#/Forbidden"
+
+    NotFound:
+      $ref: "./components/responses.yaml#/NotFound"
+
+    ValidationError:
+      $ref: "./components/responses.yaml#/ValidationError"
+
+    InternalError:
+      $ref: "./components/responses.yaml#/InternalError"

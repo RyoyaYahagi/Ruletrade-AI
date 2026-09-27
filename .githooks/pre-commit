@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Local guard for the .data leak incident: blocks database artifacts at
+# commit time, before they ever reach a branch. Catches git add -f, which
+# .gitignore cannot. Enabled via `npm install` (see the prepare script).
+# CI runs scripts/check-no-db-artifacts.sh as the backstop for commits
+# made with --no-verify.
+
+pattern='(^|/)\.?data/|\.sqlite(-shm|-wal)?$'
+
+staged=$(git diff --cached --name-only --diff-filter=ACR | grep -E "$pattern" || true)
+
+if [ -n "$staged" ]; then
+  echo "pre-commit: database artifacts must not be committed:" >&2
+  echo "$staged" >&2
+  echo "Unstage them with: git restore --staged <file>" >&2
+  exit 1
+fi
