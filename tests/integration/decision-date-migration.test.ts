@@ -15,7 +15,7 @@ it("adds decided_at to a legacy database and preserves created_at as the display
     CREATE TABLE stocks(id TEXT PRIMARY KEY, ticker TEXT, name TEXT NOT NULL, normalized_name TEXT NOT NULL, market TEXT, created_at TEXT NOT NULL);
     CREATE TABLE decisions(id TEXT PRIMARY KEY, stock_id TEXT NOT NULL REFERENCES stocks(id), type TEXT NOT NULL, raw_input TEXT NOT NULL, transcript TEXT, follow_up_answer TEXT, thesis TEXT, assumptions_json TEXT NOT NULL, review_conditions_json TEXT NOT NULL, add_conditions_json TEXT NOT NULL, review_at TEXT, created_at TEXT NOT NULL);
     INSERT INTO stocks VALUES ('stock',NULL,'架空旧社','架空旧社',NULL,'2026-02-13T15:00:00.000Z');
-    INSERT INTO decisions VALUES ('decision','stock','note','旧記録',NULL,NULL,NULL,'[]','[]','[]',NULL,'2026-02-13T15:00:00.000Z');
+    INSERT INTO decisions VALUES ('decision','stock','note','旧記録',NULL,NULL,NULL,'[]','[]','[]','2026-03-01T12:00:00.000Z','2026-02-13T15:00:00.000Z');
   `);
   legacy.close();
   process.env.RULETRADE_DATABASE_PATH = databasePath;
@@ -26,6 +26,8 @@ it("adds decided_at to a legacy database and preserves created_at as the display
     const timeline = await getStockTimelineAction({ stockId: "stock" });
     const decision = timeline.decisions[0];
     expect(decision.decidedAt).toBeNull();
+    expect(decision.editHistory).toEqual([]);
+    expect(decision.reviewDates).toEqual(["2026-03-01T12:00:00.000Z"]);
     expect(decision.rawInput).toBe("旧記録");
     expect(decision.createdAt).toBe("2026-02-13T15:00:00.000Z");
     expect(japanDate(decision.decidedAt ?? decision.createdAt)).toBe(

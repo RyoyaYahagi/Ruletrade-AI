@@ -106,6 +106,12 @@ export default async function StockPage({
                     ).replaceAll("-", "/")}
                   </time>
                 </div>
+                <Link
+                  href={`/stocks/${id}/decisions/${decision.id}/edit`}
+                  className="mt-2 inline-block text-sm text-primary hover:underline"
+                >
+                  編集
+                </Link>
                 {data.transactions
                   .filter((trade) => trade.decisionId === decision.id)
                   .map((trade) => (
@@ -171,10 +177,82 @@ export default async function StockPage({
                     </p>
                   )}
                 </details>
-                {decision.reviewAt && (
+                {Boolean(decision.editHistory?.length) && (
+                  <details className="mt-3 rounded-lg bg-secondary/50 p-3">
+                    <summary className="cursor-pointer text-sm font-medium">
+                      編集履歴（{decision.editHistory?.length}件）
+                    </summary>
+                    <ol className="mt-3 space-y-4">
+                      {decision.editHistory?.map((edit, index) => (
+                        <li key={index} className="text-sm">
+                          <p className="font-medium">
+                            {new Date(edit.editedAt).toLocaleString("ja-JP", {
+                              timeZone: "Asia/Tokyo",
+                            })}
+                            の編集前
+                          </p>
+                          <p className="mt-1">
+                            判断した日:{" "}
+                            {japanDate(
+                              edit.previous.decidedAt ??
+                                edit.previous.createdAt,
+                            )}{" "}
+                            · 種類:{" "}
+                            {
+                              {
+                                buy: "購入",
+                                add: "買い増し",
+                                sell: "売却",
+                                sell_consideration: "売却を検討",
+                                thesis_update: "仮説の更新",
+                                note: "メモ",
+                              }[edit.previous.type]
+                            }
+                          </p>
+                          <p className="mt-2 whitespace-pre-wrap">
+                            {edit.previous.rawInput}
+                          </p>
+                          {edit.previous.thesis && (
+                            <p className="mt-2">
+                              投資仮説: {edit.previous.thesis}
+                            </p>
+                          )}
+                          {[
+                            ["前提", edit.previous.assumptions],
+                            ["見直し条件", edit.previous.reviewConditions],
+                            ["買い増し条件", edit.previous.addConditions],
+                          ].map(
+                            ([label, items]) =>
+                              Array.isArray(items) &&
+                              items.length > 0 && (
+                                <p key={String(label)} className="mt-1">
+                                  {label}: {items.join("、")}
+                                </p>
+                              ),
+                          )}
+                          {Boolean(edit.previous.reviewDates?.length) && (
+                            <p className="mt-1">
+                              振り返り予定:{" "}
+                              {edit.previous.reviewDates
+                                ?.map((date) => japanDate(date))
+                                .join("、")}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </details>
+                )}
+                {Boolean(decision.reviewDates?.length) && (
                   <p className="mt-3 text-xs text-muted-foreground">
                     振り返り予定:{" "}
-                    {new Date(decision.reviewAt).toLocaleDateString("ja-JP")}
+                    {decision.reviewDates
+                      ?.map((date) =>
+                        new Date(date).toLocaleDateString("ja-JP", {
+                          timeZone: "Asia/Tokyo",
+                        }),
+                      )
+                      .join("、")}
                   </p>
                 )}
               </li>

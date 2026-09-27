@@ -36,6 +36,8 @@ export const decisions = sqliteTable(
     reviewConditions: text("review_conditions_json").notNull(),
     addConditions: text("add_conditions_json").notNull(),
     reviewAt: text("review_at"),
+    reviewDates: text("review_dates_json"),
+    editHistory: text("edit_history_json"),
     decidedAt: text("decided_at"),
     createdAt: text("created_at").notNull(),
   },

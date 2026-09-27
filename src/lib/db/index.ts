@@ -130,6 +130,12 @@ function initializeSchema(connection: Database.Database) {
       ({ name }) => name,
     ),
   );
+  if (!decisionColumns.has("edit_history_json")) {
+    connection.exec("ALTER TABLE decisions ADD COLUMN edit_history_json TEXT");
+  }
+  if (!decisionColumns.has("review_dates_json")) {
+    connection.exec("ALTER TABLE decisions ADD COLUMN review_dates_json TEXT");
+  }
   if (!decisionColumns.has("decided_at")) {
     connection.exec("ALTER TABLE decisions ADD COLUMN decided_at TEXT");
   }

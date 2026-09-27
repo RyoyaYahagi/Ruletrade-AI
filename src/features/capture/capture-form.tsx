@@ -19,6 +19,11 @@ import {
 } from "@/schemas/decision";
 import type { Stock } from "@/schemas/stock";
 import type { Transaction } from "@/schemas/transaction";
+import {
+  ReviewSchedule,
+  resolveReviewDates,
+  type ReviewScheduleValue,
+} from "@/features/capture/review-schedule";
 import { useVoiceTranscription } from "@/features/capture/use-voice-transcription";
 
 type CaptureMode = "writing" | "extracting" | "confirming" | "saving";
@@ -88,8 +93,11 @@ export function CaptureForm({
     id: string | null;
   } | null>(null);
   const [recordTrade, setRecordTrade] = useState(false);
-  const [reviewChoice, setReviewChoice] = useState("none");
-  const [reviewDate, setReviewDate] = useState("");
+  const [reviewSchedule, setReviewSchedule] = useState<ReviewScheduleValue>({
+    choices: [],
+    earningsDate: "",
+    dates: [""],
+  });
   const [error, setError] = useState<string | null>(null);
 
   const effectiveStockId =
@@ -247,7 +255,10 @@ export function CaptureForm({
       setError("銘柄名を入力してください。");
       return;
     }
-    if (reviewChoice === "earnings" && !reviewDate) {
+    if (
+      reviewSchedule.choices.includes("earnings") &&
+      !reviewSchedule.earningsDate
+    ) {
       setError("次の決算日を入力してください。");
       return;
     }
@@ -287,16 +298,16 @@ export function CaptureForm({
         return;
       }
     }
+    if (
+      reviewSchedule.choices.includes("date") &&
+      reviewSchedule.dates.some((date) => !date)
+    ) {
+      setError("振り返り日を入力してください。");
+      return;
+    }
     setMode("saving");
     setError(null);
-    const reviewAt =
-      reviewChoice === "none"
-        ? null
-        : reviewChoice === "month"
-          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          : reviewChoice === "quarter"
-            ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
-            : new Date(`${reviewDate}T12:00:00.000Z`).toISOString();
+    const reviewDates = resolveReviewDates(reviewSchedule);
     const transactionInput =
       recordTrade &&
       extraction.transaction?.quantity &&
@@ -322,7 +333,7 @@ export function CaptureForm({
         addConditions: linesToList(
           extraction.addConditions.join("\n").replace(/^/, ""),
         ),
-        reviewAt,
+        reviewDates,
         decidedAt: decisionDate,
         existingTransactionId: selectedLinkedTransaction?.id ?? null,
         transactionInput: selectedLinkedTransaction ? null : transactionInput,
@@ -346,7 +357,7 @@ export function CaptureForm({
     field: "assumptions" | "reviewConditions" | "addConditions",
     value: string,
   ) {
-    setExtraction((current) => ({ ...current, [field]: linesToList(value) }));
+    setExtraction((current) => ({ ...current, [field]: value.split("\n") }));
   }
 
   const selectedStock =
@@ -768,42 +779,10 @@ export function CaptureForm({
                   </div>
                 </fieldset>
               )}
-            <fieldset className="rounded-xl border p-4">
-              <legend className="px-1 text-sm font-semibold">
-                振り返る時期（任意）
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ["none", "設定しない"],
-                  ["month", "1か月後"],
-                  ["quarter", "3か月後"],
-                  ["earnings", "次の決算"],
-                  ["date", "日付指定"],
-                ].map(([value, label]) => (
-                  <button
-                    type="button"
-                    key={value}
-                    aria-pressed={reviewChoice === value}
-                    onClick={() => setReviewChoice(value)}
-                    disabled={mode === "saving"}
-                    className={`rounded-full border px-3 py-1.5 text-sm ${reviewChoice === value ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {(reviewChoice === "earnings" || reviewChoice === "date") && (
-                <label className="mt-3 block max-w-xs text-sm">
-                  振り返り日
-                  <input
-                    type="date"
-                    value={reviewDate}
-                    onChange={(event) => setReviewDate(event.target.value)}
-                    className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
-                  />
-                </label>
-              )}
-            </fieldset>
+            <ReviewSchedule
+              value={reviewSchedule}
+              onChange={setReviewSchedule}
+            />
             <details className="rounded-xl bg-secondary/50 p-4">
               <summary className="cursor-pointer text-sm font-medium">
                 元の発言を確認

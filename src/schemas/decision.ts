@@ -34,7 +34,7 @@ export const DecisionExtractionSchema = z.object({
   followUpQuestion: z.string().trim().min(1).max(500).nullable(),
 });
 
-export const DecisionSchema = z.object({
+const DecisionSnapshotSchema = z.object({
   id: z.string().min(1),
   stockId: z.string().min(1),
   type: DecisionTypeSchema,
@@ -46,8 +46,38 @@ export const DecisionSchema = z.object({
   reviewConditions: z.array(z.string()),
   addConditions: z.array(z.string()),
   reviewAt: z.string().datetime().nullable(),
+  reviewDates: z.array(z.string().datetime()).optional(),
   decidedAt: z.iso.date().nullable().optional(),
   createdAt: z.string().datetime(),
+});
+
+export const DecisionSchema = DecisionSnapshotSchema.extend({
+  editHistory: z
+    .array(
+      z.object({
+        editedAt: z.string().datetime(),
+        previous: DecisionSnapshotSchema,
+      }),
+    )
+    .optional(),
+});
+
+export const EditDecisionInputSchema = DecisionSnapshotSchema.pick({
+  id: true,
+  stockId: true,
+  type: true,
+  rawInput: true,
+  thesis: true,
+  assumptions: true,
+  reviewConditions: true,
+  addConditions: true,
+}).extend({
+  rawInput: z
+    .string()
+    .refine((value) => value.trim().length > 0, "本文を入力してください。"),
+  decidedAt: z.iso.date(),
+  reviewDates: z.array(z.string().datetime()),
+  expectedRevision: z.number().int().nonnegative(),
 });
 
 export type DecisionType = z.infer<typeof DecisionTypeSchema>;

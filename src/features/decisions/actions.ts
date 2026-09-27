@@ -5,20 +5,15 @@ import {
   japanDate,
 } from "@/features/transactions/matching";
 import { randomUUID } from "node:crypto";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gte,
-  isNotNull,
-  lte,
-  notExists,
-} from "drizzle-orm";
+import { asc, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import { decisions, reviews, stocks, transactions } from "@/lib/db/schema";
-import { DecisionExtractionSchema, DecisionSchema } from "@/schemas/decision";
+import {
+  DecisionExtractionSchema,
+  DecisionSchema,
+  EditDecisionInputSchema,
+} from "@/schemas/decision";
 import { ReviewSchema } from "@/schemas/review";
 import { StockSchema } from "@/schemas/stock";
 import {
@@ -43,6 +38,7 @@ const SaveDecisionInputSchema = DecisionExtractionSchema.extend({
   followUpAnswer: DecisionSchema.shape.followUpAnswer.optional(),
   stockId: DecisionSchema.shape.stockId.optional(),
   reviewAt: DecisionSchema.shape.reviewAt.optional(),
+  reviewDates: DecisionSchema.shape.reviewDates,
   decidedAt: DecisionSchema.shape.decidedAt,
   existingTransactionId: DecisionSchema.shape.id.nullable().optional(),
   transactionInput: ConfirmedTransactionInputSchema.nullable().optional(),
@@ -132,6 +128,13 @@ export async function saveDecisionAction(input: unknown): Promise<{
     ) {
       linkedTransactionId = candidates[0].id;
     }
+    const reviewDates = [
+      ...new Set(
+        (parsed.reviewDates ?? (parsed.reviewAt ? [parsed.reviewAt] : [])).map(
+          (date) => new Date(date).toISOString(),
+        ),
+      ),
+    ].sort();
     const decisionId = randomUUID();
     tx.insert(decisions)
       .values({
@@ -145,7 +148,8 @@ export async function saveDecisionAction(input: unknown): Promise<{
         assumptions: JSON.stringify(parsed.assumptions),
         reviewConditions: JSON.stringify(parsed.reviewConditions),
         addConditions: JSON.stringify(parsed.addConditions),
-        reviewAt: parsed.reviewAt ?? null,
+        reviewAt: reviewDates[0] ?? null,
+        reviewDates: JSON.stringify(reviewDates),
         decidedAt,
         createdAt: now,
       })
@@ -275,33 +279,38 @@ export async function listReviewsDueAction(
     decision: Decision;
   }>
 > {
+  const cutoff = new Date(asOf).toISOString();
   const rows = getDb()
-    .select({ stock: stocks, decision: decisions })
+    .select({
+      stock: stocks,
+      decision: decisions,
+      latestReviewAt: sql<
+        string | null
+      >`(select max(created_at) from reviews where decision_id = ${decisions.id})`,
+    })
     .from(decisions)
     .innerJoin(stocks, eq(decisions.stockId, stocks.id))
-    .where(
-      and(
-        isNotNull(decisions.reviewAt),
-        lte(decisions.reviewAt, asOf),
-        notExists(
-          getDb()
-            .select({ id: reviews.id })
-            .from(reviews)
-            .where(
-              and(
-                eq(reviews.decisionId, decisions.id),
-                gte(reviews.createdAt, decisions.reviewAt),
-              ),
-            ),
-        ),
-      ),
-    )
-    .orderBy(asc(decisions.reviewAt))
+    .where(isNotNull(decisions.reviewAt))
     .all();
-  return rows.map(({ stock, decision }) => ({
-    stock: StockSchema.parse(mapStockRow(stock)),
-    decision: DecisionSchema.parse(mapDecisionRow(decision)),
-  }));
+  return rows
+    .flatMap(({ stock, decision: row, latestReviewAt }) => {
+      const decision = DecisionSchema.parse(mapDecisionRow(row));
+      const dueDate = decision.reviewDates
+        ?.filter(
+          (date) =>
+            date <= cutoff && (!latestReviewAt || date > latestReviewAt),
+        )
+        .sort()[0];
+      return dueDate
+        ? [
+            {
+              stock: StockSchema.parse(mapStockRow(stock)),
+              decision: { ...decision, reviewAt: dueDate },
+            },
+          ]
+        : [];
+    })
+    .sort((a, b) => a.decision.reviewAt.localeCompare(b.decision.reviewAt));
 }
 
 export async function saveReviewAction(input: unknown): Promise<Review> {
@@ -419,4 +428,51 @@ export async function listCaptureTransactionsAction(input: {
     .orderBy(desc(transactions.executedAt))
     .all();
   return rows.map((row) => TransactionSchema.parse(row));
+}
+
+export async function editDecisionAction(
+  input: unknown,
+): Promise<{ success: true; stockId: string; decisionId: string }> {
+  const parsed = EditDecisionInputSchema.parse(input);
+  const db = getDb();
+  db.transaction((tx) => {
+    const row = tx
+      .select()
+      .from(decisions)
+      .where(eq(decisions.id, parsed.id))
+      .get();
+    if (!row || row.stockId !== parsed.stockId)
+      throw new Error("編集する判断が見つかりません。");
+    const current = DecisionSchema.parse(mapDecisionRow(row));
+    const { editHistory = [], ...previous } = current;
+    if (editHistory.length !== parsed.expectedRevision) {
+      throw new Error(
+        "この判断は別の画面で更新されています。編集画面を開き直してください。",
+      );
+    }
+    const reviewDates = [
+      ...new Set(
+        parsed.reviewDates.map((date) => new Date(date).toISOString()),
+      ),
+    ].sort();
+    tx.update(decisions)
+      .set({
+        type: parsed.type,
+        rawInput: parsed.rawInput,
+        thesis: parsed.thesis,
+        assumptions: JSON.stringify(parsed.assumptions),
+        reviewConditions: JSON.stringify(parsed.reviewConditions),
+        addConditions: JSON.stringify(parsed.addConditions),
+        decidedAt: parsed.decidedAt,
+        reviewAt: reviewDates[0] ?? null,
+        reviewDates: JSON.stringify(reviewDates),
+        editHistory: JSON.stringify([
+          ...editHistory,
+          { editedAt: new Date().toISOString(), previous },
+        ]),
+      })
+      .where(eq(decisions.id, parsed.id))
+      .run();
+  });
+  return { success: true, stockId: parsed.stockId, decisionId: parsed.id };
 }
