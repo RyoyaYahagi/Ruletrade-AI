@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HeaderMenu } from "./header-menu";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({
             <Link href="/">記録</Link>
             <Link href="/transactions">売買履歴</Link>
           </nav>
+          <HeaderMenu />
         </header>
         {children}
       </body>

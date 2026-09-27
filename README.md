@@ -54,6 +54,7 @@ AIが行うのは、自由な入力の整理、過去の記録との比較、振
 
 ## できること
 
+- **お問い合わせを送る**：ヘッダーのメニューから文章または音声で送信できます。音声は文字起こしを確認・修正してから送信します。問い合わせはGitHub Issueに保存します。
 - **考えを記録する**：文章を入力するか、音声で話して記録します。音声は文字起こし後に修正できます。
 - **AIで整理する**：自由な入力から、投資仮説・前提・見直し条件などを整理します。
 - **保存前に確認する**：AIが整理した内容を確認・修正してから保存します。
@@ -107,7 +108,7 @@ cp .env.example .env.local
 | 設定名                    | 内容                                                                                 |
 | ------------------------- | ------------------------------------------------------------------------------------ |
 | `GEMINI_API_KEY`          | 自分のGemini APIキー                                                                 |
-| `GEMINI_MODEL`            | 内容整理・比較に利用するGeminiモデル。初期値は `.env.example` を参照してください。     |
+| `GEMINI_MODEL`            | 内容整理・比較に利用するGeminiモデル。初期値は `.env.example` を参照してください。   |
 | `RULETRADE_DATABASE_PATH` | 記録を保存するSQLiteデータベースの場所。初期値は `.data/ruletrade-mvp.sqlite` です。 |
 
 `.env.local` や記録を保存したデータベースはGitにコミットしないでください。APIキーはサーバー側で使用します。
@@ -120,6 +121,10 @@ npm run dev
 
 ブラウザーで [http://localhost:3000](http://localhost:3000) を開きます。
 
+## ブランチ運用
+
+機能追加は `feature/<短い英語名>` のブランチで実装します。AIが実装を始める際も、[ブランチ運用ルール](docs/branch-workflow.md)に従ってください。
+
 ## 開発時の確認
 
 ```bash
@@ -130,3 +135,24 @@ npm run test:e2e
 ```
 
 旧画面の試作は、配色や余白などの参考資料として [frontend-design/](frontend-design/README.md) に残しています。
+
+## お問い合わせの設定
+
+問い合わせの保存先は `RyoyaYahagi/Ruletrade-AI` のGitHub Issueです。本文と分類のメタデータ（プログラムから読めるJSON）を保存します。アプリのSQLiteには問い合わせを保存しません。送信内容はGitHubリポジトリの閲覧者に公開されるため、個人情報や秘密情報を含めないでください。音声ファイルはGitHubへ送りません。
+
+サーバー側の環境変数に次を設定します。`.env.local` の内容はコミットしないでください。
+
+| 設定名                  | 用途                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `GITHUB_FEEDBACK_TOKEN` | GitHub Issue作成に必須のトークン                                                                             |
+| `JEV_GATEWAY_URL`       | Jevのローカル中継サービスのURL。例：`http://127.0.0.1:4789/v1/systemone`                                     |
+| `JEV_GATEWAY_TOKEN`     | 中継サービスが認証を要求する場合のみ設定するトークン                                                         |
+| `TYPESAFE_API_KEY`      | 中継サービスを使わずTypeSafeへ直接接続する場合のみ設定するAPIキー。この場合は `JEV_GATEWAY_URL` を空にします |
+
+GitHubのFine-grained personal access token（対象と権限を限定できる個人用トークン）は、対象リポジトリを `RyoyaYahagi/Ruletrade-AI` だけにし、**Issues: Read and write** を許可してください。コードの書き込み権限は不要です。[GitHub公式のIssue作成API](https://docs.github.com/en/rest/issues/issues#create-an-issue)で必要な権限を確認できます。
+
+JevはTypeSafeの問い合わせ分類用AIです。[公式HTTP API](https://docs.typesafe.ai/api)を既存の `fetch` から呼び出すため、依存パッケージは追加しません。カテゴリーと対象機能をChoice（選択肢）、重大度をScore（程度）、追加情報の必要性をNoul（はいの確率）で取得します。[Scoreの公式仕様](https://docs.typesafe.ai/primitives/score)に合わせ、0〜3の小数値を検証した後に最も近い整数へ丸めます。Noulは0〜1の範囲を検証し、0.5以上を `true` とします。分類結果は補助情報であり、ユーザーの最終入力が原文です。
+
+中継サービスも直接接続用キーも未設定の場合、Jevの障害、3秒のタイムアウト、不正な応答の場合は、`category: other`、`area: unknown`、`severity: null`、`needsClarification: null`、`classificationSource: none` として送信します。Geminiで分類を代替しません。GitHubへの送信は10秒でタイムアウトします。ラベル付与には最大2秒待ちますが、失敗しても送信成功として扱います。
+
+Issue作成に失敗したときは入力を残し、再送できます。通信切断やタイムアウトでは、GitHub側だけで作成が完了している可能性があります。再送の前にリポジトリのIssue一覧を確認すると重複を避けられます。自動再送は行いません。

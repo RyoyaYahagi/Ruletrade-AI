@@ -42,16 +42,44 @@ describe("extractDecision", () => {
     expect(generateContent.mock.calls[0]?.[0].model).toBe("gemini-3.8-flash");
   });
 
+  it("uses the fixed stock when the original thought omits its name", async () => {
+    const stock = { name: "架空固定社", ticker: "1234", market: "JP" };
+    generateContent.mockResolvedValue({
+      text: JSON.stringify({
+        type: "buy",
+        stock: { name: null, ticker: null, market: null },
+        thesis: "需要を期待",
+        assumptions: [],
+        reviewConditions: [],
+        addConditions: [],
+        transaction: null,
+        followUpQuestion: null,
+      }),
+    });
+    const rawInput = "需要を期待して購入した。";
+    const result = await extractDecision({ rawInput, stock });
+    expect(result.stock).toEqual(stock);
+    expect(generateContent.mock.calls[0][0].contents).toContain(
+      JSON.stringify(stock),
+    );
+    expect(generateContent.mock.calls[0][0].contents).toContain(rawInput);
+    expect(generateContent.mock.calls[0][0].contents).toContain(
+      "銘柄名を再質問しない",
+    );
+  });
+
   it("fails on malformed model output", async () => {
     generateContent.mockResolvedValue({ text: "not-json" });
-    await expect(extractDecision({ rawInput: "ソニーを買った。" })).rejects.toThrow();
+    await expect(
+      extractDecision({ rawInput: "ソニーを買った。" }),
+    ).rejects.toThrow();
   });
 
   it("fails explicitly when Gemini returns an empty response", async () => {
     generateContent.mockResolvedValue({ text: "" });
-    await expect(extractDecision({ rawInput: "ソニーを買った。" })).rejects.toThrow(
-      "Gemini returned an empty response",
-    );
+    await expect(
+      extractDecision({ rawInput: "ソニーを買った。" }),
+    ).rejects.toThrow("Gemini returned an empty response");
   });
 });
 
@@ -73,15 +101,24 @@ describe("transcribeAudio", () => {
 
   it("sends audio directly and preserves negation and spoken corrections", async () => {
     const transcript = "トヨタを100株、いや200株。今は買いません。";
-    fetchMock.mockResolvedValue(Response.json({
-      status: "completed",
-      steps: [{ type: "model_output", content: [{ type: "text", text: transcript }] }],
-    }));
+    fetchMock.mockResolvedValue(
+      Response.json({
+        status: "completed",
+        steps: [
+          {
+            type: "model_output",
+            content: [{ type: "text", text: transcript }],
+          },
+        ],
+      }),
+    );
 
     expect(await transcribeAudio(input)).toBe(transcript);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, request] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/interactions");
+    expect(url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
+    );
     expect(request.method).toBe("POST");
     expect(request.headers["x-goog-api-key"]).toBe("test-key");
     expect(JSON.parse(request.body)).toEqual({
@@ -96,28 +133,45 @@ describe("transcribeAudio", () => {
   });
 
   it("maps browser MP4 audio to the supported M4A MIME type", async () => {
-    fetchMock.mockResolvedValue(Response.json({
-      status: "completed",
-      steps: [{ type: "model_output", content: [{ type: "text", text: "原文" }] }],
-    }));
+    fetchMock.mockResolvedValue(
+      Response.json({
+        status: "completed",
+        steps: [
+          { type: "model_output", content: [{ type: "text", text: "原文" }] },
+        ],
+      }),
+    );
     await transcribeAudio({ ...input, mimeType: "audio/mp4" });
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).input[0].mime_type).toBe("audio/m4a");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).input[0].mime_type).toBe(
+      "audio/m4a",
+    );
   });
 
   it("fails before sending empty audio or a request without an API key", async () => {
-    await expect(transcribeAudio({ ...input, bytes: new Uint8Array() })).rejects.toThrow("Audio file is empty");
+    await expect(
+      transcribeAudio({ ...input, bytes: new Uint8Array() }),
+    ).rejects.toThrow("Audio file is empty");
     vi.stubEnv("GEMINI_API_KEY", undefined);
-    await expect(transcribeAudio(input)).rejects.toThrow("GEMINI_API_KEY is required");
+    await expect(transcribeAudio(input)).rejects.toThrow(
+      "GEMINI_API_KEY is required",
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects API failures without exposing their response body", async () => {
-    fetchMock.mockResolvedValue(new Response("private provider error", { status: 429 }));
-    await expect(transcribeAudio(input)).rejects.toThrow("Gemini transcription failed (429)");
+    fetchMock.mockResolvedValue(
+      new Response("private provider error", { status: 429 }),
+    );
+    await expect(transcribeAudio(input)).rejects.toThrow(
+      "Gemini transcription failed (429)",
+    );
   });
 
   it.each([
-    { status: "completed", steps: [{ type: "model_output", content: [{ type: "text", text: 123 }] }] },
+    {
+      status: "completed",
+      steps: [{ type: "model_output", content: [{ type: "text", text: 123 }] }],
+    },
     { status: "in_progress", steps: [] },
     { unexpected: "response" },
   ])("rejects malformed or incomplete output: %j", async (response) => {
@@ -126,10 +180,16 @@ describe("transcribeAudio", () => {
   });
 
   it("fails when the response has no nonempty transcription", async () => {
-    fetchMock.mockResolvedValue(Response.json({
-      status: "completed",
-      steps: [{ type: "model_output", content: [{ type: "text", text: "  " }] }],
-    }));
-    await expect(transcribeAudio(input)).rejects.toThrow("Gemini returned an empty transcript");
+    fetchMock.mockResolvedValue(
+      Response.json({
+        status: "completed",
+        steps: [
+          { type: "model_output", content: [{ type: "text", text: "  " }] },
+        ],
+      }),
+    );
+    await expect(transcribeAudio(input)).rejects.toThrow(
+      "Gemini returned an empty transcript",
+    );
   });
 });
