@@ -1,3 +1,4 @@
+import { JsonImportPanel } from "@/features/json-import/import-panel";
 import { ImportPanel } from "@/features/csv-import/import-panel";
 import { listImportBatches } from "@/features/csv-import/service";
 
@@ -24,6 +25,7 @@ export default function DataPage() {
         >
           JSONをエクスポート
         </a>
+        <JsonImportPanel />
       </section>
       <ImportPanel batches={listImportBatches()} />
     </main>
