@@ -98,6 +98,14 @@ describe("decision AI routes", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ transcript: "キオクシアを買った。" });
   });
+
+  it("rejects audio above the inline request limit before calling Gemini", async () => {
+    const body = new FormData();
+    body.append("audio", new File([new Uint8Array(14 * 1024 * 1024 + 1)], "large.webm", { type: "audio/webm" }));
+    const response = await transcribePost(new Request("http://localhost/api/decisions/transcribe", { method: "POST", body }));
+    expect(response.status).toBe(400);
+    expect(transcribeAudio).not.toHaveBeenCalled();
+  });
 });
 
 function jsonRequest(value: unknown) {

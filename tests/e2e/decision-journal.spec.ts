@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 const originalThought =
@@ -101,6 +102,17 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "レビュー時期です" })).toBeVisible();
   await expect(page.getByText("キオクシア").first()).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "JSONでエクスポート" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^ruletrade-.*\.json$/);
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const exported = JSON.parse(await readFile(downloadPath!, "utf8"));
+  expect(exported.formatVersion).toBe(1);
+  expect(exported.decisions).toEqual(expect.arrayContaining([expect.objectContaining({ rawInput: originalThought })]));
+  expect(exported.transactions).toHaveLength(2);
+  expect(exported.reviews).toHaveLength(1);
 });
 
 test("transcribes a voice capture fixture and lets the user review the text", async ({ page }) => {

@@ -57,6 +57,11 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+      <section className="mt-10" aria-labelledby="export-heading">
+        <h2 id="export-heading" className="text-lg font-semibold">データのエクスポート</h2>
+        <p className="mt-2 text-sm text-muted-foreground">すべての銘柄・判断・売買履歴・振り返りをJSONファイルに保存できます。入力した原文も含まれます。</p>
+        <a href="/api/export" download className="mt-3 inline-block text-sm font-medium text-primary hover:underline">JSONでエクスポート</a>
+      </section>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 
 import { DecisionExtractionSchema } from "@/schemas/decision";
 import { DecisionComparisonSchema } from "@/schemas/review";
@@ -9,10 +10,14 @@ import { buildComparisonContext } from "@/features/reviews/review-context";
 import type { Decision, DecisionExtraction } from "@/schemas/decision";
 import type { DecisionComparison } from "@/schemas/review";
 
-function getGemini() {
+function getApiKey() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is required");
-  return new GoogleGenAI({ apiKey });
+  return apiKey;
+}
+
+function getGemini() {
+  return new GoogleGenAI({ apiKey: getApiKey() });
 }
 
 function getModel() {
@@ -58,14 +63,43 @@ export async function transcribeAudio(input: {
 }): Promise<string> {
   if (input.bytes.byteLength === 0) throw new Error("Audio file is empty");
   const base64Audio = Buffer.from(input.bytes).toString("base64");
-  const response = await getGemini().models.generateContent({
-    model: getModel(),
-    contents: [
-      { text: "音声を日本語で正確に文字起こししてください。内容を要約・修正しないでください。文字起こし本文だけを返してください。" },
-      { inlineData: { mimeType: input.mimeType, data: base64Audio } },
-    ],
+  // The installed SDK uses the retired Interactions schema; call the current API directly.
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": getApiKey(),
+      "Api-Revision": "2026-05-20",
+    },
+    body: JSON.stringify({
+      model: "gemini-3.5-transcribe",
+      input: [{
+        type: "audio",
+        data: base64Audio,
+        mime_type: input.mimeType === "audio/mp4" ? "audio/m4a" : input.mimeType,
+      }],
+      generation_config: {
+        transcription_config: { language_codes: ["ja-JP"], mode: "verbatim" },
+      },
+      store: false,
+    }),
+    signal: AbortSignal.timeout(60_000),
   });
-  const transcript = response.text?.trim();
+  if (!response.ok) throw new Error(`Gemini transcription failed (${response.status})`);
+  const output = z.object({
+    status: z.literal("completed"),
+    steps: z.array(z.object({
+      type: z.string(),
+      content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional(),
+    })),
+  }).parse(await response.json());
+  const transcript = output.steps
+    .filter((step) => step.type === "model_output")
+    .flatMap((step) => step.content ?? [])
+    .filter((content) => content.type === "text")
+    .map((content) => content.text ?? "")
+    .join("\n")
+    .trim();
   if (!transcript) throw new Error("Gemini returned an empty transcript");
   return transcript;
 }

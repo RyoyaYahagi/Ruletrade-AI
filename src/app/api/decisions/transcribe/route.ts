@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { transcribeAudio } from "@/lib/ai/gemini";
 
-const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
+// Base64 expands audio by about one third; leave room within the API's 20 MB request limit.
+const MAX_AUDIO_BYTES = 14 * 1024 * 1024;
 const AUDIO_TYPES = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"]);
 
 export async function POST(request: Request) {
