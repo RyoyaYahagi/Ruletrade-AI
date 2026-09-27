@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Mic, Square, WandSparkles } from "lucide-react";
-import { saveDecisionAction } from "@/features/decisions/actions";
-import type { DecisionExtraction } from "@/schemas/decision";
+import { listCaptureTransactionsAction, saveDecisionAction } from "@/features/decisions/actions";
+import { findTransactionCandidates, initialDecisionType, japanDate } from "@/features/transactions/matching";
+import { LinkedTransactionSelector } from "@/features/capture/linked-transaction-selector";
+import { DecisionExtractionSchema, type DecisionExtraction } from "@/schemas/decision";
 import type { Stock } from "@/schemas/stock";
+import type { Transaction } from "@/schemas/transaction";
+import { useVoiceTranscription } from "@/features/capture/use-voice-transcription";
 
 type CaptureMode = "writing" | "extracting" | "confirming" | "saving";
 
@@ -32,33 +36,72 @@ function localDateInputValue(date = new Date()) {
   return localDate.toISOString().slice(0, 10);
 }
 
-export function CaptureForm({ stocks }: { stocks: Stock[] }) {
+export function CaptureForm({
+  stocks,
+  fixedStock,
+  transactions: suppliedTransactions,
+  initialTransaction,
+}: {
+  stocks: Stock[];
+  fixedStock?: Stock;
+  transactions?: Transaction[];
+  initialTransaction?: Transaction;
+}) {
   const router = useRouter();
-  const recorder = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunks = useRef<Blob[]>([]);
   const [rawInput, setRawInput] = useState("");
   const [transcript, setTranscript] = useState<string | null>(null);
   const [questionAnswer, setQuestionAnswer] = useState("");
   const [askedQuestion, setAskedQuestion] = useState(false);
   const [mode, setMode] = useState<CaptureMode>("writing");
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [extraction, setExtraction] = useState<DecisionExtraction>(initialExtraction);
-  const [stockChoice, setStockChoice] = useState("new");
+  const [stockChoice, setStockChoice] = useState(fixedStock ? `existing:${fixedStock.id}` : "new");
+  const [decisionDate, setDecisionDate] = useState(() => initialTransaction ? japanDate(initialTransaction.executedAt) : japanDate(new Date()));
+  const [candidateTransactions, setCandidateTransactions] = useState<Transaction[]>(suppliedTransactions ?? []);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(initialTransaction?.id ?? null);
   const [recordTrade, setRecordTrade] = useState(false);
   const [reviewChoice, setReviewChoice] = useState("none");
   const [reviewDate, setReviewDate] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => () => {
-    if (recorder.current && recorder.current.state !== "inactive") {
-      recorder.current.onstop = null;
-      recorder.current.stop();
+  const effectiveStockId = fixedStock?.id ?? (stockChoice.startsWith("existing:") ? stockChoice.slice("existing:".length) : null);
+  useEffect(() => {
+    let active = true;
+    if (!effectiveStockId) {
+      setCandidateTransactions([]);
+      setCandidatesLoading(false);
+      setSelectedTransactionId(null);
+      return () => { active = false; };
     }
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    if (suppliedTransactions) {
+      setCandidateTransactions(suppliedTransactions);
+      setCandidatesLoading(false);
+      return () => { active = false; };
+    }
+    setCandidatesLoading(true);
+    setSelectedTransactionId(null);
+    void listCaptureTransactionsAction({ stockId: effectiveStockId })
+      .then((items) => { if (active) setCandidateTransactions(items); })
+      .catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause.message : "売買履歴を読み込めませんでした。"); })
+      .finally(() => { if (active) setCandidatesLoading(false); });
+    return () => { active = false; };
+  }, [effectiveStockId, suppliedTransactions]);
+
+  const selectedLinkedTransaction = candidateTransactions.find((item) => item.id === selectedTransactionId) ?? null;
+  const transactionCandidates = effectiveStockId
+    ? findTransactionCandidates(candidateTransactions, extraction.type, decisionDate, effectiveStockId)
+    : [];
+  useEffect(() => {
+    const eligible = findTransactionCandidates(candidateTransactions, extraction.type, decisionDate, effectiveStockId ?? "");
+    const sourceMatch = initialTransaction && eligible.some((item) => item.id === initialTransaction.id) ? initialTransaction.id : null;
+    setSelectedTransactionId(sourceMatch ?? (eligible.length === 1 ? eligible[0].id : null));
+  }, [candidateTransactions, extraction.type, decisionDate, effectiveStockId, initialTransaction]);
+
+  const handleTranscript = useCallback((value: string) => {
+    setTranscript(value);
+    setRawInput(value);
   }, []);
+  const voice = useVoiceTranscription(handleTranscript);
 
   async function extract(answer?: string) {
     if (!rawInput.trim()) {
@@ -79,9 +122,11 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
       if (!response.ok) {
         throw new Error("error" in result ? result.error : undefined);
       }
-      const extracted = result as DecisionExtraction;
+      const extracted = DecisionExtractionSchema.parse(result);
       const confirmedExtraction = {
         ...extracted,
+        ...(fixedStock ? { stock: { ticker: fixedStock.ticker, name: fixedStock.name, market: fixedStock.market } } : {}),
+        ...(initialTransaction ? { type: initialDecisionType(initialTransaction) } : {}),
         transaction: extracted.transaction
           ? { ...extracted.transaction, executedAt: extracted.transaction.executedAt ?? new Date().toISOString() }
           : null,
@@ -96,75 +141,11 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
     }
   }
 
-  async function startRecording() {
-    setError(null);
-    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      setError("このブラウザーは音声録音に対応していません。テキスト入力をご利用ください。");
+  async function save() {
+    if (candidatesLoading) {
+      setError("売買履歴の読み込みが完了するまで保存できません。");
       return;
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      chunks.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
-      recorder.current = mediaRecorder;
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.current.push(event.data);
-      };
-      mediaRecorder.onerror = () => {
-        mediaRecorder.onstop = null;
-        if (mediaRecorder.state !== "inactive") mediaRecorder.stop();
-        stream.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        setRecording(false);
-        setError("録音中にエラーが発生しました。もう一度お試しください。");
-      };
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        setRecording(false);
-        const audio = new Blob(chunks.current, { type: mediaRecorder.mimeType || "audio/webm" });
-        if (audio.size === 0) {
-          setError("録音データがありません。もう一度録音してください。");
-          return;
-        }
-        if (audio.size > 20 * 1024 * 1024) {
-          setError("録音は20MB以下にしてください。短く分けて録音してください。");
-          return;
-        }
-        setMode("extracting");
-        setTranscribing(true);
-        try {
-          const formData = new FormData();
-          formData.append("audio", audio, "recording.webm");
-          const response = await fetch("/api/decisions/transcribe", { method: "POST", body: formData });
-          const result = (await response.json()) as { transcript?: string; error?: string };
-          if (!response.ok || !result.transcript) {
-            throw new Error(result.error ?? "音声を文字起こしできませんでした。");
-          }
-          setTranscript(result.transcript);
-          setRawInput(result.transcript);
-          setMode("writing");
-        } catch (cause) {
-          setMode("writing");
-          setError(cause instanceof Error ? cause.message : "音声を送信できませんでした。テキスト入力をご利用ください。");
-        } finally {
-          setTranscribing(false);
-        }
-      };
-      mediaRecorder.start();
-      setRecording(true);
-    } catch (cause) {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-      const denied = cause instanceof DOMException && cause.name === "NotAllowedError";
-      setError(denied
-        ? "マイクの使用が許可されていません。ブラウザーの設定でマイクを許可するか、テキスト入力をご利用ください。"
-        : "マイクを開始できませんでした。接続とブラウザーの設定を確認してください。");
-    }
-  }
-
-  async function save() {
     if (!extraction.stock.name.trim()) {
       setError("銘柄名を入力してください。");
       return;
@@ -215,7 +196,9 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
         reviewConditions: linesToList(extraction.reviewConditions.join("\n").replace(/^/, "")),
         addConditions: linesToList(extraction.addConditions.join("\n").replace(/^/, "")),
         reviewAt,
-        transactionInput,
+        decidedAt: decisionDate,
+        existingTransactionId: selectedLinkedTransaction?.id ?? null,
+        transactionInput: selectedLinkedTransaction ? null : transactionInput,
         ...(stockChoice.startsWith("existing:") ? { stockId: stockChoice.slice("existing:".length) } : {}),
       });
       router.push(`/stocks/${saved.stockId}`);
@@ -230,9 +213,9 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
     setExtraction((current) => ({ ...current, [field]: linesToList(value) }));
   }
 
-  const selectedStock = stockChoice.startsWith("existing:")
+  const selectedStock = fixedStock ?? (stockChoice.startsWith("existing:")
     ? stocks.find((stock) => stock.id === stockChoice.slice("existing:".length))
-    : undefined;
+    : undefined);
 
   return (
     <div className="space-y-6">
@@ -243,29 +226,30 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
         <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-secondary/60 px-4 py-6">
           <button
             type="button"
-            onClick={recording ? () => recorder.current?.stop() : startRecording}
-            disabled={mode !== "writing"}
-            aria-label={recording ? "録音を停止" : "話して記録"}
-            className={`flex h-16 w-16 items-center justify-center rounded-full text-white shadow-md transition ${recording ? "bg-destructive" : "bg-primary hover:brightness-110"}`}
+            onClick={voice.recording ? voice.stopRecording : voice.startRecording}
+            disabled={mode !== "writing" || voice.transcribing}
+            aria-label={voice.recording ? "録音を停止" : "話して記録"}
+            className={`flex h-16 w-16 items-center justify-center rounded-full text-white shadow-md transition ${voice.recording ? "bg-destructive" : "bg-primary hover:brightness-110"}`}
           >
-            {recording ? <Square aria-hidden size={24} /> : <Mic aria-hidden size={27} />}
+            {voice.recording ? <Square aria-hidden size={24} /> : <Mic aria-hidden size={27} />}
           </button>
-          <span className="text-sm font-medium">{recording ? "録音中です。もう一度押すと停止します" : "話して記録"}</span>
+          <span className="text-sm font-medium">{voice.recording ? "録音中です。もう一度押すと停止します" : voice.transcribing ? "文字起こししています…" : "話して記録"}</span>
         </div>
+        {voice.error && <p role="alert" className="mt-3 text-sm text-destructive">{voice.error}</p>}
         <label className="field-label mt-6" htmlFor="raw-input">テキストで入力する</label>
         <textarea
           id="raw-input"
           value={rawInput}
           onChange={(event) => setRawInput(event.target.value)}
-          disabled={mode === "extracting" || mode === "saving" || recording}
+          disabled={mode === "extracting" || mode === "saving" || voice.recording || voice.transcribing}
           rows={5}
           placeholder="銘柄、判断したこと、その理由や見直し条件を自由に書いてください。"
           className="w-full resize-y rounded-xl border bg-background px-4 py-3 text-sm leading-6 shadow-sm"
         />
         {transcript && <details className="mt-2 rounded-lg bg-secondary/50 p-3"><summary className="cursor-pointer text-xs font-medium">編集前の文字起こし原文</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{transcript}</p><p className="mt-2 text-xs text-muted-foreground">下の入力欄は文字起こしの誤りを修正できます。修正した文章とこの原文は別々に保存します。</p></details>}
-        <button type="button" onClick={() => void extract()} disabled={mode !== "writing" || recording || !rawInput.trim()} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+        <button type="button" onClick={() => void extract()} disabled={mode !== "writing" || voice.recording || voice.transcribing || !rawInput.trim()} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
           <WandSparkles size={17} aria-hidden />
-          {transcribing ? "文字起こししています…" : mode === "extracting" ? "整理しています…" : "内容を整理する"}
+          {voice.transcribing ? "文字起こししています…" : mode === "extracting" ? "整理しています…" : "内容を整理する"}
         </button>
       </section>
 
@@ -285,17 +269,25 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm sm:col-span-2">銘柄の登録先<select value={stockChoice} onChange={(event) => setStockChoice(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="new">新しい銘柄として登録</option>{stocks.map((stock) => <option key={stock.id} value={`existing:${stock.id}`}>既存の銘柄: {stock.name}{stock.ticker ? ` (${stock.ticker})` : ""}</option>)}</select></label>
+            {!fixedStock && <label className="text-sm sm:col-span-2">銘柄の登録先<select value={stockChoice} onChange={(event) => setStockChoice(event.target.value)} disabled={mode === "saving"} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="new">新しい銘柄として登録</option>{stocks.map((stock) => <option key={stock.id} value={`existing:${stock.id}`}>既存の銘柄: {stock.name}{stock.ticker ? ` (${stock.ticker})` : ""}</option>)}</select></label>}
             <label className="text-sm">銘柄名<input value={selectedStock?.name ?? extraction.stock.name} disabled={Boolean(selectedStock)} onChange={(event) => setExtraction((v) => ({ ...v, stock: { ...v.stock, name: event.target.value } }))} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 disabled:bg-secondary" /></label>
             <label className="text-sm">証券コード（任意）<input value={selectedStock?.ticker ?? extraction.stock.ticker ?? ""} disabled={Boolean(selectedStock)} onChange={(event) => setExtraction((v) => ({ ...v, stock: { ...v.stock, ticker: event.target.value || null } }))} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 disabled:bg-secondary" /></label>
-            <label className="text-sm">記録の種類<select value={extraction.type} onChange={(event) => setExtraction((v) => ({ ...v, type: event.target.value as DecisionExtraction["type"] }))} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="buy">購入</option><option value="add">買い増し</option><option value="sell_consideration">売却を検討</option><option value="sell">売却</option><option value="thesis_update">仮説の更新</option><option value="note">メモ</option></select></label>
+            <label className="text-sm">記録日<input type="date" value={decisionDate} onChange={(event) => setDecisionDate(event.target.value)} disabled={mode === "saving"} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
+            <label className="text-sm">記録の種類<select value={extraction.type} onChange={(event) => setExtraction((v) => ({ ...v, type: event.target.value as DecisionExtraction["type"] }))} disabled={mode === "saving"} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="buy">購入</option><option value="add">買い増し</option><option value="sell_consideration">売却を検討</option><option value="sell">売却</option><option value="thesis_update">仮説の更新</option><option value="note">メモ</option></select></label>
             <label className="text-sm">投資仮説<textarea value={extraction.thesis ?? ""} onChange={(event) => setExtraction((v) => ({ ...v, thesis: event.target.value || null }))} rows={2} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
             <label className="text-sm">前提（1行に1つ）<textarea value={extraction.assumptions.join("\n")} onChange={(event) => setArrayField("assumptions", event.target.value)} rows={3} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
             <label className="text-sm">見直し条件（1行に1つ）<textarea value={extraction.reviewConditions.join("\n")} onChange={(event) => setArrayField("reviewConditions", event.target.value)} rows={3} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
             <label className="text-sm">買い増し条件（1行に1つ）<textarea value={extraction.addConditions.join("\n")} onChange={(event) => setArrayField("addConditions", event.target.value)} rows={3} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 sm:col-span-2" /></label>
           </div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={recordTrade} onChange={(event) => { const enabled = event.target.checked; setRecordTrade(enabled); if (enabled && !extraction.transaction) setExtraction((v) => ({ ...v, transaction: { side: v.type === "sell" ? "sell" : "buy", quantity: null, price: null, fee: null, executedAt: new Date().toISOString() } })); }} />売買の事実も履歴に記録する</label>
-          {recordTrade && extraction.transaction && (
+          {effectiveStockId && <LinkedTransactionSelector
+            transactions={transactionCandidates}
+            value={selectedTransactionId}
+            onChange={setSelectedTransactionId}
+            loading={candidatesLoading}
+            disabled={mode === "saving"}
+          />}
+          {!selectedLinkedTransaction && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={recordTrade} disabled={mode === "saving"} onChange={(event) => { const enabled = event.target.checked; setRecordTrade(enabled); if (enabled && !extraction.transaction) setExtraction((v) => ({ ...v, transaction: { side: v.type === "sell" ? "sell" : "buy", quantity: null, price: null, fee: null, executedAt: new Date().toISOString() } })); }} />売買の事実も履歴に記録する</label>}
+          {!selectedLinkedTransaction && recordTrade && extraction.transaction && (
             <fieldset className="rounded-xl border p-4">
               <legend className="px-1 text-sm font-semibold">売買履歴に追加</legend>
               <div className="grid gap-3 sm:grid-cols-4">
@@ -309,7 +301,7 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
           <fieldset className="rounded-xl border p-4">
             <legend className="px-1 text-sm font-semibold">振り返る時期（任意）</legend>
             <div className="flex flex-wrap gap-2">
-              {[['none', '設定しない'], ['month', '1か月後'], ['quarter', '3か月後'], ['earnings', '次の決算'], ['date', '日付指定']].map(([value, label]) => <button type="button" key={value} aria-pressed={reviewChoice === value} onClick={() => setReviewChoice(value)} className={`rounded-full border px-3 py-1.5 text-sm ${reviewChoice === value ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}>{label}</button>)}
+              {[['none', '設定しない'], ['month', '1か月後'], ['quarter', '3か月後'], ['earnings', '次の決算'], ['date', '日付指定']].map(([value, label]) => <button type="button" key={value} aria-pressed={reviewChoice === value} onClick={() => setReviewChoice(value)} disabled={mode === "saving"} className={`rounded-full border px-3 py-1.5 text-sm ${reviewChoice === value ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}>{label}</button>)}
             </div>
             {(reviewChoice === "earnings" || reviewChoice === "date") && <label className="mt-3 block max-w-xs text-sm">振り返り日<input type="date" value={reviewDate} onChange={(event) => setReviewDate(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>}
           </fieldset>
@@ -319,7 +311,7 @@ export function CaptureForm({ stocks }: { stocks: Stock[] }) {
           </details>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={() => void save()} disabled={mode === "saving"} className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground disabled:opacity-60"><Check size={17} aria-hidden />{mode === "saving" ? "保存しています…" : "この内容で保存"}</button>
-            <button type="button" onClick={() => setMode("writing")} className="rounded-lg border px-4 py-3 text-sm">入力に戻る</button>
+            <button type="button" onClick={() => setMode("writing")} disabled={mode === "saving"} className="rounded-lg border px-4 py-3 text-sm">入力に戻る</button>
           </div>
         </section>
       )}

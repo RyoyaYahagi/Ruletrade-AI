@@ -133,11 +133,11 @@
 
 @layer components {
   .app-header {
-    @apply flex h-16 items-center justify-between border-b bg-card px-5 sm:px-8;
+    @apply flex h-16 items-center gap-4 border-b bg-card px-5 sm:gap-6 sm:px-8;
   }
 
   .app-header nav {
-    @apply flex items-center gap-5 text-sm text-muted-foreground;
+    @apply mr-auto flex items-center gap-3 whitespace-nowrap text-sm text-muted-foreground sm:gap-5;
   }
 
   .app-header nav a:hover {

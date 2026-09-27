@@ -14,6 +14,7 @@ type DecisionRow = {
   reviewConditions: string;
   addConditions: string;
   reviewAt: string | null;
+  decidedAt?: string | null;
   createdAt: string;
 };
 
@@ -39,7 +40,10 @@ export function mapExtractionToDecisionFields(extraction: DecisionExtraction) {
 
 function parseStringArray(value: string): string[] {
   const decoded: unknown = JSON.parse(value);
-  if (!Array.isArray(decoded) || decoded.some((item) => typeof item !== "string")) {
+  if (
+    !Array.isArray(decoded) ||
+    decoded.some((item) => typeof item !== "string")
+  ) {
     throw new Error("Stored decision list field is invalid");
   }
   return decoded;

@@ -102,8 +102,12 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "レビュー時期です" })).toBeVisible();
   await expect(page.getByText("キオクシア").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "JSONをエクスポート" })).toHaveCount(0);
+  await page.getByRole("button", { name: "補助メニュー" }).click();
+  await page.getByRole("link", { name: "データ管理", exact: true }).click();
+  await expect(page).toHaveURL("/data");
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("link", { name: "JSONでエクスポート" }).click();
+  await page.getByRole("link", { name: "JSONをエクスポート" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^ruletrade-.*\.json$/);
   const downloadPath = await download.path();

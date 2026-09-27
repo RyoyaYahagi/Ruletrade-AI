@@ -3,7 +3,10 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import {
+  drizzle,
+  type BetterSQLite3Database,
+} from "drizzle-orm/better-sqlite3";
 
 import { schema } from "@/lib/db/schema";
 
@@ -33,6 +36,7 @@ function initializeSchema(connection: Database.Database) {
       name TEXT NOT NULL,
       normalized_name TEXT NOT NULL,
       market TEXT,
+      market_code TEXT,
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS stocks_ticker_idx ON stocks(ticker);
@@ -79,5 +83,114 @@ function initializeSchema(connection: Database.Database) {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS reviews_stock_created_idx ON reviews(stock_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS import_batches (
+      id TEXT PRIMARY KEY,
+      broker TEXT NOT NULL,
+      format TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      raw_csv TEXT NOT NULL,
+      raw_encoding TEXT NOT NULL,
+      sha256 TEXT NOT NULL,
+      imported_at TEXT NOT NULL,
+      transaction_count REAL NOT NULL,
+      duplicate_count REAL NOT NULL,
+      excluded_count REAL NOT NULL,
+      unknown_count REAL NOT NULL,
+      undone_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS transaction_import_sources (
+      id TEXT PRIMARY KEY,
+      transaction_id TEXT NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+      import_batch_id TEXT NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE,
+      source_row_number REAL NOT NULL,
+      source_fingerprint TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS import_sources_batch_row_idx ON transaction_import_sources(import_batch_id, source_row_number);
+    CREATE INDEX IF NOT EXISTS import_sources_fingerprint_idx ON transaction_import_sources(source_fingerprint);
+    CREATE TABLE IF NOT EXISTS import_changes (
+      id TEXT PRIMARY KEY,
+      import_batch_id TEXT NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE,
+      entity TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      before_json TEXT NOT NULL,
+      after_json TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS import_batch_stocks (
+      batch_id TEXT NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE,
+      stock_id TEXT NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+      created_by_batch REAL NOT NULL,
+      PRIMARY KEY(batch_id, stock_id)
+    );
+  `);
+
+  const decisionColumns = new Set(
+    (connection.pragma("table_info(decisions)") as Array<{ name: string }>).map(
+      ({ name }) => name,
+    ),
+  );
+  if (!decisionColumns.has("decided_at")) {
+    connection.exec("ALTER TABLE decisions ADD COLUMN decided_at TEXT");
+  }
+
+  const transactionColumns: Record<string, string> = {
+    price_currency: "TEXT",
+    fee_currency: "TEXT",
+    settlement_date: "TEXT",
+    settlement_currency: "TEXT",
+    settlement_amount: "REAL",
+    exchange_rate: "REAL",
+    account_type: "TEXT",
+    source_broker: "TEXT",
+    source_trade_type: "TEXT",
+    import_batch_id: "TEXT REFERENCES import_batches(id) ON DELETE CASCADE",
+    source_fingerprint: "TEXT",
+    source_row_number: "REAL",
+  };
+  const stockColumns = new Set(
+    (connection.pragma("table_info(stocks)") as Array<{ name: string }>).map(
+      ({ name }) => name,
+    ),
+  );
+  if (!stockColumns.has("market_code"))
+    connection.exec("ALTER TABLE stocks ADD COLUMN market_code TEXT");
+  const existingColumns = new Set(
+    (
+      connection.pragma("table_info(transactions)") as Array<{ name: string }>
+    ).map(({ name }) => name),
+  );
+  for (const [name, declaration] of Object.entries(transactionColumns)) {
+    if (!existingColumns.has(name)) {
+      connection.exec(
+        `ALTER TABLE transactions ADD COLUMN ${name} ${declaration}`,
+      );
+    }
+  }
+  const batchColumns = new Set(
+    (
+      connection.pragma("table_info(import_batches)") as Array<{ name: string }>
+    ).map(({ name }) => name),
+  );
+  for (const name of [
+    "file_name",
+    "duplicate_count",
+    "merged_count",
+    "excluded_count",
+    "unknown_count",
+  ]) {
+    if (!batchColumns.has(name)) {
+      const declaration =
+        name === "file_name"
+          ? "TEXT NOT NULL DEFAULT ''"
+          : "REAL NOT NULL DEFAULT 0";
+      connection.exec(
+        `ALTER TABLE import_batches ADD COLUMN ${name} ${declaration}`,
+      );
+    }
+  }
+  connection.exec(`
+    CREATE INDEX IF NOT EXISTS transactions_import_batch_idx ON transactions(import_batch_id);
+    CREATE INDEX IF NOT EXISTS transactions_fingerprint_idx ON transactions(source_fingerprint);
   `);
 }

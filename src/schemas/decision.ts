@@ -46,6 +46,7 @@ export const DecisionSchema = z.object({
   reviewConditions: z.array(z.string()),
   addConditions: z.array(z.string()),
   reviewAt: z.string().datetime().nullable(),
+  decidedAt: z.iso.date().nullable().optional(),
   createdAt: z.string().datetime(),
 });
 
