@@ -1,0 +1,28 @@
+# Default
+* @owner
+
+# Database / ownership checks
+/src/lib/db/ @owner
+
+# AI / RAG
+/src/features/ai/ @owner
+/src/features/rag/ @owner
+/src/features/documents/ @owner
+
+# Privacy / Security / Billing
+/src/features/privacy/ @owner
+/src/features/security/ @owner
+/src/features/billing/ @owner
+
+# Admin / Operations
+/src/features/admin/ @owner
+/src/features/observability/ @owner
+/src/features/dr/ @owner
+
+# Email / Support
+/src/features/email/ @owner
+/src/features/support/ @owner
+
+# ADR / Release
+/docs/adr/ @owner
+/docs/release-management.md @owner

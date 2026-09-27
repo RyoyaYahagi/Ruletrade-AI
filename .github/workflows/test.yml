@@ -1,0 +1,10 @@
+name: Deprecated Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deprecated:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Use the Check workflow for typecheck, lint, test, and build."

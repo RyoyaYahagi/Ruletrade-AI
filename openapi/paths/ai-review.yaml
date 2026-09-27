@@ -1,0 +1,41 @@
+paths:
+  /api/rule-sessions/{sessionId}/review:
+    post:
+      tags:
+        - AI
+      summary: Run AI review for a rule session
+      description: |
+        Runs AI review for a rule session.
+
+        The AI review checks rule completeness and missing fields.
+        It does not provide investment advice or buy/sell recommendations.
+      operationId: runRuleReview
+      parameters:
+        - $ref: "../components/parameters.yaml#/SessionId"
+      responses:
+        "200":
+          description: AI review completed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - review
+                        properties:
+                          review:
+                            $ref: "../components/schemas.yaml#/RuleReview"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+        "404":
+          $ref: "../components/responses.yaml#/NotFound"
+        "422":
+          description: AI output was blocked or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/ApiError"

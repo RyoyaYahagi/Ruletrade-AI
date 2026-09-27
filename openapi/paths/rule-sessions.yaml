@@ -1,0 +1,91 @@
+paths:
+  /api/rule-sessions:
+    get:
+      tags:
+        - Rules
+      summary: List rule sessions
+      operationId: listRuleSessions
+      responses:
+        "200":
+          description: Rule sessions.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - sessions
+                        properties:
+                          sessions:
+                            type: array
+                            items:
+                              $ref: "../components/schemas.yaml#/RuleSession"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+
+    post:
+      tags:
+        - Rules
+      summary: Create rule session
+      operationId: createRuleSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/CreateRuleSessionRequest"
+      responses:
+        "201":
+          description: Rule session created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - session
+                        properties:
+                          session:
+                            $ref: "../components/schemas.yaml#/RuleSession"
+        "400":
+          $ref: "../components/responses.yaml#/ValidationError"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+
+  /api/rule-sessions/{sessionId}:
+    get:
+      tags:
+        - Rules
+      summary: Get rule session
+      operationId: getRuleSession
+      parameters:
+        - $ref: "../components/parameters.yaml#/SessionId"
+      responses:
+        "200":
+          description: Rule session.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - session
+                        properties:
+                          session:
+                            $ref: "../components/schemas.yaml#/RuleSession"
+        "401":
+          $ref: "../components/responses.yaml#/Unauthorized"
+        "404":
+          $ref: "../components/responses.yaml#/NotFound"
