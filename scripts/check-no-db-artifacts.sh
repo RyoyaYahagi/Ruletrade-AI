@@ -5,7 +5,9 @@
 # fails whenever a database artifact is tracked anywhere in the tree.
 set -euo pipefail
 
-pattern='(^|/)\.?data/|\.sqlite(-shm|-wal)?$'
+# Match the root runtime data directory, hidden .data directories, and SQLite files.
+# Ordinary nested data directories (such as src/app/data) contain application code.
+pattern='^data/|(^|/)\.data/|\.sqlite(-shm|-wal)?$'
 
 tracked=$(git ls-files | grep -E "$pattern" || true)
 
