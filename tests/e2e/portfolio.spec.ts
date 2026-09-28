@@ -105,7 +105,7 @@ test("builds the portfolio from trades and links holdings from the home page", a
 
     await page.goto("/portfolio");
     await expect(
-      page.getByRole("heading", { name: "ポートフォリオ" }),
+      page.getByRole("heading", { name: "ポートフォリオ", exact: true }),
     ).toBeVisible();
     for (const position of positions) {
       const row = page
