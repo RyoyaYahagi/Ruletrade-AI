@@ -34,7 +34,7 @@ const batchSchema = z.object({
   undoneAt: timestamp.nullable(),
 });
 const backupSchema = z.object({
-  formatVersion: z.literal(1),
+  formatVersion: z.union([z.literal(1), z.literal(2)]),
   exportedAt: timestamp,
   stocks: z.array(stockSchema),
   decisions: z.array(DecisionSchema),
@@ -167,6 +167,9 @@ export function importJson(value: unknown) {
     importBatches: data.importBatches,
     decisions: data.decisions.map((row) => ({
       ...row,
+      summary: row.summary ?? row.thesis,
+      points: JSON.stringify(row.points ?? []),
+      followUpQuestion: row.followUpQuestion ?? null,
       assumptions: JSON.stringify(row.assumptions),
       reviewConditions: JSON.stringify(row.reviewConditions),
       addConditions: JSON.stringify(row.addConditions),
@@ -243,6 +246,9 @@ export function importJson(value: unknown) {
             stored.reviewDates ??= JSON.stringify(
               stored.reviewAt ? [stored.reviewAt] : [],
             );
+            stored.summary ??= stored.thesis;
+            stored.points ??= "[]";
+            stored.followUpQuestion ??= null;
           }
           if (fields.some((field) => stored[field] !== (row[field] ?? null)))
             throw new JsonImportError(

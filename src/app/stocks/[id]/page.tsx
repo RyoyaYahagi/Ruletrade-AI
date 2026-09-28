@@ -5,6 +5,7 @@ import { formatTransactionPrice } from "@/features/transactions/format";
 import { notFound } from "next/navigation";
 import { CompareForm } from "@/features/reviews/compare-form";
 import { TransactionForm } from "@/features/transactions/transaction-form";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 import {
   getStockTimelineAction,
   listReviewsForStockAction,
@@ -124,9 +125,18 @@ export default async function StockPage({
                       {formatTransactionPrice(trade.price, trade.priceCurrency)}
                     </p>
                   ))}
-                {decision.thesis && (
-                  <p className="mt-3 text-sm leading-6">{decision.thesis}</p>
+                {(decision.summary ?? decision.thesis) && (
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                    <p className="text-xs font-semibold text-muted-foreground">AIによる整理 · 要約</p>
+                    <p className="mt-1 text-sm leading-6">{decisionDisplayText(decision)}</p>
+                  </div>
                 )}
+                {(decision.points ?? []).length > 0 && (
+                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
+                    {decision.points!.map((point, index) => <li key={`${decision.id}-p-${index}`}>{point.text}</li>)}
+                  </ul>
+                )}
+                {decision.followUpQuestion && <p className="mt-3 rounded-lg bg-secondary/50 p-3 text-sm"><span className="font-medium">AIからの確認:</span> {decision.followUpQuestion}</p>}
                 {decision.assumptions.length > 0 && (
                   <div className="mt-3">
                     <p className="text-xs font-semibold text-muted-foreground">

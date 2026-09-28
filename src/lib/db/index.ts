@@ -139,6 +139,15 @@ function initializeSchema(connection: Database.Database) {
   if (!decisionColumns.has("decided_at")) {
     connection.exec("ALTER TABLE decisions ADD COLUMN decided_at TEXT");
   }
+  for (const [name, declaration] of Object.entries({
+    follow_up_question: "TEXT",
+    summary: "TEXT",
+    points_json: "TEXT",
+  })) {
+    if (!decisionColumns.has(name)) {
+      connection.exec(`ALTER TABLE decisions ADD COLUMN ${name} ${declaration}`);
+    }
+  }
 
   const transactionColumns: Record<string, string> = {
     price_currency: "TEXT",

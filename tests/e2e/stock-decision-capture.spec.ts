@@ -23,10 +23,8 @@ test("records a decision for an imported trade without adding another trade", as
       json: {
         type: "note",
         stock: { name: "別の抽出銘柄", ticker: null, market: null },
-        thesis: "過去の購入理由",
-        assumptions: [],
-        reviewConditions: [],
-        addConditions: [],
+        summary: "過去の購入理由",
+        points: [{ kind: "reason", text: "将来の需要を期待して購入", source: "raw_input" }],
         transaction: {
           side: "buy",
           quantity: 100,
@@ -77,10 +75,8 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
       json: {
         type: "note",
         stock: { name: "架空候補確認社", ticker: null, market: null },
-        thesis: "候補確認の判断",
-        assumptions: [],
-        reviewConditions: [],
-        addConditions: [],
+        summary: "候補確認の判断",
+        points: [{ kind: "other", text: "候補確認の判断", source: "raw_input" }],
         transaction: null,
         followUpQuestion: null,
       },
@@ -116,7 +112,7 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
   await page.getByLabel("判断した日").fill("2026-02-15");
   await expect(selector.getByRole("combobox")).not.toHaveValue("none");
   await selector.getByRole("combobox").selectOption("none");
-  await page.getByLabel("投資仮説").fill("紐付けない選択を維持する");
+  await page.getByLabel("要約").fill("紐付けない選択を維持する");
   await expect(selector.getByRole("combobox")).toHaveValue("none");
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(stockUrl);

@@ -21,10 +21,8 @@ describe("extractDecision", () => {
     const extraction = {
       type: "buy",
       stock: { ticker: null, name: "キオクシア", market: null },
-      thesis: "AI向け需要を期待",
-      assumptions: [],
-      reviewConditions: [],
-      addConditions: [],
+      summary: "AI向け需要を期待",
+      points: [{ kind: "expectation", text: "AI向け需要を期待", source: "raw_input" }],
       transaction: null,
       followUpQuestion: "もう一つ質問しますか？",
     };
@@ -48,10 +46,8 @@ describe("extractDecision", () => {
       text: JSON.stringify({
         type: "buy",
         stock: { name: null, ticker: null, market: null },
-        thesis: "需要を期待",
-        assumptions: [],
-        reviewConditions: [],
-        addConditions: [],
+        summary: "需要を期待",
+        points: [{ kind: "expectation", text: "需要を期待", source: "raw_input" }],
         transaction: null,
         followUpQuestion: null,
       }),

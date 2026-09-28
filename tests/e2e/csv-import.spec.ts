@@ -87,10 +87,8 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
     const extraction = {
       type: "buy",
       stock: { ticker, name: stockName, market: "JP" },
-      thesis: "CSV照合の確認用記録",
-      assumptions: [],
-      reviewConditions: [],
-      addConditions: [],
+      summary: "CSV照合の確認用記録",
+      points: [{ kind: "other", text: "CSV照合の確認用記録", source: "raw_input" }],
       transaction: {
         side: "buy",
         quantity: 10,

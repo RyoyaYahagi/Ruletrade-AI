@@ -7,6 +7,7 @@ import {
 } from "@/features/decisions/actions";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
 import { listPortfolioAction } from "@/features/portfolio/actions";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function HomePage() {
                 <span>
                   <span className="block font-medium">{stock.name}</span>
                   <span className="mt-1 block text-sm text-muted-foreground">
-                    {decision.thesis ?? decision.rawInput}
+                    {decisionDisplayText(decision)}
                   </span>
                 </span>
                 <span className="shrink-0 text-sm text-muted-foreground">
@@ -130,7 +131,7 @@ export default async function HomePage() {
                 <span className="min-w-0">
                   <span className="block font-medium">{stock.name}</span>
                   <span className="mt-1 block truncate text-sm text-muted-foreground">
-                    {decision.thesis ?? decision.rawInput}
+                    {decisionDisplayText(decision)}
                   </span>
                 </span>
                 <span className="shrink-0 text-right text-sm text-muted-foreground">

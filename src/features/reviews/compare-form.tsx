@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveDecisionAction, saveReviewAction } from "@/features/decisions/actions";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 import type { Decision } from "@/schemas/decision";
 import type { DecisionComparison } from "@/schemas/review";
 import type { Stock } from "@/schemas/stock";
@@ -144,10 +145,8 @@ export function CompareForm({ stock, reviewDecision }: { stock: Stock; reviewDec
           rawInput: currentInput,
           transcript: saleTranscript,
           followUpAnswer: null,
-          thesis: currentInput,
-          assumptions: [],
-          reviewConditions: [],
-          addConditions: [],
+          summary: currentInput,
+          points: [],
           followUpQuestion: null,
           transaction: null,
           transactionInput: {
@@ -192,7 +191,7 @@ export function CompareForm({ stock, reviewDecision }: { stock: Stock; reviewDec
       <p className="text-sm font-medium text-primary">過去の自分と振り返る</p>
       <h2 id="compare-heading" className="mt-1 text-xl font-semibold">いまの考えを過去の記録と比べる</h2>
       <p className="mt-2 text-sm text-muted-foreground">AIは売買を勧めず、過去の記録と現在の考えの違いを整理します。</p>
-      {reviewDecision && <p className="mt-3 rounded-lg bg-secondary/60 p-3 text-sm">振り返る判断: {reviewDecision.thesis ?? reviewDecision.rawInput}</p>}
+      {reviewDecision && <p className="mt-3 rounded-lg bg-secondary/60 p-3 text-sm">振り返る判断: {decisionDisplayText(reviewDecision)}</p>}
       <label htmlFor="current-thought" className="field-label mt-5">現在の考え</label>
       <button type="button" onClick={recording ? () => recorder.current?.stop() : startRecording} disabled={loading} aria-label={recording ? "録音を停止" : "売却理由を話して記録"} className={`mb-3 flex h-14 w-14 items-center justify-center rounded-full text-white ${recording ? "bg-destructive" : "bg-primary"}`}><span aria-hidden>{recording ? "■" : "🎙️"}</span></button>
       {transcribing && <p role="status" className="mb-2 text-sm text-muted-foreground">文字起こししています…</p>}

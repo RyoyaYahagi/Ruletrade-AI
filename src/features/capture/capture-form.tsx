@@ -27,24 +27,19 @@ import {
 import { useVoiceTranscription } from "@/features/capture/use-voice-transcription";
 
 type CaptureMode = "writing" | "extracting" | "confirming" | "saving";
+type CaptureFactContext = {
+  currentPosition: { quantity: number; averagePurchasePrice: number | null; acquisitionAmount: number | null; currency: "JPY" | "USD" | null } | null;
+  linkedTransaction: { side: "buy" | "sell"; quantity: number; price: number | null; priceCurrency: "JPY" | "USD" | null; executedAt: string } | null;
+};
 
 const initialExtraction: DecisionExtraction = {
   stock: { ticker: null, name: "", market: null },
   type: "note",
-  thesis: null,
-  assumptions: [],
-  reviewConditions: [],
-  addConditions: [],
+  summary: null,
+  points: [],
   followUpQuestion: null,
   transaction: null,
 };
-
-function linesToList(value: string): string[] {
-  return value
-    .split("\n")
-    .map((line) => line.replace(/^[-・]\s*/, "").trim())
-    .filter(Boolean);
-}
 
 function localDateInputValue(date = new Date()) {
   const localDate = new Date(
@@ -68,10 +63,12 @@ export function CaptureForm({
   const [rawInput, setRawInput] = useState("");
   const [transcript, setTranscript] = useState<string | null>(null);
   const [questionAnswer, setQuestionAnswer] = useState("");
+  const [recordedQuestion, setRecordedQuestion] = useState<string | null>(null);
   const [askedQuestion, setAskedQuestion] = useState(false);
   const [mode, setMode] = useState<CaptureMode>("writing");
   const [extraction, setExtraction] =
     useState<DecisionExtraction>(initialExtraction);
+  const [factContext, setFactContext] = useState<CaptureFactContext | null>(null);
   const [stockChoice, setStockChoice] = useState(
     fixedStock ? `existing:${fixedStock.id}` : "new",
   );
@@ -183,31 +180,26 @@ export function CaptureForm({
     }
     setError(null);
     setMode("extracting");
+    const questionToPreserve = answer ? extraction.followUpQuestion : null;
     try {
       const response = await fetch("/api/decisions/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           rawInput,
-          ...(fixedStock
-            ? {
-                stock: {
-                  name: fixedStock.name,
-                  ticker: fixedStock.ticker,
-                  market: fixedStock.market,
-                },
-              }
-            : {}),
+          ...(effectiveStockId ? { stockId: effectiveStockId } : {}),
+          ...(initialTransaction ? { transactionId: initialTransaction.id } : {}),
           ...(answer ? { followUpAnswer: answer } : {}),
         }),
       });
       const result = (await response.json()) as
-        | DecisionExtraction
+        | (DecisionExtraction & { factContext?: CaptureFactContext })
         | { error?: string };
       if (!response.ok) {
         throw new Error("error" in result ? result.error : undefined);
       }
       const extracted = DecisionExtractionSchema.parse(result);
+      setFactContext("factContext" in result ? result.factContext ?? null : null);
       const confirmedExtraction = {
         ...extracted,
         ...(fixedStock
@@ -222,7 +214,9 @@ export function CaptureForm({
         ...(initialTransaction
           ? { type: initialDecisionType(initialTransaction) }
           : {}),
-        transaction: extracted.transaction
+        transaction: initialTransaction
+          ? null
+          : extracted.transaction
           ? {
               ...extracted.transaction,
               executedAt:
@@ -231,6 +225,7 @@ export function CaptureForm({
           : null,
       };
       setExtraction(confirmedExtraction);
+      if (questionToPreserve) setRecordedQuestion(questionToPreserve);
       setRecordTrade(Boolean(confirmedExtraction.transaction));
       if (answer) setAskedQuestion(true);
       setMode("confirming");
@@ -324,15 +319,7 @@ export function CaptureForm({
         rawInput,
         transcript,
         followUpAnswer: questionAnswer.trim() || null,
-        assumptions: linesToList(
-          extraction.assumptions.join("\n").replace(/^/, ""),
-        ),
-        reviewConditions: linesToList(
-          extraction.reviewConditions.join("\n").replace(/^/, ""),
-        ),
-        addConditions: linesToList(
-          extraction.addConditions.join("\n").replace(/^/, ""),
-        ),
+        followUpQuestion: recordedQuestion ?? extraction.followUpQuestion,
         reviewDates,
         decidedAt: decisionDate,
         existingTransactionId: selectedLinkedTransaction?.id ?? null,
@@ -353,11 +340,8 @@ export function CaptureForm({
     }
   }
 
-  function setArrayField(
-    field: "assumptions" | "reviewConditions" | "addConditions",
-    value: string,
-  ) {
-    setExtraction((current) => ({ ...current, [field]: value.split("\n") }));
+  function setPointText(index: number, text: string) {
+    setExtraction((current) => ({ ...current, points: current.points.map((point, i) => i === index ? { ...point, text } : point) }));
   }
 
   const selectedStock =
@@ -379,6 +363,15 @@ export function CaptureForm({
           <p className="mt-2 text-sm font-medium">
             記録する銘柄: {fixedStock.name}
           </p>
+        )}
+        {!fixedStock && (
+          <label className="mt-4 block text-sm">
+            記録対象の銘柄
+            <select value={stockChoice} onChange={(event) => setStockChoice(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2">
+              <option value="new">新しい銘柄として登録</option>
+              {stocks.map((stock) => <option key={stock.id} value={`existing:${stock.id}`}>既存の銘柄: {stock.name}{stock.ticker ? ` (${stock.ticker})` : ""}</option>)}
+            </select>
+          </label>
         )}
         <p className="mt-2 text-sm text-muted-foreground">
           話すか、書いてください。保存する前に内容を確認できます。
@@ -483,6 +476,14 @@ export function CaptureForm({
             </h2>
           </div>
           <fieldset disabled={mode === "saving"} className="contents">
+            {factContext && (
+              <section className="rounded-xl border border-border bg-secondary/40 p-4" aria-label="DBの記録">
+                <h3 className="text-sm font-semibold">DBの記録</h3>
+                {factContext.linkedTransaction && <p className="mt-2 text-sm">紐付け売買: {factContext.linkedTransaction.side === "buy" ? "購入" : "売却"} {factContext.linkedTransaction.quantity}株 · {factContext.linkedTransaction.price === null ? "価格未登録" : `${factContext.linkedTransaction.price.toLocaleString("ja-JP")} ${factContext.linkedTransaction.priceCurrency === "USD" ? "USD" : "円"}`} · {japanDate(factContext.linkedTransaction.executedAt)}</p>}
+                {factContext.currentPosition && <p className="mt-2 text-sm">現在の保有: {factContext.currentPosition.quantity}株 · 参考平均購入単価 {factContext.currentPosition.averagePurchasePrice === null ? "不明" : `${Math.round(factContext.currentPosition.averagePurchasePrice).toLocaleString("ja-JP")} ${factContext.currentPosition.currency === "USD" ? "USD" : "円"}`} · 参考取得額 {factContext.currentPosition.acquisitionAmount === null ? "不明" : `${Math.round(factContext.currentPosition.acquisitionAmount).toLocaleString("ja-JP")} ${factContext.currentPosition.currency === "USD" ? "USD" : "円"}`}</p>}
+                {!factContext.linkedTransaction && !factContext.currentPosition && <p className="mt-2 text-sm text-muted-foreground">該当する売買・保有記録はありません。</p>}
+              </section>
+            )}
             {extraction.followUpQuestion && !askedQuestion && (
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                 <label className="field-label" htmlFor="follow-up">
@@ -506,25 +507,6 @@ export function CaptureForm({
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              {!fixedStock && (
-                <label className="text-sm sm:col-span-2">
-                  銘柄の登録先
-                  <select
-                    value={stockChoice}
-                    onChange={(event) => setStockChoice(event.target.value)}
-                    disabled={mode === "saving"}
-                    className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
-                  >
-                    <option value="new">新しい銘柄として登録</option>
-                    {stocks.map((stock) => (
-                      <option key={stock.id} value={`existing:${stock.id}`}>
-                        既存の銘柄: {stock.name}
-                        {stock.ticker ? ` (${stock.ticker})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
               <label className="text-sm">
                 銘柄名
                 <input
@@ -585,52 +567,23 @@ export function CaptureForm({
                 </select>
               </label>
               <label className="text-sm">
-                投資仮説
+                要約
                 <textarea
-                  value={extraction.thesis ?? ""}
+                  value={extraction.summary ?? ""}
                   onChange={(event) =>
                     setExtraction((v) => ({
                       ...v,
-                      thesis: event.target.value || null,
+                      summary: event.target.value || null,
                     }))
                   }
                   rows={2}
                   className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
                 />
               </label>
-              <label className="text-sm">
-                前提（1行に1つ）
-                <textarea
-                  value={extraction.assumptions.join("\n")}
-                  onChange={(event) =>
-                    setArrayField("assumptions", event.target.value)
-                  }
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
-                />
-              </label>
-              <label className="text-sm">
-                見直し条件（1行に1つ）
-                <textarea
-                  value={extraction.reviewConditions.join("\n")}
-                  onChange={(event) =>
-                    setArrayField("reviewConditions", event.target.value)
-                  }
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
-                />
-              </label>
-              <label className="text-sm">
-                買い増し条件（1行に1つ）
-                <textarea
-                  value={extraction.addConditions.join("\n")}
-                  onChange={(event) =>
-                    setArrayField("addConditions", event.target.value)
-                  }
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border bg-background px-3 py-2 sm:col-span-2"
-                />
-              </label>
+              <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm sm:col-span-2">
+                <div className="flex items-center justify-between"><span className="font-semibold">AIによる整理 · あなたの発言から整理した点</span><button type="button" onClick={() => setExtraction((v) => ({...v, points:[...v.points,{kind:"other",text:"",source:"raw_input"}]}))} className="text-primary">点を追加</button></div>
+                {extraction.points.map((point, index) => <div key={`${index}-${point.source}`} className="grid gap-2 sm:grid-cols-[1fr_12rem_auto]"><textarea aria-label={`整理した点 ${index+1}`} value={point.text} onChange={(event) => setPointText(index,event.target.value)} rows={2} className="w-full rounded-lg border bg-background px-3 py-2"/><label className="text-xs text-muted-foreground">出典<select aria-label={`整理した点 ${index+1} の出典`} value={point.source} onChange={(event) => setExtraction((v) => ({...v, points:v.points.map((item,i)=>i===index?{...item,source:event.target.value as "raw_input"|"follow_up_answer"}:item)}))} className="mt-1 w-full rounded-lg border bg-background px-2 py-2 text-sm"><option value="raw_input">元の発言</option><option value="follow_up_answer">追加回答</option></select></label><button type="button" aria-label={`整理した点 ${index+1} を削除`} onClick={() => setExtraction((v) => ({...v,points:v.points.filter((_,i)=>i!==index)}))} className="text-destructive">削除</button></div>)}
+              </div>
             </div>
             {effectiveStockId && candidatesError && (
               <p role="alert" className="text-sm text-destructive">

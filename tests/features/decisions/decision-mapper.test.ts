@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { mapDecisionRow } from "@/features/decisions/decision-mapper";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 
 describe("mapDecisionRow", () => {
   it("decodes structured fields without changing the source input or transcript", () => {
@@ -25,6 +26,13 @@ describe("mapDecisionRow", () => {
     expect(mapped.transcript).toBe(transcript);
     expect(mapped.assumptions).toEqual(["需要が続く"]);
     expect(mapped.reviewConditions).toEqual(["需要が鈍る"]);
+    expect(decisionDisplayText(mapped)).toBe("AI向け需要への期待");
+  });
+
+  it("uses original input when neither new nor legacy summary exists", () => {
+    expect(
+      decisionDisplayText({ summary: null, thesis: null, rawInput: "元の発言" }),
+    ).toBe("元の発言");
   });
 
   it("fails explicitly for corrupt persisted structured data", () => {
