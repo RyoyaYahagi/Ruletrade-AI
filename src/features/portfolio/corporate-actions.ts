@@ -25,8 +25,16 @@ export type StockSpinOffAction = {
 
 export type CorporateAction = StockSplitAction | StockSpinOffAction;
 
-// Primary-source schedules and allocation: Furukawa Electric IR, SoftBank Group IR, and Sony Group IR.
+// Dates and ratios come from company disclosures and exchange schedules.
 export const CORPORATE_ACTIONS: readonly CorporateAction[] = [
+  {
+    type: "split",
+    ticker: "5803",
+    exDate: "2026-03-30",
+    ratio: 6,
+    adjustmentLabel: "株式分割（1株→6株）を反映済み",
+    sourceUrl: "https://www.jpx.co.jp/news/2020/20260316-01.html",
+  },
   {
     type: "split",
     ticker: "5801",

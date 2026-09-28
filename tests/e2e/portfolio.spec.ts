@@ -81,7 +81,7 @@ test("builds the portfolio from trades and links holdings from the home page", a
         position.name,
         position.name.toLowerCase(),
         position.currency === "JPY" ? "JP" : "US",
-        position.currency === "JPY" ? "TSE" : "NASDAQ",
+        position.currency === "JPY" ? "JP" : "US",
         createdAt,
       );
       insertTransaction.run(
@@ -107,43 +107,81 @@ test("builds the portfolio from trades and links holdings from the home page", a
     await expect(
       page.getByRole("heading", { name: "ポートフォリオ", exact: true }),
     ).toBeVisible();
-    for (const position of positions) {
-      const row = page
-        .locator("li, tr, article, a")
-        .filter({
-          hasText: position.name,
-        })
-        .first();
-      await expect(row).toBeVisible();
-      await expect(row.locator("dd").nth(0)).toHaveText(
-        position.quantity < 1
-          ? "1株未満"
-          : `${Math.trunc(position.quantity)}株`,
-      );
-      await expect(row).toContainText(position.currency);
+    const portfolioRows = page.locator(
+      'section[aria-labelledby="portfolio-holdings-heading"] li',
+    );
+    await expect(portfolioRows).toHaveCount(3);
+    for (const position of positions.filter(
+      (item) => item.currency === "JPY",
+    )) {
+      await expect(
+        portfolioRows.filter({ hasText: position.name }),
+      ).toBeVisible();
     }
-    const yenRow = page
-      .locator("li")
-      .filter({ has: page.getByRole("link", { name: positions[0].name }) });
-    await expect(yenRow.locator("dd").nth(1)).toHaveText("1,200円");
-    await expect(yenRow.locator("dd").nth(2)).toHaveText("3,002円");
-    const dollarRow = page
-      .locator("li")
-      .filter({ has: page.getByRole("link", { name: positions[1].name }) });
-    await expect(dollarRow.locator("dd").nth(1)).toHaveText("24.12 USD");
-    await expect(dollarRow.locator("dd").nth(2)).toHaveText("12.06 USD");
-    await page.getByRole("link", { name: positions[0].name }).click();
+    await expect(
+      portfolioRows.filter({ hasText: positions[1].name }),
+    ).toHaveCount(0);
+    const yenRow = portfolioRows.filter({ hasText: positions[0].name });
+    await expect(yenRow.getByRole("button")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(yenRow).not.toContainText("参考平均購入単価");
+    await yenRow.getByRole("button").click();
+    await expect(yenRow).toContainText("参考平均購入単価");
+    await expect(yenRow).toContainText("1,200円");
+    await expect(yenRow).toContainText("3,002円");
+    await yenRow.getByRole("link", { name: /銘柄詳細を見る/ }).click();
     await expect(page).toHaveURL(new RegExp(`/stocks/${stockIds[0]}$`));
 
-    await page.setViewportSize({ width: 320, height: 800 });
-    await page.goto("/portfolio");
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      )
-      .toBe(true);
+    await page.goto("/portfolio?market=us");
+    const dollarRows = page.locator(
+      'section[aria-labelledby="portfolio-holdings-heading"] li',
+    );
+    await expect(dollarRows).toHaveCount(3);
+    const dollarRow = dollarRows.filter({ hasText: positions[1].name });
+    await dollarRow.getByRole("button").click();
+    await expect(dollarRow).toContainText("24.12 USD");
+    await expect(dollarRow).toContainText("12.06 USD");
+    await expect(dollarRows.filter({ hasText: positions[0].name })).toHaveCount(
+      0,
+    );
+
+    for (const width of [375, 390, 768, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const market of ["jp", "us"]) {
+        await page.goto(`/portfolio?market=${market}`);
+        const rowButton = page
+          .locator(
+            'section[aria-labelledby="portfolio-holdings-heading"] li button',
+          )
+          .first();
+        await rowButton.evaluate((button, selectedMarket) => {
+          const name = button.children[0].children[0];
+          const amount = button.children[1].children[0];
+          const profit = button.children[1].children[1];
+          name.textContent =
+            "キオクシアホールディングス・インターナショナル・コーポレーション";
+          amount.textContent =
+            selectedMarket === "jp" ? "12,345,678円" : "12,345,678.90 USD";
+          profit.textContent =
+            selectedMarket === "jp"
+              ? "+9,876,543円 (+123.45%)"
+              : "-9,876,543.21 USD (-123.45%)";
+        }, market);
+        await expect
+          .poll(() =>
+            rowButton.evaluate((button) => {
+              const amount = button.children[1].getBoundingClientRect();
+              return (
+                document.documentElement.scrollWidth <= window.innerWidth &&
+                amount.right <= window.innerWidth
+              );
+            }),
+          )
+          .toBe(true);
+      }
+    }
 
     await page.goto("/");
     await expect
@@ -231,19 +269,18 @@ test("shows delivered Sony Financial shares and opens their existing stock page"
       .prepare("SELECT * FROM transactions WHERE stock_id = ?")
       .get(parentStockId);
     await page.goto("/portfolio");
-    const childRow = page.locator("li").filter({
-      has: page.getByRole("link", { name: "ソニーフィナンシャルグループ" }),
-    });
+    const childRow = page
+      .locator('section[aria-labelledby="portfolio-holdings-heading"] li')
+      .filter({ hasText: "ソニーフィナンシャルグループ" });
+    await childRow.getByRole("button").click();
     await expect(childRow).toContainText("5株");
     await expect(childRow).toContainText("206円");
     await expect(childRow).toContainText("1,030円");
     await expect(childRow).toContainText("スピンオフ");
     await expect(
-      childRow.getByRole("link", { name: "ソニーフィナンシャルグループ" }),
+      childRow.getByRole("link", { name: /銘柄詳細を見る/ }),
     ).toHaveAttribute("href", `/stocks/${childStockId}`);
-    await childRow
-      .getByRole("link", { name: "ソニーフィナンシャルグループ" })
-      .click();
+    await childRow.getByRole("link", { name: /銘柄詳細を見る/ }).click();
     expect(
       database
         .prepare("SELECT * FROM transactions WHERE stock_id = ?")

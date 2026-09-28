@@ -5,6 +5,8 @@ import {
   type PortfolioStock,
 } from "@/features/portfolio/portfolio";
 import { SONY_FINANCIAL_STOCK } from "@/features/portfolio/corporate-actions";
+import { calculateValuation } from "@/features/portfolio/valuation";
+import type { MarketQuote } from "@/features/market-data/provider";
 
 const stock: PortfolioStock = {
   id: "stock-1",
@@ -322,6 +324,50 @@ describe("calculatePortfolio", () => {
         }),
       ]),
     );
+  });
+
+  it("values Fujikura purchases across its six-for-one split without changing the acquisition amount", () => {
+    const fujikura = {
+      ...stock,
+      id: "fujikura",
+      ticker: "5803",
+      marketCode: "JP",
+    };
+    const holdings = calculatePortfolio(
+      [
+        trade("before-split", "buy", 10, 6000, 20, {
+          stockId: fujikura.id,
+          executedAt: "2026-03-27T00:00:00.000Z",
+        }),
+        trade("ex-date-buy", "buy", 2, 1100, 20, {
+          stockId: fujikura.id,
+          executedAt: "2026-03-30T00:00:00.000Z",
+        }),
+      ],
+      [fujikura],
+    );
+    expect(holdings[0]).toMatchObject({
+      quantity: 62,
+      acquisitionAmount: 62200,
+      adjustments: ["株式分割（1株→6株）を反映済み"],
+    });
+    expect(holdings[0].averagePurchasePrice).toBeCloseTo(62200 / 62);
+
+    const quote: MarketQuote = {
+      symbol: "5803.T",
+      price: 1200,
+      currency: "JPY",
+      priceAt: "2026-09-28T06:00:00.000Z",
+      marketState: "REGULAR",
+      delayedByMinutes: 15,
+      sourceName: "Yahoo Finance",
+    };
+    expect(
+      calculateValuation(holdings, new Map([["5803.T", quote]]))[0],
+    ).toMatchObject({
+      marketValue: 74400,
+      unrealizedProfitLoss: 12200,
+    });
   });
 
   it("preserves fractional split quantities and full acquisition amounts", () => {
