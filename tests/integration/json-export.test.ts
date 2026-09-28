@@ -33,7 +33,7 @@ describe("JSON export", () => {
     );
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(await response.json()).toEqual({
-      formatVersion: 1,
+      formatVersion: 2,
       exportedAt: expect.any(String),
       stocks: [],
       decisions: [],
@@ -55,9 +55,12 @@ describe("JSON export", () => {
       assumptions: ["需要が続く"],
       reviewConditions: ["需要の変化"],
       addConditions: [],
-      followUpQuestion: null,
       rawInput,
       transcript: "編集前の音声原文",
+      followUpQuestion: "確認したい点は何ですか？",
+      followUpAnswer: "次の決算を確認する。",
+      summary: "AI需要の継続を期待する。",
+      points: [{ kind: "expectation", text: "AI需要が続くと期待", source: "raw_input" }],
       transaction: {
         side: "buy",
         quantity: 100,
@@ -89,6 +92,10 @@ describe("JSON export", () => {
       stockId: saved.stockId,
       rawInput,
       transcript: "編集前の音声原文",
+      followUpQuestion: "確認したい点は何ですか？",
+      followUpAnswer: "次の決算を確認する。",
+      summary: "AI需要の継続を期待する。",
+      points: [{ kind: "expectation", text: "AI需要が続くと期待", source: "raw_input" }],
       assumptions: ["需要が続く"],
       reviewConditions: ["需要の変化"],
       addConditions: [],

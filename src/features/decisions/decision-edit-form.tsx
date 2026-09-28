@@ -11,6 +11,7 @@ import {
 } from "@/features/capture/review-schedule";
 import { japanDate } from "@/features/transactions/matching";
 import type { Decision } from "@/schemas/decision";
+import type { DecisionPoint } from "@/schemas/decision";
 import type { Stock } from "@/schemas/stock";
 
 function list(value: string) {
@@ -33,7 +34,9 @@ export function DecisionEditForm({
     japanDate(decision.decidedAt ?? decision.createdAt),
   );
   const [rawInput, setRawInput] = useState(decision.rawInput);
-  const [thesis, setThesis] = useState(decision.thesis ?? "");
+  const [summary, setSummary] = useState(decision.summary ?? decision.thesis ?? "");
+  const [points, setPoints] = useState<DecisionPoint[]>(decision.points ?? []);
+  const thesis = decision.thesis ?? null;
   const [assumptions, setAssumptions] = useState(
     decision.assumptions.join("\n"),
   );
@@ -82,7 +85,9 @@ export function DecisionEditForm({
         expectedRevision: decision.editHistory?.length ?? 0,
         type,
         rawInput,
-        thesis: thesis.trim() || null,
+        summary: summary.trim() || null,
+        points,
+        thesis,
         decidedAt,
         assumptions: list(assumptions),
         reviewConditions: list(reviewConditions),
@@ -142,6 +147,10 @@ export function DecisionEditForm({
                 ))}
               </select>
             </label>
+            <div className="space-y-3 text-sm sm:col-span-2">
+              <div className="flex items-center justify-between"><span className="font-medium">整理した点</span><button type="button" onClick={() => setPoints((items) => [...items, { kind: "other", text: "", source: "raw_input" }])} className="text-primary">点を追加</button></div>
+              {points.map((point, index) => <div key={index} className="grid gap-2 sm:grid-cols-[1fr_12rem_auto]"><textarea aria-label={`整理した点 ${index + 1}`} value={point.text} onChange={(event) => setPoints((items) => items.map((item, i) => i === index ? { ...item, text: event.target.value } : item))} rows={2} className={fieldClass}/><label className="text-xs text-muted-foreground">出典<select aria-label={`整理した点 ${index + 1} の出典`} value={point.source} onChange={(event) => setPoints((items) => items.map((item,i)=>i===index?{...item,source:event.target.value as DecisionPoint["source"]}:item))} className={fieldClass}><option value="raw_input">元の発言</option><option value="follow_up_answer">追加回答</option></select></label><button type="button" aria-label={`整理した点 ${index + 1} を削除`} onClick={() => setPoints((items) => items.filter((_, i) => i !== index))} className="text-destructive">削除</button></div>)}
+            </div>
             <label className="text-sm">
               判断した日
               <input
@@ -163,11 +172,11 @@ export function DecisionEditForm({
               />
             </label>
             <label className="text-sm sm:col-span-2">
-              投資仮説
+              要約
               <textarea
                 rows={3}
-                value={thesis}
-                onChange={(event) => setThesis(event.target.value)}
+                value={summary}
+                onChange={(event) => setSummary(event.target.value)}
                 className={fieldClass}
               />
             </label>

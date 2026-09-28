@@ -7,10 +7,8 @@ describe("DecisionExtractionSchema", () => {
     const parsed = DecisionExtractionSchema.parse({
       type: "buy",
       stock: { ticker: null, name: "キオクシア", market: null },
-      thesis: "AI向けNAND需要の成長を期待",
-      assumptions: ["データセンター需要が続く"],
-      reviewConditions: ["データセンター需要の鈍化"],
-      addConditions: [],
+      summary: "AI向けNAND需要の成長を期待",
+      points: [{ kind: "expectation", text: "AI向け需要の成長を期待", source: "raw_input" }],
       transaction: {
         side: "buy",
         quantity: 100,
@@ -30,10 +28,8 @@ describe("DecisionExtractionSchema", () => {
       DecisionExtractionSchema.parse({
         type: "note",
         stock: { ticker: "", name: "ソニー", market: null },
-        thesis: null,
-        assumptions: [],
-        reviewConditions: [],
-        addConditions: [],
+        summary: null,
+        points: [],
         transaction: null,
         followUpQuestion: null,
       }),

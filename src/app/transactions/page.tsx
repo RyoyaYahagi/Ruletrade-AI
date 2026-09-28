@@ -5,6 +5,7 @@ import {
   listStocksAction,
 } from "@/features/decisions/actions";
 import { listTransactionsAction } from "@/features/transactions/actions";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,7 @@ export default async function TransactionsPage() {
                 {decision && (
                   <p className="mt-2 rounded-lg bg-secondary/50 p-3 text-sm">
                     <span className="font-medium">判断メモ:</span>{" "}
-                    {decision.thesis ?? decision.rawInput}
+                    {decisionDisplayText(decision)}
                   </p>
                 )}
               </li>

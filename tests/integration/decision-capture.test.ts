@@ -74,6 +74,30 @@ it.each<[DecisionType, "buy" | "sell", boolean]>([
   ).toBe("2026-02-14");
 });
 
+it("stores the exact follow-up question and answer with summary and grounded points", async () => {
+  const saved = await actions.saveDecisionAction({
+    type: "note",
+    stock: { name: "質問保存社", ticker: null, market: null },
+    rawInput: "需要が続きそうだと思う。",
+    summary: "需要の継続を期待する。",
+    points: [{ kind: "expectation", text: "需要が続きそう", source: "raw_input" }],
+    followUpQuestion: "需要を何で確認しますか？",
+    followUpAnswer: "次の決算を見る。",
+    transaction: null,
+    reviewDates: [],
+    decidedAt: "2026-02-14",
+  });
+  const timeline = await actions.getStockTimelineAction({ stockId: saved.stockId });
+  expect(timeline.decisions[0]).toMatchObject({
+    rawInput: "需要が続きそうだと思う。",
+    summary: "需要の継続を期待する。",
+    points: [{ kind: "expectation", text: "需要が続きそう", source: "raw_input" }],
+    followUpQuestion: "需要を何で確認しますか？",
+    followUpAnswer: "次の決算を見る。",
+  });
+  expect(timeline.transactions).toHaveLength(0);
+});
+
 it("leaves multiple candidates unlinked, accepts explicit selection, and rejects occupied and cross-stock trades atomically", async () => {
   const seed = await actions.saveDecisionAction({ ...input, type: "note" });
   const create = () =>

@@ -5,6 +5,7 @@ import {
   japanDate,
 } from "@/features/transactions/matching";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { asc, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
@@ -33,9 +34,16 @@ type AppDatabaseTransaction = Parameters<
 >[0];
 
 const SaveDecisionInputSchema = DecisionExtractionSchema.extend({
+  summary: DecisionExtractionSchema.shape.summary.optional(),
+  points: DecisionExtractionSchema.shape.points.optional(),
+  thesis: z.string().nullable().optional(),
+  assumptions: z.array(z.string()).optional(),
+  reviewConditions: z.array(z.string()).optional(),
+  addConditions: z.array(z.string()).optional(),
   rawInput: DecisionSchema.shape.rawInput,
   transcript: DecisionSchema.shape.transcript.optional(),
   followUpAnswer: DecisionSchema.shape.followUpAnswer.optional(),
+  followUpQuestion: DecisionSchema.shape.followUpQuestion.optional(),
   stockId: DecisionSchema.shape.stockId.optional(),
   reviewAt: DecisionSchema.shape.reviewAt.optional(),
   reviewDates: DecisionSchema.shape.reviewDates,
@@ -144,10 +152,13 @@ export async function saveDecisionAction(input: unknown): Promise<{
         rawInput: parsed.rawInput,
         transcript: parsed.transcript ?? null,
         followUpAnswer: parsed.followUpAnswer ?? null,
-        thesis: parsed.thesis,
-        assumptions: JSON.stringify(parsed.assumptions),
-        reviewConditions: JSON.stringify(parsed.reviewConditions),
-        addConditions: JSON.stringify(parsed.addConditions),
+        followUpQuestion: parsed.followUpQuestion ?? null,
+        summary: parsed.summary ?? parsed.thesis ?? null,
+        points: JSON.stringify(parsed.points ?? []),
+        thesis: parsed.thesis ?? null,
+        assumptions: JSON.stringify(parsed.assumptions ?? []),
+        reviewConditions: JSON.stringify(parsed.reviewConditions ?? []),
+        addConditions: JSON.stringify(parsed.addConditions ?? []),
         reviewAt: reviewDates[0] ?? null,
         reviewDates: JSON.stringify(reviewDates),
         decidedAt,
@@ -459,6 +470,8 @@ export async function editDecisionAction(
       .set({
         type: parsed.type,
         rawInput: parsed.rawInput,
+        summary: parsed.summary ?? current.summary ?? null,
+        points: JSON.stringify(parsed.points ?? current.points ?? []),
         thesis: parsed.thesis,
         assumptions: JSON.stringify(parsed.assumptions),
         reviewConditions: JSON.stringify(parsed.reviewConditions),

@@ -6,10 +6,12 @@ const originalThought =
 const extraction = {
   type: "buy",
   stock: { ticker: "285A", name: "キオクシア", market: "JP" },
-  thesis: "AI向けNAND需要に期待",
-  assumptions: ["AI向け需要が続く"],
-  reviewConditions: ["データセンター需要が鈍る"],
-  addConditions: ["次の決算でも需要が強い"],
+  summary: "購入時はAI向けNAND需要の継続を期待",
+  points: [
+    { kind: "expectation", text: "AI向けNAND需要が続くと期待", source: "raw_input" },
+    { kind: "condition", text: "データセンター需要が鈍ったら見直す", source: "raw_input" },
+    { kind: "condition", text: "次の決算でも需要が強ければ買い増したい", source: "raw_input" },
+  ],
   transaction: {
     side: "buy",
     quantity: 100,
@@ -65,8 +67,8 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await expect(page).toHaveURL(/\/stocks\//);
   await expect(page.getByRole("heading", { name: "キオクシア" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "判断タイムライン" })).toBeVisible();
-  await expect(page.getByText("AI向けNAND需要に期待", { exact: true })).toBeVisible();
-  await expect(page.getByText("データセンター需要が鈍る")).toBeVisible();
+  await expect(page.getByText("AI向けNAND需要が続くと期待", { exact: true })).toBeVisible();
+  await expect(page.getByText("データセンター需要が鈍ったら見直す", { exact: true })).toBeVisible();
   await expect(page.getByText("購入 100株")).toBeVisible();
   await expect(page.getByText("価格未入力").first()).toBeVisible();
   await page.screenshot({ path: "test-results/mvp-stock-timeline.png", fullPage: true });
@@ -101,7 +103,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "レビュー時期です" })).toBeVisible();
-  await expect(page.getByText("キオクシア").first()).toBeVisible();
+  await expect(page.locator('section[aria-labelledby="due-heading"]').getByRole("link", { name: /キオクシア/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "JSONをエクスポート" })).toHaveCount(0);
   await page.getByRole("button", { name: "補助メニュー" }).click();
   await page.getByRole("link", { name: "データ管理", exact: true }).click();
@@ -113,7 +115,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
   const exported = JSON.parse(await readFile(downloadPath!, "utf8"));
-  expect(exported.formatVersion).toBe(1);
+  expect(exported.formatVersion).toBe(2);
   expect(exported.decisions).toEqual(expect.arrayContaining([expect.objectContaining({ rawInput: originalThought })]));
   expect(exported.transactions).toHaveLength(2);
   expect(exported.reviews).toHaveLength(1);
@@ -161,7 +163,7 @@ test("transcribes a voice capture fixture and lets the user review the text", as
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      json: { ...extraction, thesis: "音声からの投資仮説" },
+      json: { ...extraction, summary: "音声からの投資仮説" },
     });
   });
 

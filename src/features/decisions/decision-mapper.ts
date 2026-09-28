@@ -1,6 +1,6 @@
 import { DecisionSchema, DecisionTypeSchema } from "@/schemas/decision";
 
-import type { Decision, DecisionExtraction } from "@/schemas/decision";
+import type { Decision } from "@/schemas/decision";
 
 type DecisionRow = {
   id: string;
@@ -9,6 +9,9 @@ type DecisionRow = {
   rawInput: string;
   transcript: string | null;
   followUpAnswer: string | null;
+  followUpQuestion?: string | null;
+  summary?: string | null;
+  points?: string | null;
   thesis: string | null;
   assumptions: string;
   reviewConditions: string;
@@ -23,6 +26,9 @@ type DecisionRow = {
 export function mapDecisionRow(row: DecisionRow): Decision {
   return {
     ...row,
+    followUpQuestion: row.followUpQuestion ?? null,
+    summary: row.summary ?? row.thesis,
+    points: row.points == null ? [] : parsePoints(row.points),
     type: DecisionTypeSchema.parse(row.type),
     editHistory: DecisionSchema.shape.editHistory.parse(
       row.editHistory == null ? [] : JSON.parse(row.editHistory),
@@ -39,14 +45,10 @@ export function mapDecisionRow(row: DecisionRow): Decision {
   };
 }
 
-export function mapExtractionToDecisionFields(extraction: DecisionExtraction) {
-  return {
-    type: extraction.type,
-    thesis: extraction.thesis,
-    assumptions: extraction.assumptions,
-    reviewConditions: extraction.reviewConditions,
-    addConditions: extraction.addConditions,
-  };
+function parsePoints(value: string) {
+  const decoded: unknown = JSON.parse(value);
+  if (!Array.isArray(decoded)) throw new Error("Stored decision points are invalid");
+  return decoded;
 }
 
 function parseStringArray(value: string): string[] {

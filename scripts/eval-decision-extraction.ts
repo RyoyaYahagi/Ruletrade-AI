@@ -1,95 +1,32 @@
 import { readFile } from "node:fs/promises";
-
 import { extractDecision } from "@/lib/ai/gemini";
 import { DecisionExtractionSchema } from "@/schemas/decision";
 
-type EvalCase = {
-  id: string;
-  input: string;
-  expected: {
-    type: string;
-    name: string;
-    ticker: string | null;
-    thesis: string | null;
-    reviewCondition: string | null;
-    addCondition: string | null;
-  };
-};
-
-function containsExpected(value: string | null, expected: string | null) {
-  return expected === null ? value === null : value?.includes(expected) ?? false;
-}
-
-function listContainsExpected(values: string[], expected: string | null) {
-  return expected === null
-    ? values.length === 0
-    : values.some((value) => value.includes(expected));
-}
+type Fixture = { id: string; input: string; context: unknown; expected: { type: string; anchors: string[]; forbiddenPoints?: string[]; forbiddenPointPattern?: string; transaction?: null } };
 
 async function main() {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("Set GEMINI_API_KEY before running this paid, live Gemini evaluation.");
+  if (!process.env.GEMINI_API_KEY || !process.env.GEMINI_MODEL) throw new Error("Set GEMINI_API_KEY and GEMINI_MODEL before running the live Gemini evaluation.");
+  const cases = JSON.parse(await readFile("tests/fixtures/decision-extraction.json", "utf8")) as Fixture[];
+  const totals = { schemaValid: 0, coreMeaningPreserved: 0, noFabrication: 0, factConsistency: 0, sourceGrounding: 0, noForcedCategory: 0, followUpQuality: 0 };
+  for (const item of cases) {
+    const output = DecisionExtractionSchema.parse(await extractDecision({ rawInput: item.input, context: item.context }));
+    totals.schemaValid++;
+    if (output.type === item.expected.type) totals.coreMeaningPreserved++;
+    const pointText = output.points.map((point) => point.text).join(" ");
+    const sourceGrounded = output.points.every((point) => item.expected.anchors.some((anchor) => point.text.includes(anchor)));
+    if (sourceGrounded) totals.sourceGrounding++;
+    const forbiddenPattern = item.expected.forbiddenPointPattern ? new RegExp(item.expected.forbiddenPointPattern) : null;
+    const containsForbidden = item.expected.forbiddenPoints?.some((fact) => pointText.includes(fact)) ?? false;
+    if (sourceGrounded && !containsForbidden && !(forbiddenPattern && forbiddenPattern.test(pointText))) totals.noFabrication++;
+    const factConsistent = !containsForbidden && (item.expected.transaction !== null || output.transaction === null);
+    if (factConsistent) totals.factConsistency++;
+    if ((item.id !== "C" || output.points.length === 0 || sourceGrounded) && (item.id !== "D" || output.transaction === null)) totals.noForcedCategory++;
+    const questionValid = output.followUpQuestion === null || output.followUpQuestion.length <= 500;
+    if (questionValid) totals.followUpQuality++;
+    console.log(`${item.id}: type=${output.type}, points=${output.points.length}, followUp=${Boolean(output.followUpQuestion)}`);
   }
-  if (!process.env.GEMINI_MODEL) {
-    throw new Error("Set GEMINI_MODEL before running this paid, live Gemini evaluation.");
-  }
-
-  const cases = JSON.parse(
-    await readFile("tests/fixtures/decision-extraction.json", "utf8"),
-  ) as EvalCase[];
-  const metrics = {
-    type: { passed: 0, total: cases.length },
-    tickerCompany: { passed: 0, total: cases.length },
-    thesis: { passed: 0, total: cases.length },
-    reviewCondition: { passed: 0, total: cases.length },
-    addCondition: { passed: 0, total: cases.length },
-    schemaValid: { passed: 0, total: cases.length },
-  };
-
-  for (const evalCase of cases) {
-    const errors: string[] = [];
-    try {
-      const extraction = DecisionExtractionSchema.parse(
-        await extractDecision({ rawInput: evalCase.input }),
-      );
-      metrics.schemaValid.passed++;
-      const checks = {
-        type: extraction.type === evalCase.expected.type,
-        tickerCompany:
-          extraction.stock.name === evalCase.expected.name &&
-          extraction.stock.ticker === evalCase.expected.ticker,
-        thesis: containsExpected(extraction.thesis, evalCase.expected.thesis),
-        reviewCondition: listContainsExpected(
-          extraction.reviewConditions,
-          evalCase.expected.reviewCondition,
-        ),
-        addCondition: listContainsExpected(
-          extraction.addConditions,
-          evalCase.expected.addCondition,
-        ),
-      };
-      for (const [field, passed] of Object.entries(checks)) {
-        if (passed) metrics[field as keyof typeof checks].passed++;
-        else errors.push(field);
-      }
-    } catch (error) {
-      errors.push(
-        error instanceof Error ? `schema/API: ${error.message}` : "schema/API: unknown error",
-      );
-    }
-    if (errors.length) console.log(`${evalCase.id}: ${errors.join(", ")}`);
-  }
-
-  console.log(`Gemini extraction evaluation (${cases.length} fixture cases)`);
-  for (const [field, result] of Object.entries(metrics)) {
-    const percent = result.total === 0 ? 0 : Math.round((result.passed / result.total) * 100);
-    console.log(`${field}: ${result.passed}/${result.total} (${percent}%)`);
-  }
-
-  if (metrics.schemaValid.passed !== metrics.schemaValid.total) process.exitCode = 1;
+  console.log(`Gemini decision recording evaluation (${cases.length} cases). Free-text meaning and subtle fabrication still require manual review; deterministic checks cover explicit source anchors, forbidden Context facts, and transaction presence. A follow-up question is optional, including for conflicting facts.`);
+  for (const [metric, passed] of Object.entries(totals)) console.log(`${metric}: ${passed}/${cases.length}`);
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main().catch((error: unknown) => { console.error(error); process.exitCode = 1; });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createTransactionAction } from "@/features/transactions/actions";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 import type { Decision } from "@/schemas/decision";
 
 function localDateInputValue() {
@@ -56,7 +57,7 @@ export function TransactionForm({ stockId, decisions }: { stockId: string; decis
         <label className="text-sm">単価（任意）<input type="number" min="0" step="any" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="未入力" className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
         <label className="text-sm">手数料（任意）<input type="number" min="0" step="any" value={fee} onChange={(event) => setFee(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
         <label className="text-sm">約定日<input required type="date" value={executedAt} onChange={(event) => setExecutedAt(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
-        <label className="text-sm">判断メモ（任意）<select value={decisionId} onChange={(event) => setDecisionId(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="">紐付けない</option>{decisions.map((decision) => <option key={decision.id} value={decision.id}>{new Date(decision.createdAt).toLocaleDateString("ja-JP")} · {decision.thesis ?? decision.rawInput.slice(0, 35)}</option>)}</select></label>
+        <label className="text-sm">判断メモ（任意）<select value={decisionId} onChange={(event) => setDecisionId(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="">紐付けない</option>{decisions.map((decision) => <option key={decision.id} value={decision.id}>{new Date(decision.createdAt).toLocaleDateString("ja-JP")} · {decisionDisplayText(decision).slice(0, 35)}</option>)}</select></label>
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <button type="submit" disabled={saving || !quantity} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50">{saving ? "保存しています…" : "売買履歴に追加"}</button>

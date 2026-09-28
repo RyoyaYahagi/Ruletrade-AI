@@ -38,10 +38,13 @@ describe("JSON import", () => {
       type: "buy",
       stock: { ticker: "285A", name: "キオクシア", market: "JP" },
       thesis: "需要を見守る",
+      summary: "AI需要の継続を期待する。",
+      points: [{ kind: "expectation", text: "AI需要が続くと期待", source: "raw_input" }],
       assumptions: ["需要が続く"],
       reviewConditions: [],
       addConditions: [],
-      followUpQuestion: null,
+      followUpQuestion: "需要が続いているか何を見ますか？",
+      followUpAnswer: "次の決算を確認する。",
       rawInput: "  日本語の原文\n変更しない。  ",
       transcript: "音声原文",
       transaction: {
@@ -133,7 +136,7 @@ describe("JSON import", () => {
   it("rejects unknown versions, malformed data, missing references and repeated IDs without writing", async () => {
     const before = await snapshot();
     for (const value of [
-      { ...backup, formatVersion: 2 },
+      { ...backup, formatVersion: 3 },
       { ...backup, stocks: [] },
       {
         ...backup,
@@ -174,5 +177,32 @@ describe("JSON import", () => {
     expect(restored.transactions).toMatchObject([{ price: null, fee: null }]);
     expect(restored.stocks).toMatchObject([{ name: "キオクシア" }]);
     expect(restored.reviews).toHaveLength(1);
+  });
+
+  it("imports a v1 backup and keeps its content stable through a v2 export and reimport", async () => {
+    const client = database.getDb().$client;
+    client.exec("DELETE FROM reviews; DELETE FROM import_changes; DELETE FROM transaction_import_sources; DELETE FROM transactions; DELETE FROM decisions; DELETE FROM import_batch_stocks; DELETE FROM import_batches; DELETE FROM stocks;");
+    const legacy = structuredClone(backup) as Record<string, unknown>;
+    legacy.formatVersion = 1;
+    for (const decision of legacy.decisions as Array<Record<string, unknown>>) {
+      delete decision.summary;
+      delete decision.points;
+      delete decision.followUpQuestion;
+      for (const edit of (decision.editHistory ?? []) as Array<Record<string, unknown>>) {
+        const previous = edit.previous as Record<string, unknown>;
+        delete previous.summary;
+        delete previous.points;
+        delete previous.followUpQuestion;
+      }
+    }
+    expect((await send(legacy)).status).toBe(200);
+    const v2 = await (await exportRoute.GET()).json();
+    expect(v2.formatVersion).toBe(2);
+    expect(v2.decisions[0]).toMatchObject({ points: [], followUpQuestion: null, followUpAnswer: "次の決算を確認する。" });
+    const firstSnapshot = structuredClone(v2);
+    delete firstSnapshot.exportedAt;
+    client.exec("DELETE FROM reviews; DELETE FROM import_changes; DELETE FROM transaction_import_sources; DELETE FROM transactions; DELETE FROM decisions; DELETE FROM import_batch_stocks; DELETE FROM import_batches; DELETE FROM stocks;");
+    expect((await send(v2)).status).toBe(200);
+    expect(await snapshot()).toEqual(firstSnapshot);
   });
 });

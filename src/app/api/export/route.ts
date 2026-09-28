@@ -83,7 +83,7 @@ export async function GET() {
     }));
 
     return new Response(
-      JSON.stringify({ formatVersion: 1, exportedAt, ...data }, null, 2),
+      JSON.stringify({ formatVersion: 2, exportedAt, ...data }, null, 2),
       {
         headers: {
           "Content-Type": "application/json; charset=utf-8",

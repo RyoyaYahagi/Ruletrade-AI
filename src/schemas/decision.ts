@@ -11,6 +11,12 @@ export const DecisionTypeSchema = z.enum([
   "note",
 ]);
 
+export const DecisionPointSchema = z.object({
+  kind: z.enum(["reason", "expectation", "assumption", "observation", "risk", "uncertainty", "condition", "other"]),
+  text: z.string().trim().min(1),
+  source: z.enum(["raw_input", "follow_up_answer"]),
+});
+
 export const DecisionExtractionSchema = z.object({
   type: DecisionTypeSchema,
   stock: z.object({
@@ -18,10 +24,8 @@ export const DecisionExtractionSchema = z.object({
     name: z.string().trim().min(1),
     market: z.string().trim().min(1).nullable(),
   }),
-  thesis: z.string().trim().min(1).nullable(),
-  assumptions: z.array(z.string().trim().min(1)),
-  reviewConditions: z.array(z.string().trim().min(1)),
-  addConditions: z.array(z.string().trim().min(1)),
+  summary: z.string().trim().min(1).nullable(),
+  points: z.array(DecisionPointSchema),
   transaction: z
     .object({
       side: TransactionSideSchema,
@@ -41,6 +45,9 @@ const DecisionSnapshotSchema = z.object({
   rawInput: z.string().min(1),
   transcript: z.string().nullable(),
   followUpAnswer: z.string().nullable(),
+  followUpQuestion: z.string().nullable().optional(),
+  summary: z.string().nullable().optional(),
+  points: z.array(DecisionPointSchema).optional(),
   thesis: z.string().nullable(),
   assumptions: z.array(z.string()),
   reviewConditions: z.array(z.string()),
@@ -67,6 +74,8 @@ export const EditDecisionInputSchema = DecisionSnapshotSchema.pick({
   stockId: true,
   type: true,
   rawInput: true,
+  summary: true,
+  points: true,
   thesis: true,
   assumptions: true,
   reviewConditions: true,
@@ -83,3 +92,4 @@ export const EditDecisionInputSchema = DecisionSnapshotSchema.pick({
 export type DecisionType = z.infer<typeof DecisionTypeSchema>;
 export type DecisionExtraction = z.infer<typeof DecisionExtractionSchema>;
 export type Decision = z.infer<typeof DecisionSchema>;
+export type DecisionPoint = z.infer<typeof DecisionPointSchema>;

@@ -24,13 +24,12 @@ describe("decision AI routes", () => {
   });
 
   it("returns a validated extraction response", async () => {
+    getDb.mockReturnValue({ select: () => ({ from: () => ({ all: () => [] }) }) });
     extractDecision.mockResolvedValue({
       type: "buy",
       stock: { ticker: null, name: "キオクシア", market: null },
-      thesis: "AI向け需要を期待",
-      assumptions: [],
-      reviewConditions: [],
-      addConditions: [],
+      summary: "AI向け需要を期待",
+      points: [{ kind: "expectation", text: "AI向け需要を期待", source: "raw_input" }],
       transaction: null,
       followUpQuestion: null,
     });
@@ -39,12 +38,39 @@ describe("decision AI routes", () => {
     expect((await response.json()).stock.name).toBe("キオクシア");
   });
 
+  it("builds transaction and position context from server-side records", async () => {
+    let queryNo = 0;
+    const stock = { id: "stock-1", ticker: "285A", name: "キオクシア", normalizedName: "キオクシア", market: "JP", marketCode: "JP", createdAt: "2026-01-01T00:00:00.000Z" };
+    const transaction = { id: "trade-1", stockId: "stock-1", side: "buy", quantity: 100, price: 2000, fee: 0, executedAt: "2026-01-02T03:04:05.000Z", decisionId: null, createdAt: "2026-01-02T03:04:05.000Z", priceCurrency: "JPY", feeCurrency: "JPY" };
+    const query = (index: number) => ({
+      get: () => index === 0 ? stock : undefined,
+      all: () => index === 1 || index === 4 ? [transaction] : index === 3 ? [stock] : [],
+      orderBy: () => ({ limit: () => ({ all: () => [] }) }),
+    });
+    getDb.mockReturnValue({ select: () => { const index = queryNo++; return { from: () => ({ where: () => query(index), all: () => query(index).all() }) }; } });
+    extractDecision.mockResolvedValue({
+      type: "buy", stock: { name: "キオクシア", ticker: "285A", market: "JP" },
+      summary: "AI需要を期待する。", points: [{ kind: "expectation", text: "AI需要を期待", source: "raw_input" }],
+      transaction: null, followUpQuestion: null,
+    });
+    const response = await extractPost(jsonRequest({ rawInput: "AI需要に期待して買った", stockId: "stock-1", transactionId: "trade-1", context: { currentPosition: { quantity: 999 } } }));
+    expect(response.status).toBe(200);
+    expect(extractDecision).toHaveBeenCalledWith(expect.objectContaining({
+      context: expect.objectContaining({
+        linkedTransaction: expect.objectContaining({ quantity: 100, price: 2000 }),
+        currentPosition: expect.objectContaining({ quantity: 100, averagePurchasePrice: 2000, acquisitionAmount: 200000 }),
+      }),
+    }));
+    expect((await response.json()).factContext.currentPosition.quantity).toBe(100);
+  });
+
   it("returns a safe error when extraction fails and rejects invalid comparison input", async () => {
     extractDecision.mockRejectedValue(new Error("model response invalid"));
     const failed = await extractPost(jsonRequest({ rawInput: "キオクシアを買った。" }));
     expect(failed.status).toBe(502);
     expect(await failed.json()).toEqual({ error: "判断内容を整理できませんでした。入力を確認して再試行してください。" });
 
+    getDb.mockClear();
     const invalid = await comparePost(jsonRequest({ stockId: " ", currentInput: " " }));
     expect(invalid.status).toBe(400);
     expect(getDb).not.toHaveBeenCalled();

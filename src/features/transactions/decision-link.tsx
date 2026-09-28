@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { linkTransactionDecisionAction } from "@/features/transactions/actions";
+import { decisionDisplayText } from "@/features/decisions/decision-display";
 import type { Decision } from "@/schemas/decision";
 
 export function DecisionLink({
@@ -49,7 +50,7 @@ export function DecisionLink({
           {decisions.map((decision) => (
             <option key={decision.id} value={decision.id}>
               {decision.createdAt.slice(0, 10)} ·{" "}
-              {decision.thesis ?? decision.rawInput.slice(0, 50)}
+              {decisionDisplayText(decision).slice(0, 50)}
             </option>
           ))}
         </select>
