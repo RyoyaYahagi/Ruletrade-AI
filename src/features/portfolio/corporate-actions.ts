@@ -29,6 +29,14 @@ export type CorporateAction = StockSplitAction | StockSpinOffAction;
 export const CORPORATE_ACTIONS: readonly CorporateAction[] = [
   {
     type: "split",
+    ticker: "285A",
+    exDate: "2026-10-01",
+    ratio: 3,
+    adjustmentLabel: "株式分割（1株→3株）を反映済み",
+    sourceUrl: "https://ssl4.eir-parts.net/doc/285A/tdnet/2859909/00.pdf",
+  },
+  {
+    type: "split",
     ticker: "5803",
     exDate: "2026-03-30",
     ratio: 6,

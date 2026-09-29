@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Transaction } from "@/schemas/transaction";
 import {
   calculatePortfolio,
@@ -324,6 +324,41 @@ describe("calculatePortfolio", () => {
         }),
       ]),
     );
+  });
+
+  it("applies Kioxia's three-for-one split before trades on the effective date", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-02T00:00:00.000+09:00"));
+    const kioxia = {
+      ...stock,
+      id: "kioxia",
+      ticker: "285A",
+      marketCode: "JP",
+    };
+    try {
+      const holdings = calculatePortfolio(
+        [
+          trade("kioxia-before-split", "buy", 2, 900, 20, {
+            stockId: kioxia.id,
+            executedAt: "2026-09-29T00:00:00.000Z",
+          }),
+          trade("kioxia-on-split-date", "buy", 3, 300, 20, {
+            stockId: kioxia.id,
+            executedAt: "2026-10-01T00:00:00.000Z",
+          }),
+        ],
+        [kioxia],
+      );
+
+      expect(holdings[0]).toMatchObject({
+        quantity: 9,
+        acquisitionAmount: 2700,
+        averagePurchasePrice: 300,
+        adjustments: ["株式分割（1株→3株）を反映済み"],
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("values Fujikura purchases across its six-for-one split without changing the acquisition amount", () => {
