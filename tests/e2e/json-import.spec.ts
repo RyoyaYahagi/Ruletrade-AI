@@ -33,7 +33,7 @@ test("imports JSON beside export, skips duplicates and reports invalid files", a
     buffer: Buffer.from(JSON.stringify(backup)),
   };
   await page.setViewportSize({ width: 320, height: 900 });
-  await page.goto("/data");
+  await page.goto("/more");
   const button = page.getByRole("button", {
     name: "JSONをインポート",
     exact: true,

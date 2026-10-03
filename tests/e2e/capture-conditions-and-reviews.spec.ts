@@ -15,8 +15,8 @@ test("edits the summary and individual points before saving multiple review date
       factContext: { currentPosition: null, linkedTransaction: null },
     },
   }));
-  await page.goto("/");
-  await page.getByLabel("テキストで入力する").fill("需要を継続して観察したい。");
+  await page.goto("/capture");
+  await page.getByLabel("いま考えていること").fill("需要を継続して観察したい。");
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await page.getByLabel("要約").fill("需要を毎月確認する。");
   await page.getByLabel("整理した点 1", { exact: true }).fill("需要が継続すると期待");

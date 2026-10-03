@@ -3,19 +3,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
+  --font-sans: var(--font-plex-sans-jp), "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-serif: var(--font-shippori-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
   --color-chart-6: var(--chart-6);
+  --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
@@ -24,17 +16,17 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-attention: var(--attention);
+  --color-attention-soft: var(--attention-soft);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -42,80 +34,39 @@
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * 色の役割: primary は記録と主要操作、attention は振り返り時期や理由の欠落、
+ * ai は AI が整理した派生データ。利用者自身の言葉は font-serif で表示する。
+ */
 :root {
-  --background: oklch(0.975 0.012 88);
-  --foreground: oklch(0.22 0.025 160);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --card: oklch(0.995 0.006 88);
-  --card-foreground: oklch(0.22 0.025 160);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.43 0.09 158);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.89 0.018 90);
-  --input: oklch(0.89 0.018 90);
-  --ring: oklch(0.65 0.09 158);
-  --chart-1: oklch(0.57 0.105 158);
-  --chart-2: oklch(0.59 0.105 245);
-  --chart-3: oklch(0.72 0.12 78);
-  --chart-4: oklch(0.61 0.105 305);
-  --chart-5: oklch(0.62 0.09 195);
-  --chart-6: oklch(0.61 0.035 265);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.72 0.12 158);
-  --chart-2: oklch(0.73 0.12 245);
-  --chart-3: oklch(0.8 0.13 78);
-  --chart-4: oklch(0.74 0.12 305);
-  --chart-5: oklch(0.75 0.105 195);
-  --chart-6: oklch(0.74 0.04 265);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #f3f4f1;
+  --foreground: #17201b;
+  --card: #ffffff;
+  --primary: #1e6a4b;
+  --primary-foreground: #ffffff;
+  --accent: #e4efe8;
+  --accent-foreground: #154d36;
+  --secondary: #eceeea;
+  --muted: #eceeea;
+  --muted-foreground: #5a635d;
+  --attention: #8f4a0a;
+  --attention-soft: #fbeedc;
+  --ai: #3b4a8c;
+  --ai-soft: #eceff8;
+  --destructive: #a3361f;
+  --border: #e3e6e1;
+  --input: #d5d9d3;
+  --ring: #1e6a4b;
+  /* 構成比は大きい順に濃い色を割り当て、隣接区画が明度でも区別できるようにする */
+  --chart-1: #1e6a4b;
+  --chart-2: #4d8a6c;
+  --chart-3: #7fa993;
+  --chart-4: #a9c6b6;
+  --chart-5: #cfe0d6;
+  --chart-6: #c9ccc7;
+  --radius: 0.75rem;
 }
 
 @layer base {
@@ -135,32 +86,52 @@
 }
 
 @layer components {
-  .app-header {
-    @apply flex h-16 items-center gap-2 border-b bg-card px-3 sm:gap-6 sm:px-8;
-  }
-
-  .app-header nav {
-    @apply mr-auto flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground sm:gap-5 sm:text-sm;
-  }
-
-  .app-header nav a:hover {
-    @apply text-foreground;
-  }
-
-  .brand {
-    @apply font-semibold tracking-tight text-foreground;
-  }
-
   .page-shell {
-    @apply mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-12;
+    @apply mx-auto w-full max-w-2xl px-4 pt-6 pb-10 sm:px-6 sm:pt-10;
+  }
+
+  .page-title {
+    @apply text-3xl font-bold tracking-tight;
   }
 
   .surface {
-    @apply rounded-2xl border bg-card shadow-sm;
+    @apply rounded-2xl bg-card shadow-[0_1px_2px_rgb(23_32_27/0.06)];
+  }
+
+  .section-label {
+    @apply px-1 text-sm font-semibold text-muted-foreground;
   }
 
   .field-label {
     @apply mb-2 block text-sm font-medium text-foreground;
+  }
+
+  .journal-text {
+    @apply font-serif font-medium leading-[1.85];
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs text-muted-foreground;
+  }
+
+  .button-primary {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .button-soft {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .button-outline {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-primary px-5 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-input bg-card px-3 py-2.5;
+  }
+
+  .action-bar {
+    @apply sticky bottom-0 z-10 -mx-4 mt-8 border-t bg-card px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6;
   }
 }
 
@@ -195,23 +166,6 @@
     border: 0;
   }
 
-  .skip-link {
-    position: absolute;
-    left: 1rem;
-    top: 1rem;
-    z-index: 9999;
-    transform: translateY(-200%);
-    border-radius: 0.5rem;
-    background: white;
-    color: black;
-    padding: 0.75rem 1rem;
-    box-shadow: 0 0 0 2px black;
-  }
-
-  .skip-link:focus {
-    transform: translateY(0);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -221,13 +175,5 @@
       scroll-behavior: auto !important;
       transition-duration: 0.001ms !important;
     }
-  }
-
-  [data-high-contrast="true"] {
-    --focus-ring: 3px solid currentColor;
-  }
-
-  [data-larger-text="true"] {
-    font-size: 112.5%;
   }
 }

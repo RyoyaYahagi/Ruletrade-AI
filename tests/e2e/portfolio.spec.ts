@@ -195,7 +195,7 @@ test("builds the portfolio from trades and links holdings from the home page", a
       'section[aria-labelledby="holdings-heading"]',
     );
     await expect(
-      holdings.getByRole("heading", { name: "現在の保有" }),
+      holdings.getByRole("heading", { name: "保有している銘柄" }),
     ).toBeVisible();
     const holdingLinks = holdings.locator(`a[href^="/stocks/"]`);
     await expect(holdingLinks).toHaveCount(5);
@@ -207,7 +207,7 @@ test("builds the portfolio from trades and links holdings from the home page", a
     ).toBeVisible();
     const recent = page.locator('section[aria-labelledby="recent-heading"]');
     await expect(
-      recent.getByRole("heading", { name: "最近の判断" }),
+      recent.getByRole("heading", { name: "最近の記録" }),
     ).toBeVisible();
     await expect(
       recent.getByText(`保有検証の最新判断-${suffix}`),
@@ -293,13 +293,13 @@ test("shows delivered Sony Financial shares and opens their existing stock page"
     await page.goto("/transactions");
     await expect(
       page.locator("li").filter({ hasText: "ソニーグループ" }),
-    ).toContainText("購入 · 5株 · 1,000円");
+    ).toContainText("購入5株 × 1,000円");
     await page.goto(`/stocks/${childStockId}`);
-    await page.getByRole("link", { name: "＋ 判断を記録" }).click();
+    await page.getByRole("link", { name: "考えを記録" }).click();
     await expect(page).toHaveURL(
       new RegExp(`/stocks/${childStockId}/capture$`),
     );
-    await expect(page.getByLabel("テキストで入力する")).toBeVisible();
+    await expect(page.getByLabel("いま考えていること")).toBeVisible();
   } finally {
     if (database) {
       database.pragma("foreign_keys = ON");

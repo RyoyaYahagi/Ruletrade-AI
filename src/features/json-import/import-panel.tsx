@@ -58,7 +58,7 @@ export function JsonImportPanel() {
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="space-y-3">
       <p className="text-sm text-muted-foreground" id="json-import-description">
         エクスポートしたJSONを読み込みます（20MBまで）。既存の記録は上書きしません。同じ内容の記録は追加せず、同じ識別子で内容が異なる場合は取り込みを中止します。
       </p>
@@ -83,7 +83,7 @@ export function JsonImportPanel() {
           type="button"
           disabled={!file || busy}
           onClick={importFile}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          className="button-soft"
         >
           {busy ? "JSONを取り込み中…" : "JSONをインポート"}
         </button>

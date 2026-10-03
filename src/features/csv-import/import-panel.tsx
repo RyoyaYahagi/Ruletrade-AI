@@ -200,11 +200,12 @@ export function ImportPanel({ batches }: { batches: Batches }) {
     : false;
   return (
     <>
-      <section className="mt-10 border-t pt-6" aria-labelledby="import-heading">
-        <h2 id="import-heading" className="text-lg font-semibold">
+      <section className="space-y-2" aria-labelledby="import-heading">
+        <h2 id="import-heading" className="section-label">
           取引履歴を読み込む
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <div className="surface p-5">
+        <p className="text-sm leading-6 text-muted-foreground">
           楽天証券の日本株・米国株、SBI証券・野村證券・マネックス証券の日本株CSVに対応しています。投資信託は対象外です。
         </p>
         <label className="mt-4 block text-sm">
@@ -213,7 +214,7 @@ export function ImportPanel({ batches }: { batches: Batches }) {
             type="file"
             accept=".csv,text/csv"
             disabled={busy}
-            className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border file:bg-background file:px-3 file:py-2"
+            className="mt-2 block w-full text-sm file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-primary file:px-4 file:font-semibold file:text-primary-foreground"
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = "";
@@ -563,7 +564,7 @@ export function ImportPanel({ batches }: { batches: Batches }) {
               type="button"
               disabled={busy || unresolvedReview || !hasImportWork}
               onClick={() => void confirmImport()}
-              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              className="button-primary w-full sm:w-auto"
             >
               {preview.counts.merged === 0 && preview.counts.review === 0
                 ? `${preview.counts.new}件をインポート`
@@ -571,20 +572,18 @@ export function ImportPanel({ batches }: { batches: Batches }) {
             </button>
           </div>
         )}
+        </div>
       </section>
-      <section
-        className="mt-10 border-t pt-6"
-        aria-labelledby="history-heading"
-      >
-        <h2 id="history-heading" className="text-lg font-semibold">
+      <section className="space-y-2" aria-labelledby="history-heading">
+        <h2 id="history-heading" className="section-label">
           インポート履歴
         </h2>
         {batches.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="surface p-5 text-sm text-muted-foreground">
             インポート履歴はまだありません。
           </p>
         ) : (
-          <ul className="mt-3 divide-y">
+          <ul className="surface divide-y px-5">
             {batches.map((batch) => (
               <li
                 key={batch.id}
@@ -604,7 +603,7 @@ export function ImportPanel({ batches }: { batches: Batches }) {
                   <button
                     disabled={busy}
                     onClick={() => void undo(batch.id)}
-                    className="rounded-lg border px-3 py-2 disabled:opacity-50"
+                    className="min-h-11 rounded-xl px-3 font-medium text-destructive disabled:opacity-50"
                   >
                     取り消す
                   </button>

@@ -42,7 +42,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
     });
   });
 
-  await page.goto("/");
+  await page.goto("/capture");
   await expect(page.getByRole("heading", { name: "いま何を考えていますか？" })).toBeVisible();
   await page.screenshot({ path: "test-results/mvp-home-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 375, height: 812 });
@@ -50,7 +50,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await page.screenshot({ path: "test-results/mvp-home-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
 
-  await page.getByLabel("テキストで入力する").fill(originalThought);
+  await page.getByLabel("いま考えていること").fill(originalThought);
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await expect(page.getByRole("heading", { name: "整理した内容を確認してください" })).toBeVisible();
   await expect(page.getByLabel("数量")).toHaveValue("100");
@@ -67,6 +67,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await expect(page).toHaveURL(/\/stocks\//);
   await expect(page.getByRole("heading", { name: "キオクシア" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "判断タイムライン" })).toBeVisible();
+  await page.locator("summary", { hasText: "AIによる整理" }).click();
   await expect(page.getByText("AI向けNAND需要が続くと期待", { exact: true })).toBeVisible();
   await expect(page.getByText("データセンター需要が鈍ったら見直す", { exact: true })).toBeVisible();
   await expect(page.getByText("購入 100株")).toBeVisible();
@@ -77,6 +78,8 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await page.screenshot({ path: "test-results/mvp-stock-timeline-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  await page.getByRole("link", { name: "過去と比べる" }).click();
+  await expect(page.getByRole("heading", { name: "振り返り", exact: true })).toBeVisible();
   await page.getByLabel("現在の考え").fill("キオクシアがかなり下がったから売ろうかな。");
   await page.getByRole("button", { name: "過去の判断と比べる" }).click();
   await expect(page.getByRole("heading", { name: "過去の判断との比較" })).toBeVisible();
@@ -88,6 +91,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
 
   await expect(page.getByRole("heading", { name: "過去の振り返り" })).toBeVisible();
   await expect(page.getByText("需要の見直し条件を確かめてから、自分で判断する。")).toBeVisible();
+  await page.getByRole("navigation", { name: "表示の切り替え" }).getByRole("link", { name: /売買/ }).click();
   await expect(page.getByText("売却 100株")).toBeVisible();
   await page.screenshot({ path: "test-results/mvp-stock-review-and-sale.png", fullPage: true });
 
@@ -102,12 +106,11 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "レビュー時期です" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /振り返りの時期です/ })).toBeVisible();
   await expect(page.locator('section[aria-labelledby="due-heading"]').getByRole("link", { name: /キオクシア/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "JSONをエクスポート" })).toHaveCount(0);
-  await page.getByRole("button", { name: "補助メニュー" }).click();
-  await page.getByRole("link", { name: "データ管理", exact: true }).click();
-  await expect(page).toHaveURL("/data");
+  await page.getByRole("link", { name: "その他", exact: true }).click();
+  await expect(page).toHaveURL("/more");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("link", { name: "JSONをエクスポート" }).click();
   const download = await downloadPromise;
@@ -167,11 +170,11 @@ test("transcribes a voice capture fixture and lets the user review the text", as
     });
   });
 
-  await page.goto("/");
+  await page.goto("/capture");
   await page.getByRole("button", { name: "話して記録" }).click();
   await page.getByRole("button", { name: "録音を停止" }).click();
-  await expect(page.getByLabel("テキストで入力する")).toHaveValue("キオクシアを100株買った。");
-  await page.getByLabel("テキストで入力する").fill("キオクシアを100株買った。理由はAI需要。");
+  await expect(page.getByLabel("いま考えていること")).toHaveValue("キオクシアを100株買った。");
+  await page.getByLabel("いま考えていること").fill("キオクシアを100株買った。理由はAI需要。");
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await expect(page.getByRole("heading", { name: "整理した内容を確認してください" })).toBeVisible();
   await expect(page.getByText("音声からの投資仮説")).toBeVisible();

@@ -234,6 +234,33 @@ export async function listRecentDecisionsAction(
   }));
 }
 
+/** 銘柄ごとの判断記録の件数と、最後に判断した日（日本時間の日付）。 */
+export async function listDecisionStatsAction(): Promise<
+  Map<string, { count: number; lastDecidedOn: string }>
+> {
+  const rows = getDb()
+    .select({
+      stockId: decisions.stockId,
+      decidedAt: decisions.decidedAt,
+      createdAt: decisions.createdAt,
+    })
+    .from(decisions)
+    .all();
+  const stats = new Map<string, { count: number; lastDecidedOn: string }>();
+  for (const row of rows) {
+    const decidedOn = japanDate(row.decidedAt ?? row.createdAt);
+    const current = stats.get(row.stockId);
+    stats.set(row.stockId, {
+      count: (current?.count ?? 0) + 1,
+      lastDecidedOn:
+        current && current.lastDecidedOn > decidedOn
+          ? current.lastDecidedOn
+          : decidedOn,
+    });
+  }
+  return stats;
+}
+
 export async function listDueDecisionsAction(): Promise<
   Array<{
     stock: Stock;

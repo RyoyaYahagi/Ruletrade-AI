@@ -49,18 +49,19 @@ export function TransactionForm({ stockId, decisions }: { stockId: string; decis
   }
 
   return (
-    <form onSubmit={(event) => void submit(event)} className="surface space-y-4 p-5 sm:p-7">
-      <h2 className="text-lg font-semibold">売買の事実を記録</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <label className="text-sm">売買<select value={side} onChange={(event) => setSide(event.target.value as "buy" | "sell")} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="buy">購入</option><option value="sell">売却</option></select></label>
-        <label className="text-sm">数量<input required type="number" min="0.0001" step="any" value={quantity} onChange={(event) => setQuantity(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
-        <label className="text-sm">単価（任意）<input type="number" min="0" step="any" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="未入力" className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
-        <label className="text-sm">手数料（任意）<input type="number" min="0" step="any" value={fee} onChange={(event) => setFee(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
-        <label className="text-sm">約定日<input required type="date" value={executedAt} onChange={(event) => setExecutedAt(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
-        <label className="text-sm">判断メモ（任意）<select value={decisionId} onChange={(event) => setDecisionId(event.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2"><option value="">紐付けない</option>{decisions.map((decision) => <option key={decision.id} value={decision.id}>{new Date(decision.createdAt).toLocaleDateString("ja-JP")} · {decisionDisplayText(decision).slice(0, 35)}</option>)}</select></label>
+    <form onSubmit={(event) => void submit(event)} className="surface space-y-4 p-5">
+      <h2 className="font-semibold">売買の事実を記録</h2>
+      <p className="text-xs text-muted-foreground">証券会社のCSVがない取引を手入力できます。</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <label className="text-sm text-muted-foreground">売買<select value={side} onChange={(event) => setSide(event.target.value as "buy" | "sell")} className="input mt-1 text-foreground"><option value="buy">購入</option><option value="sell">売却</option></select></label>
+        <label className="text-sm text-muted-foreground">数量<input required type="number" min="0.0001" step="any" value={quantity} onChange={(event) => setQuantity(event.target.value)} className="input mt-1 text-foreground" /></label>
+        <label className="text-sm text-muted-foreground">単価（任意）<input type="number" min="0" step="any" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="未入力" className="input mt-1 text-foreground" /></label>
+        <label className="text-sm text-muted-foreground">手数料（任意）<input type="number" min="0" step="any" value={fee} onChange={(event) => setFee(event.target.value)} className="input mt-1 text-foreground" /></label>
+        <label className="text-sm text-muted-foreground">約定日<input required type="date" value={executedAt} onChange={(event) => setExecutedAt(event.target.value)} className="input mt-1 text-foreground" /></label>
+        <label className="text-sm text-muted-foreground">判断メモ（任意）<select value={decisionId} onChange={(event) => setDecisionId(event.target.value)} className="input mt-1 text-foreground"><option value="">紐付けない</option>{decisions.map((decision) => <option key={decision.id} value={decision.id}>{new Date(decision.createdAt).toLocaleDateString("ja-JP")} · {decisionDisplayText(decision).slice(0, 35)}</option>)}</select></label>
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <button type="submit" disabled={saving || !quantity} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50">{saving ? "保存しています…" : "売買履歴に追加"}</button>
+      <button type="submit" disabled={saving || !quantity} className="button-soft w-full sm:w-auto">{saving ? "保存しています…" : "売買履歴に追加"}</button>
     </form>
   );
 }

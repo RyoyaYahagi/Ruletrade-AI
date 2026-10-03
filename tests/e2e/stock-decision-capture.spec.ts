@@ -5,7 +5,7 @@ import type { Transaction } from "../../src/schemas/transaction";
 test("records a decision for an imported trade without adding another trade", async ({
   page,
 }) => {
-  await page.goto("/data");
+  await page.goto("/more");
   await page
     .getByLabel("CSVを選択")
     .setInputFiles(
@@ -36,14 +36,14 @@ test("records a decision for an imported trade without adding another trade", as
       },
     }),
   );
-  await page.goto(`/stocks/${trade.stockId}`);
+  await page.goto(`/stocks/${trade.stockId}?tab=trades`);
   await page
     .locator("li")
     .filter({ has: page.locator(`a[href$="transactionId=${trade.id}"]`) })
-    .getByRole("link", { name: "判断を記録 →" })
+    .getByRole("link", { name: "このときの理由を残す" })
     .click();
   await page
-    .getByLabel("テキストで入力する")
+    .getByLabel("いま考えていること")
     .fill("このとき将来の需要を期待して購入した。");
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await expect(page.getByLabel("銘柄の登録先")).toHaveCount(0);
@@ -53,6 +53,7 @@ test("records a decision for an imported trade without adding another trade", as
   await expect(page.getByText("売買の事実も履歴に記録する")).toHaveCount(0);
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(new RegExp(`/stocks/${trade.stockId}$`));
+  await page.locator("summary", { hasText: "AIによる整理" }).click();
   await expect(page.getByText("過去の購入理由", { exact: true })).toBeVisible();
   await expect(page.getByText(/関連売買:/)).toBeVisible();
   const after = await (await page.request.get("/api/export")).json();
@@ -61,10 +62,11 @@ test("records a decision for an imported trade without adding another trade", as
     (item: Transaction) => item.id === trade.id,
   );
   expect(linked.decisionId).toBeTruthy();
+  await page.goto(`/stocks/${trade.stockId}?tab=trades`);
   await expect(
     page.locator(`a[href$="transactionId=${trade.id}"]`),
   ).toHaveCount(0);
-  await expect(page.locator(`a[href="#${linked.decisionId}"]`)).toBeVisible();
+  await expect(page.locator(`a[href$="#${linked.decisionId}"]`)).toBeVisible();
 });
 
 test("offers multiple matching trades, defaults a unique match, and preserves opting out", async ({
@@ -82,14 +84,15 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/capture");
   await page
-    .getByLabel("テキストで入力する")
+    .getByLabel("いま考えていること")
     .fill("架空候補確認社について記録する。");
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(/\/stocks\//);
   const stockUrl = page.url();
+  await page.goto(`${stockUrl}?tab=trades`);
   const tradeForm = page
     .locator("form")
     .filter({ has: page.getByRole("heading", { name: "売買の事実を記録" }) });
@@ -99,9 +102,9 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
     await tradeForm.getByRole("button", { name: "売買履歴に追加" }).click();
     await expect(tradeForm.getByLabel("数量", { exact: true })).toHaveValue("");
   }
-  await page.getByRole("link", { name: "＋ 判断を記録" }).click();
+  await page.getByRole("link", { name: "考えを記録" }).click();
   await page
-    .getByLabel("テキストで入力する")
+    .getByLabel("いま考えていること")
     .fill("過去の購入理由を記録する。");
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await page.getByLabel("記録の種類").selectOption("buy");

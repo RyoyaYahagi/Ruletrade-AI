@@ -1,7 +1,26 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { HeaderMenu } from "./header-menu";
+import { IBM_Plex_Mono, IBM_Plex_Sans_JP, Shippori_Mincho } from "next/font/google";
+import { AppNav, BottomNavSpacer } from "./app-nav";
 import "./globals.css";
+
+// 日本語フォントはサイズが大きいため preload せず、表示時に必要な範囲だけ読み込ませる。
+const plexSansJp = IBM_Plex_Sans_JP({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  preload: false,
+  variable: "--font-plex-sans-jp",
+});
+const shipporiMincho = Shippori_Mincho({
+  weight: ["500", "600"],
+  subsets: ["latin"],
+  preload: false,
+  variable: "--font-shippori-mincho",
+});
+const plexMono = IBM_Plex_Mono({
+  weight: ["500"],
+  subsets: ["latin"],
+  variable: "--font-plex-mono",
+});
 
 export const metadata: Metadata = {
   title: "Ruletrade-AI",
@@ -15,20 +34,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className="h-full antialiased">
+    <html
+      lang="ja"
+      className={`h-full antialiased ${plexSansJp.variable} ${shipporiMincho.variable} ${plexMono.variable}`}
+    >
       <body className="min-h-full flex flex-col">
-        <header className="app-header">
-          <Link href="/" className="brand">
-            Ruletrade
-          </Link>
-          <nav aria-label="メインナビゲーション">
-            <Link href="/">記録</Link>
-            <Link href="/portfolio">ポートフォリオ</Link>
-            <Link href="/transactions">売買履歴</Link>
-          </nav>
-          <HeaderMenu />
-        </header>
+        <AppNav />
         {children}
+        <BottomNavSpacer />
       </body>
     </html>
   );
