@@ -135,7 +135,11 @@ export function calculatePortfolio(
     sortPriority: 1,
     event: { type: "transaction", transaction },
   }));
+  const todayInJapan = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
   for (const action of CORPORATE_ACTIONS) {
+    if (action.exDate > todayInJapan) continue;
     const targetStocks = stocksByTicker.get(action.ticker) ?? [];
     if (targetStocks.length > 1) {
       throw new Error(`Ambiguous portfolio stock ticker: ${action.ticker}`);
