@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { decisionTypeLabel } from "@/features/decisions/decision-display";
 import { useRouter } from "next/navigation";
 import { editDecisionAction } from "@/features/decisions/actions";
 import {
@@ -104,15 +106,20 @@ export function DecisionEditForm({
     }
   }
 
-  const fieldClass = "mt-1 w-full rounded-lg border bg-background px-3 py-2";
+  const fieldClass = "input mt-1 text-foreground";
+  const labelClass = "block text-sm text-muted-foreground";
   return (
-    <section className="surface space-y-5 p-5 sm:p-8">
-      <Link href={backUrl} className="text-sm text-primary hover:underline">
-        ← {stock.name}の記録
-      </Link>
-      <div>
-        <h1 className="text-2xl font-semibold">判断を編集</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+    <section className="space-y-6">
+      <div className="space-y-3">
+        <Link
+          href={backUrl}
+          className="-ml-1 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground"
+        >
+          <ArrowLeft aria-hidden size={18} />
+          {stock.name}の記録
+        </Link>
+        <h1 className="page-title">判断を編集</h1>
+        <p className="text-sm text-muted-foreground">
           {stock.name}の判断を修正します。編集前の内容は履歴に残ります。
         </p>
       </div>
@@ -122,111 +129,147 @@ export function DecisionEditForm({
           void save();
         }}
       >
-        <fieldset disabled={saving} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm">
-              記録の種類
-              <select
-                value={type}
-                onChange={(event) =>
-                  setType(event.target.value as Decision["type"])
-                }
-                className={fieldClass}
-              >
-                {[
-                  ["buy", "購入"],
-                  ["add", "買い増し"],
-                  ["sell", "売却"],
-                  ["sell_consideration", "売却を検討"],
-                  ["thesis_update", "仮説の更新"],
-                  ["note", "メモ"],
-                ].map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="space-y-3 text-sm sm:col-span-2">
-              <div className="flex items-center justify-between"><span className="font-medium">整理した点</span><button type="button" onClick={() => setPoints((items) => [...items, { kind: "other", text: "", source: "raw_input" }])} className="text-primary">点を追加</button></div>
-              {points.map((point, index) => <div key={index} className="grid gap-2 sm:grid-cols-[1fr_12rem_auto]"><textarea aria-label={`整理した点 ${index + 1}`} value={point.text} onChange={(event) => setPoints((items) => items.map((item, i) => i === index ? { ...item, text: event.target.value } : item))} rows={2} className={fieldClass}/><label className="text-xs text-muted-foreground">出典<select aria-label={`整理した点 ${index + 1} の出典`} value={point.source} onChange={(event) => setPoints((items) => items.map((item,i)=>i===index?{...item,source:event.target.value as DecisionPoint["source"]}:item))} className={fieldClass}><option value="raw_input">元の発言</option><option value="follow_up_answer">追加回答</option></select></label><button type="button" aria-label={`整理した点 ${index + 1} を削除`} onClick={() => setPoints((items) => items.filter((_, i) => i !== index))} className="text-destructive">削除</button></div>)}
+        <fieldset disabled={saving} className="space-y-6">
+          <section className="space-y-2" aria-labelledby="edit-words-heading">
+            <h2 id="edit-words-heading" className="section-label">あなたの言葉</h2>
+            <div className="surface space-y-4 p-5">
+              <label className={labelClass}>
+                判断の本文
+                <textarea
+                  required
+                  rows={5}
+                  value={rawInput}
+                  onChange={(event) => setRawInput(event.target.value)}
+                  className={`${fieldClass} journal-text`}
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className={labelClass}>
+                  判断した日
+                  <input
+                    required
+                    type="date"
+                    value={decidedAt}
+                    onChange={(event) => setDecidedAt(event.target.value)}
+                    className={fieldClass}
+                  />
+                </label>
+                <label className={labelClass}>
+                  記録の種類
+                  <select
+                    value={type}
+                    onChange={(event) =>
+                      setType(event.target.value as Decision["type"])
+                    }
+                    className={fieldClass}
+                  >
+                    {Object.entries(decisionTypeLabel).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <ReviewSchedule value={schedule} onChange={setSchedule} />
             </div>
-            <label className="text-sm">
-              判断した日
-              <input
-                required
-                type="date"
-                value={decidedAt}
-                onChange={(event) => setDecidedAt(event.target.value)}
-                className={fieldClass}
-              />
-            </label>
-            <label className="text-sm sm:col-span-2">
-              判断の本文
-              <textarea
-                required
-                rows={5}
-                value={rawInput}
-                onChange={(event) => setRawInput(event.target.value)}
-                className={fieldClass}
-              />
-            </label>
-            <label className="text-sm sm:col-span-2">
-              要約
-              <textarea
-                rows={3}
-                value={summary}
-                onChange={(event) => setSummary(event.target.value)}
-                className={fieldClass}
-              />
-            </label>
-            <label className="text-sm">
-              前提（1行に1つ）
-              <textarea
-                rows={3}
-                value={assumptions}
-                onChange={(event) => setAssumptions(event.target.value)}
-                className={fieldClass}
-              />
-            </label>
-            <label className="text-sm">
-              見直し条件（1行に1つ）
-              <textarea
-                rows={3}
-                value={reviewConditions}
-                onChange={(event) => setReviewConditions(event.target.value)}
-                className={fieldClass}
-              />
-            </label>
-            <label className="text-sm sm:col-span-2">
-              買い増し条件（1行に1つ）
-              <textarea
-                rows={3}
-                value={addConditions}
-                onChange={(event) => setAddConditions(event.target.value)}
-                className={fieldClass}
-              />
-            </label>
-          </div>
-          <ReviewSchedule value={schedule} onChange={setSchedule} />
+          </section>
+          <section className="space-y-2" aria-labelledby="edit-ai-heading">
+            <h2 id="edit-ai-heading" className="section-label">AIによる整理</h2>
+            <div className="surface space-y-4 p-5">
+              <label className={labelClass}>
+                要約
+                <textarea
+                  rows={3}
+                  value={summary}
+                  onChange={(event) => setSummary(event.target.value)}
+                  className={fieldClass}
+                />
+              </label>
+              <div className="space-y-3 text-sm">
+                <span className="text-muted-foreground">整理した点</span>
+                {points.map((point, index) => (
+                  <div key={index} className="grid gap-2 rounded-xl bg-secondary/60 p-3 sm:grid-cols-[1fr_9rem_auto]">
+                    <textarea
+                      aria-label={`整理した点 ${index + 1}`}
+                      value={point.text}
+                      onChange={(event) => setPoints((items) => items.map((item, i) => i === index ? { ...item, text: event.target.value } : item))}
+                      rows={2}
+                      className="input"
+                    />
+                    <label className="text-xs text-muted-foreground">
+                      出典
+                      <select
+                        aria-label={`整理した点 ${index + 1} の出典`}
+                        value={point.source}
+                        onChange={(event) => setPoints((items) => items.map((item, i) => i === index ? { ...item, source: event.target.value as DecisionPoint["source"] } : item))}
+                        className={fieldClass}
+                      >
+                        <option value="raw_input">元の発言</option>
+                        <option value="follow_up_answer">追加回答</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      aria-label={`整理した点 ${index + 1} を削除`}
+                      onClick={() => setPoints((items) => items.filter((_, i) => i !== index))}
+                      className="min-h-10 self-end rounded-xl px-3 text-destructive"
+                    >
+                      削除
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPoints((items) => [...items, { kind: "other", text: "", source: "raw_input" }])}
+                  className="min-h-10 font-medium text-primary"
+                >
+                  点を追加
+                </button>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={labelClass}>
+                  前提（1行に1つ）
+                  <textarea
+                    rows={3}
+                    value={assumptions}
+                    onChange={(event) => setAssumptions(event.target.value)}
+                    className={fieldClass}
+                  />
+                </label>
+                <label className={labelClass}>
+                  見直し条件（1行に1つ）
+                  <textarea
+                    rows={3}
+                    value={reviewConditions}
+                    onChange={(event) => setReviewConditions(event.target.value)}
+                    className={fieldClass}
+                  />
+                </label>
+                <label className={`${labelClass} sm:col-span-2`}>
+                  買い増し条件（1行に1つ）
+                  <textarea
+                    rows={3}
+                    value={addConditions}
+                    onChange={(event) => setAddConditions(event.target.value)}
+                    className={fieldClass}
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
-          <div className="flex items-center gap-4">
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground"
-            >
-              {saving ? "保存しています…" : "変更を保存"}
-            </button>
-            <Link
-              href={backUrl}
-              className="text-sm text-primary hover:underline"
-            >
+          <div className="action-bar flex items-center gap-3">
+            <Link href={backUrl} className="flex min-h-12 items-center px-3 text-sm font-medium text-muted-foreground">
               キャンセル
             </Link>
+            <button type="submit" className="button-primary flex-1">
+              {saving ? "保存しています…" : "変更を保存"}
+            </button>
           </div>
         </fieldset>
       </form>

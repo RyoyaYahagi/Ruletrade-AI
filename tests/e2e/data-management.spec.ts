@@ -1,74 +1,46 @@
 import { expect, test } from "@playwright/test";
 
 for (const width of [1280, 320]) {
-  test(`data management navigation and menu work at ${width}px`, async ({
+  test(`main navigation reaches data management at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await expect(page.locator('a[href="/api/export"]')).toHaveCount(0);
+    // 幅に応じて上部ナビか下部ナビのどちらか一方だけが表示される。
     const navigation = page.getByRole("navigation", {
       name: "メインナビゲーション",
     });
+    await expect(navigation).toHaveCount(1);
     await expect(navigation.getByRole("link")).toHaveText([
+      "今日",
+      "銘柄",
       "記録",
-      "ポートフォリオ",
-      "売買履歴",
+      "売買",
+      "その他",
     ]);
-
-    const button = page.getByRole("button", { name: "補助メニュー" });
-    const dataLink = page.getByRole("link", {
-      name: "データ管理",
-      exact: true,
-    });
-    await expect(button).toHaveAttribute("aria-expanded", "false");
-    await button.click();
-    await expect(dataLink).toBeVisible();
-    await button.click();
-    await expect(dataLink).toHaveCount(0);
-    await button.click();
-    await page.getByRole("heading", { name: "最近の判断" }).click();
-    await expect(button).toHaveAttribute("aria-expanded", "false");
-
-    await button.focus();
-    await page.keyboard.press("Enter");
-    await page.keyboard.press("Tab");
-    await expect(dataLink).toBeFocused();
-    await page.keyboard.press("Escape");
-    await expect(dataLink).toHaveCount(0);
-    await expect(button).toBeFocused();
-
-    await page.keyboard.press("Space");
-    await page.keyboard.press("Tab");
-    await expect(dataLink).toBeFocused();
-    await page.keyboard.press("Tab");
     await expect(
-      page.getByRole("button", { name: "お問い合わせ・改善要望" }),
-    ).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(button).toHaveAttribute("aria-expanded", "false");
+      navigation.getByRole("link", { name: "今日", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
 
-    await button.focus();
-    await page.keyboard.press("Enter");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL("/data");
+    await navigation.getByRole("link", { name: "その他", exact: true }).click();
+    await expect(page).toHaveURL("/more");
     await expect(
-      page.getByRole("heading", { name: "データ管理", exact: true }),
+      page.getByRole("heading", { name: "その他", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("記録したデータの書き出しや読み込みを管理します。"),
-    ).toBeVisible();
+      navigation.getByRole("link", { name: "その他", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
     await expect(
-      page.getByRole("heading", { name: "データを書き出す" }),
+      page.getByRole("heading", { name: "バックアップ" }),
     ).toBeVisible();
-    const exportLink = page.getByRole("link", { name: "JSONをエクスポート" });
+    const exportLink = page.getByRole("link", { name: /JSONをエクスポート/ });
     await expect(exportLink).toHaveAttribute("href", "/api/export");
     await expect(exportLink).toHaveAttribute("download", "");
-    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      page.getByRole("button", { name: /お問い合わせ・改善要望/ }),
+    ).toBeVisible();
 
-    await button.click();
-    await expect(dataLink).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(
@@ -76,7 +48,7 @@ for (const width of [1280, 320]) {
         ),
       )
       .toBe(true);
-    const linkBox = await dataLink.boundingBox();
+    const linkBox = await exportLink.boundingBox();
     expect(linkBox).not.toBeNull();
     expect(linkBox!.x).toBeGreaterThanOrEqual(0);
     expect(linkBox!.x + linkBox!.width).toBeLessThanOrEqual(width);

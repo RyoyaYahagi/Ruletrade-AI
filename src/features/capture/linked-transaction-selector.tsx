@@ -18,7 +18,7 @@ export function LinkedTransactionSelector({
 }) {
   return (
     <fieldset aria-label="関連する売買" className="space-y-2">
-      <legend className="text-sm font-medium">関連する売買</legend>
+      <legend className="text-sm text-muted-foreground">関連する売買</legend>
       {transactions.length === 1 && (
         <p className="text-xs text-muted-foreground">
           この判断と一致する売買履歴が見つかりました。
@@ -38,7 +38,7 @@ export function LinkedTransactionSelector({
             onChange(event.target.value === "none" ? null : event.target.value)
           }
           disabled={disabled || loading}
-          className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
+          className="input mt-1"
         >
           <option value="none">売買履歴と紐付けない</option>
           {transactions.map((transaction) => (

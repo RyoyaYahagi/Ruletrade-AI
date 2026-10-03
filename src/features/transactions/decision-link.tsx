@@ -19,13 +19,13 @@ export function DecisionLink({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <div className="w-full">
-      <label className="text-sm">
+    <div className="w-full pb-1">
+      <label className="text-sm text-muted-foreground">
         関連する判断
         <select
           value={decisionId ?? ""}
           disabled={saving}
-          className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
+          className="input mt-1 text-foreground"
           onChange={async (event) => {
             setSaving(true);
             setError(null);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CaptureForm } from "@/features/capture/capture-form";
 import { getStockTimelineAction } from "@/features/decisions/actions";
@@ -26,12 +27,13 @@ export default async function StockCapturePage({
     : undefined;
   if (query.transactionId && !initialTransaction) notFound();
   return (
-    <main className="page-shell space-y-6">
+    <main className="page-shell space-y-4">
       <Link
         href={`/stocks/${id}`}
-        className="text-sm text-primary hover:underline"
+        className="-ml-1 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground"
       >
-        ← {data.stock.name}の記録
+        <ArrowLeft aria-hidden size={18} />
+        {data.stock.name}の記録
       </Link>
       <CaptureForm
         stocks={[data.stock]}

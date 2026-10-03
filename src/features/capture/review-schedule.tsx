@@ -27,11 +27,11 @@ export function ReviewSchedule({
     });
   }
   return (
-    <fieldset className="rounded-xl border p-4">
-      <legend className="px-1 text-sm font-semibold">
+    <fieldset>
+      <legend className="text-sm text-muted-foreground">
         振り返る時期（任意）
       </legend>
-      <p className="mb-3 text-xs text-muted-foreground">
+      <p className="mt-1 mb-3 text-xs text-muted-foreground">
         複数選択できます。日付も追加できます。
       </p>
       <div className="flex flex-wrap gap-2">
@@ -52,7 +52,7 @@ export function ReviewSchedule({
               key={choice}
               aria-pressed={selected}
               onClick={() => toggle(choice)}
-              className={`rounded-full border px-3 py-1.5 text-sm ${selected ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}
+              className={`min-h-10 rounded-full px-3.5 text-sm ${selected ? "border-[1.5px] border-primary bg-accent font-semibold text-accent-foreground" : "border bg-card"}`}
             >
               {label}
             </button>
@@ -68,7 +68,7 @@ export function ReviewSchedule({
             onChange={(event) =>
               onChange({ ...value, earningsDate: event.target.value })
             }
-            className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
+            className="input mt-1"
           />
         </label>
       )}
@@ -89,7 +89,7 @@ export function ReviewSchedule({
                       ),
                     })
                   }
-                  className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
+                  className="input mt-1"
                 />
               </label>
               {index > 0 && (
@@ -102,7 +102,7 @@ export function ReviewSchedule({
                       dates: value.dates.filter((_, i) => i !== index),
                     })
                   }
-                  className="rounded-lg border px-3 py-2 text-sm"
+                  className="min-h-10 rounded-xl border px-3 text-sm"
                 >
                   削除
                 </button>
@@ -112,7 +112,7 @@ export function ReviewSchedule({
           <button
             type="button"
             onClick={() => onChange({ ...value, dates: [...value.dates, ""] })}
-            className="rounded-lg border px-3 py-2 text-sm"
+            className="min-h-10 rounded-xl border px-3 text-sm"
           >
             振り返り日を追加
           </button>

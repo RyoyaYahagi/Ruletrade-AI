@@ -7,7 +7,7 @@ for (const width of [1280, 320]) {
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/data");
+    await page.goto("/more");
     const before = await (await page.request.get("/api/export")).json();
     await page
       .getByLabel("CSVを選択")
@@ -60,7 +60,7 @@ for (const width of [1280, 320]) {
 }
 
 test("investment fund CSV gives a clear explanation", async ({ page }) => {
-  await page.goto("/data");
+  await page.goto("/more");
   await page
     .getByLabel("CSVを選択")
     .setInputFiles(
@@ -105,9 +105,9 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
         json: extraction,
       });
     });
-    await page.goto("/");
+    await page.goto("/capture");
     await page
-      .getByLabel("テキストで入力する")
+      .getByLabel("いま考えていること")
       .fill("CSV照合テスト用の判断メモ。");
     await page.getByRole("button", { name: "内容を整理する" }).click();
     await expect(
@@ -123,7 +123,7 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
       `2025/01/10,2025/01/14,${ticker},${stockName},東証,特定,現物,買付,現物,10,1500,55,15055`,
     ].join("\n");
     const chooseCsv = async () => {
-      await page.goto("/data");
+      await page.goto("/more");
       await page.getByLabel("CSVを選択").setInputFiles({
         name: "manual-merge-review.csv",
         mimeType: "text/csv",
@@ -196,7 +196,7 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
 test("imports Monex CP932 history, prevents duplicates and undoes the batch", async ({
   page,
 }) => {
-  await page.goto("/data");
+  await page.goto("/more");
   const before = await (await page.request.get("/api/export")).json();
   const upload = () =>
     page

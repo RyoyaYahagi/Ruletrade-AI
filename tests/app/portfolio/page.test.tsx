@@ -82,9 +82,7 @@ describe("portfolio page valuation UI", () => {
     const markup = await render();
 
     expect(markup).toContain("国内株式ポートフォリオ");
-    expect(markup).toContain(
-      '国内株式 <span class="ml-1 tabular-nums">1</span>',
-    );
+    expect(markup).toMatch(/国内株式 <span[^>]*>1<\/span>/);
     expect(markup).toContain("時価評価額");
     expect(markup).toContain("2,400円");
     expect(markup).toContain("+400円");

@@ -28,7 +28,7 @@ SQLite には、Drizzle ORM を通して4つのエンティティを保存しま
 
 ## アプリケーションフロー
 
-Next.js App Router でホーム画面、銘柄詳細画面、売買履歴画面を構成しています。データベースへの更新処理には Server Actions を使い、AI処理には最小限の Route Handlers を用意しています。
+Next.js App Router で「今日」（ホーム）、記録、銘柄詳細と振り返り、ポートフォリオ、売買履歴、その他（データ管理）の各画面を構成しています。データベースへの更新処理には Server Actions を使い、AI処理には最小限の Route Handlers を用意しています。
 
 Route Handlers からはサーバー側専用の Gemini クライアントを呼び出し、情報抽出・音声文字起こし・過去記録との比較を行います。
 

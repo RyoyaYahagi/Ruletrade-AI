@@ -22,8 +22,7 @@ test("keeps feedback after a failed send and lets the user start another inquiry
     await route.fulfill({ status: 201, contentType: "application/json", json: { number: attempts + 40, url: `https://github.com/example/repo/issues/${attempts + 40}` } });
   });
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "補助メニュー" }).click();
+  await page.goto("/more");
   await page.getByRole("button", { name: "お問い合わせ・改善要望" }).click();
   const dialog = page.getByRole("dialog", { name: "お問い合わせ・改善要望" });
   await expect(dialog.getByRole("button", { name: "送信する" })).toBeDisabled();
@@ -90,8 +89,7 @@ test("transcribes spoken feedback into an editable field before sending", async 
     await route.fulfill({ status: 201, contentType: "application/json", json: { number: 43, url: "https://github.com/example/repo/issues/43" } });
   });
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "補助メニュー" }).click();
+  await page.goto("/more");
   await page.getByRole("button", { name: "お問い合わせ・改善要望" }).click();
   const dialog = page.getByRole("dialog", { name: "お問い合わせ・改善要望" });
   await dialog.getByRole("button", { name: "話して入力" }).click();
@@ -127,8 +125,7 @@ test("stops an active microphone when the dialog closes", async ({ page }) => {
     Object.defineProperty(window, "MediaRecorder", { configurable: true, value: FixtureMediaRecorder });
   });
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "補助メニュー" }).click();
+  await page.goto("/more");
   await page.getByRole("button", { name: "お問い合わせ・改善要望" }).click();
   const dialog = page.getByRole("dialog", { name: "お問い合わせ・改善要望" });
   await dialog.getByRole("button", { name: "話して入力" }).click();
@@ -136,7 +133,6 @@ test("stops an active microphone when the dialog closes", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.__feedbackStopCount)).toBe(1);
   await page.getByRole("button", { name: "閉じる" }).click();
   await expect(dialog).not.toBeVisible();
-  await page.getByRole("button", { name: "補助メニュー" }).click();
   await page.getByRole("button", { name: "お問い合わせ・改善要望" }).click();
   await expect(dialog.getByRole("button", { name: "話して入力" })).toBeEnabled();
 });
@@ -160,8 +156,7 @@ test("stops a microphone stream that resolves after the dialog closes", async ({
     Object.defineProperty(window, "MediaRecorder", { configurable: true, value: FixtureMediaRecorder });
   });
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "補助メニュー" }).click();
+  await page.goto("/more");
   await page.getByRole("button", { name: "お問い合わせ・改善要望" }).click();
   const dialog = page.getByRole("dialog", { name: "お問い合わせ・改善要望" });
   await dialog.getByRole("button", { name: "話して入力" }).click();
