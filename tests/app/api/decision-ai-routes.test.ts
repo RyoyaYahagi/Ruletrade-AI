@@ -40,7 +40,7 @@ describe("decision AI routes", () => {
 
   it("builds transaction and position context from server-side records", async () => {
     let queryNo = 0;
-    const stock = { id: "stock-1", ticker: "285A", name: "キオクシア", normalizedName: "キオクシア", market: "JP", marketCode: "JP", createdAt: "2026-01-01T00:00:00.000Z" };
+    const stock = { id: "stock-1", ticker: "7203", name: "トヨタ自動車", normalizedName: "トヨタ自動車", market: "JP", marketCode: "JP", createdAt: "2026-01-01T00:00:00.000Z" };
     const transaction = { id: "trade-1", stockId: "stock-1", side: "buy", quantity: 100, price: 2000, fee: 0, executedAt: "2026-01-02T03:04:05.000Z", decisionId: null, createdAt: "2026-01-02T03:04:05.000Z", priceCurrency: "JPY", feeCurrency: "JPY" };
     const query = (index: number) => ({
       get: () => index === 0 ? stock : undefined,
@@ -49,7 +49,7 @@ describe("decision AI routes", () => {
     });
     getDb.mockReturnValue({ select: () => { const index = queryNo++; return { from: () => ({ where: () => query(index), all: () => query(index).all() }) }; } });
     extractDecision.mockResolvedValue({
-      type: "buy", stock: { name: "キオクシア", ticker: "285A", market: "JP" },
+      type: "buy", stock: { name: "トヨタ自動車", ticker: "7203", market: "JP" },
       summary: "AI需要を期待する。", points: [{ kind: "expectation", text: "AI需要を期待", source: "raw_input" }],
       transaction: null, followUpQuestion: null,
     });
