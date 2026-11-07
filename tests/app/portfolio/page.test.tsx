@@ -2,16 +2,31 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PortfolioPage from "@/app/portfolio/page";
-import type { PortfolioHolding } from "@/features/portfolio/portfolio";
+import type {
+  PortfolioHolding,
+  RealizedProfitLossResult,
+} from "@/features/portfolio/portfolio";
 import type { MarketQuote } from "@/features/market-data/provider";
+
+const emptyRealized: RealizedProfitLossResult = {
+  sales: [],
+  stockTotals: [],
+  totalsByCurrency: [],
+};
 
 const mocks = vi.hoisted(() => ({
   holdings: [] as PortfolioHolding[],
   quotes: new Map<string, MarketQuote>(),
+  realized: {
+    sales: [],
+    stockTotals: [],
+    totalsByCurrency: [],
+  } as RealizedProfitLossResult,
 }));
 
 vi.mock("@/features/portfolio/actions", () => ({
   listPortfolioAction: async () => mocks.holdings,
+  listRealizedProfitLossAction: async () => mocks.realized,
 }));
 
 vi.mock("@/features/decisions/actions", () => ({
@@ -80,6 +95,7 @@ describe("portfolio page valuation UI", () => {
       ["7203.T", quote()],
       ["AAPL", quote({ symbol: "AAPL", price: 150, currency: "USD" })],
     ]);
+    mocks.realized = emptyRealized;
   });
 
   it("defaults to domestic stocks and shows compact rows and selected-market totals", async () => {
@@ -178,6 +194,98 @@ describe("portfolio page valuation UI", () => {
     expect(markup).toContain("テスト銘柄");
     expect(markup).toContain("現在、参考株価を取得できません");
     expect(markup).not.toContain('role="img"');
-    expect(markup).not.toContain('role="img"');
+  });
+
+  it("shows realized profit/loss for the selected currency with the existing rounding", async () => {
+    mocks.realized = {
+      sales: [],
+      stockTotals: [
+        {
+          stockId: "stock-1",
+          stockName: "テスト銘柄",
+          ticker: "7203",
+          currency: "JPY",
+          saleCount: 1,
+          computedCount: 1,
+          proceeds: 3000,
+          costBasis: 2000,
+          realizedProfitLoss: 1234.56,
+          completeness: true,
+        },
+      ],
+      totalsByCurrency: [
+        {
+          currency: "JPY",
+          saleCount: 1,
+          computedCount: 1,
+          proceeds: 3000,
+          costBasis: 2000,
+          realizedProfitLoss: 1234.56,
+          completeness: true,
+        },
+      ],
+    };
+
+    const markup = await render();
+
+    expect(markup).toContain("実現損益（売却済み）");
+    expect(markup).toContain("+1,234円");
+  });
+
+  it("shows unknown-currency sales instead of silently omitting them", async () => {
+    mocks.realized = {
+      sales: [],
+      stockTotals: [],
+      totalsByCurrency: [
+        {
+          currency: null,
+          saleCount: 2,
+          computedCount: 0,
+          proceeds: null,
+          costBasis: null,
+          realizedProfitLoss: null,
+          completeness: false,
+        },
+      ],
+    };
+    const markup = await render();
+    expect(markup).toContain("通貨が不明な売却が2件あります");
+    expect(markup).toContain("円・ドルの合計には含めていません");
+  });
+
+  it("marks realized profit/loss as unknown when a sale cannot be calculated", async () => {
+    mocks.realized = {
+      sales: [],
+      stockTotals: [
+        {
+          stockId: "stock-1",
+          stockName: "テスト銘柄",
+          ticker: "7203",
+          currency: "JPY",
+          saleCount: 1,
+          computedCount: 0,
+          proceeds: null,
+          costBasis: null,
+          realizedProfitLoss: null,
+          completeness: false,
+        },
+      ],
+      totalsByCurrency: [
+        {
+          currency: "JPY",
+          saleCount: 1,
+          computedCount: 0,
+          proceeds: null,
+          costBasis: null,
+          realizedProfitLoss: null,
+          completeness: false,
+        },
+      ],
+    };
+
+    const markup = await render();
+
+    expect(markup).toContain("一部の売却価格または取得単価が不明");
+    expect(markup).toContain("不明");
   });
 });

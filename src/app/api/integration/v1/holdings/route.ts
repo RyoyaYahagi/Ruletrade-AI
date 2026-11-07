@@ -13,7 +13,14 @@ import {
 import type { MarketQuote } from "@/features/market-data/provider";
 import { yahooMarketPriceProvider } from "@/features/market-data/provider";
 import { toYahooSymbol } from "@/features/market-data/symbols";
-import { listPortfolioAction } from "@/features/portfolio/actions";
+import {
+  listPortfolioAction,
+  listRealizedProfitLossAction,
+} from "@/features/portfolio/actions";
+import {
+  realizedProfitLossForCurrency,
+  realizedProfitLossForStock,
+} from "@/features/portfolio/portfolio";
 import {
   calculateValuation,
   summarizeValuation,
@@ -28,6 +35,13 @@ export async function GET(request: Request) {
     if (authError) return authError;
 
     const holdings = await listPortfolioAction();
+    const realized = await listRealizedProfitLossAction();
+    const realizedByStock = new Map(
+      holdings.map((holding) => [
+        holding.stockId,
+        realizedProfitLossForStock(realized, holding.stockId, holding.currency),
+      ]),
+    );
     const symbols = holdings
       .filter((holding) => holding.quantity > 0)
       .map((holding) => toYahooSymbol(holding.ticker, holding.marketCode))
@@ -41,7 +55,11 @@ export async function GET(request: Request) {
       quotes = new Map();
     }
 
-    const valuedHoldings = calculateValuation(holdings, quotes);
+    const valuedHoldings = calculateValuation(
+      holdings,
+      quotes,
+      realizedByStock,
+    );
     const summaries = summarizeValuation(valuedHoldings);
     const sortedHoldings = [...valuedHoldings].sort(
       (a, b) =>
@@ -52,8 +70,14 @@ export async function GET(request: Request) {
     return successResponse({
       holdings: sortedHoldings.map(toValuedHolding),
       totalsByCurrency: [
-        toCurrencyTotals(summaries.JPY),
-        toCurrencyTotals(summaries.USD),
+        toCurrencyTotals(
+          summaries.JPY,
+          realizedProfitLossForCurrency(realized, "JPY"),
+        ),
+        toCurrencyTotals(
+          summaries.USD,
+          realizedProfitLossForCurrency(realized, "USD"),
+        ),
       ],
     });
   } catch {

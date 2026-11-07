@@ -4,10 +4,17 @@ import { shortJapanDate } from "@/features/decisions/decision-display";
 
 import { yahooMarketPriceProvider } from "@/features/market-data/provider";
 import { toYahooSymbol } from "@/features/market-data/symbols";
-import { listPortfolioAction } from "@/features/portfolio/actions";
+import {
+  listPortfolioAction,
+  listRealizedProfitLossAction,
+} from "@/features/portfolio/actions";
 import { formatPortfolioAmount } from "@/features/portfolio/format";
 import { PortfolioAllocation } from "@/features/portfolio/components/portfolio-allocation";
 import { PortfolioHoldingRow } from "@/features/portfolio/components/portfolio-holding-row";
+import {
+  realizedProfitLossForCurrency,
+  realizedProfitLossForStock,
+} from "@/features/portfolio/portfolio";
 import {
   calculateValuation,
   summarizeValuation,
@@ -43,10 +50,12 @@ function sortValuations(a: ValuedHolding, b: ValuedHolding): number {
 function Summary({
   market,
   summary,
+  realizedProfitLoss,
   allocation,
 }: {
   market: Market;
   summary: ReturnType<typeof summarizeValuation>["JPY"];
+  realizedProfitLoss: number | null;
   allocation: React.ReactNode;
 }) {
   const currency = market === "jp" ? "JPY" : "USD";
@@ -67,6 +76,10 @@ function Summary({
     summary.unrealizedProfitLossRate === null
       ? "不明"
       : `${summary.unrealizedProfitLossRate > 0 ? "+" : summary.unrealizedProfitLossRate < 0 ? "-" : ""}${Math.abs(summary.unrealizedProfitLossRate).toLocaleString("ja-JP", { maximumFractionDigits: 2 })}%`;
+  const signedRealized =
+    realizedProfitLoss === null
+      ? "不明"
+      : `${realizedProfitLoss > 0 ? "+" : realizedProfitLoss < 0 ? "-" : ""}${formatPortfolioAmount(Math.abs(realizedProfitLoss), currency)}`;
   return (
     <section
       className="surface space-y-4 p-5"
@@ -100,10 +113,31 @@ function Summary({
             </dd>
           </div>
         </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">
+            実現損益（売却済み）
+          </dt>
+          <dd
+            className={`mt-1 font-mono text-[15px] ${
+              realizedProfitLoss === null || realizedProfitLoss === 0
+                ? "text-muted-foreground"
+                : realizedProfitLoss > 0
+                  ? "text-primary"
+                  : "text-destructive"
+            }`}
+          >
+            {signedRealized}
+          </dd>
+        </div>
       </dl>
       {!summary.completeness.profitLoss && (
         <p className="text-xs text-muted-foreground">
           一部の価格または取得額が不明なため、含み損益は完全な合計ではありません。
+        </p>
+      )}
+      {realizedProfitLoss === null && (
+        <p className="text-xs text-muted-foreground">
+          一部の売却価格または取得単価が不明なため、実現損益は表示できません。
         </p>
       )}
       {allocation && <div className="border-t pt-4">{allocation}</div>}
@@ -152,6 +186,10 @@ export default async function PortfolioPage({
     listPortfolioAction(),
     listDecisionStatsAction(),
   ]);
+  const realized = await listRealizedProfitLossAction();
+  const unknownCurrencySales =
+    realized.totalsByCurrency.find((total) => total.currency === null)
+      ?.saleCount ?? 0;
   const jpCount = holdings.filter(
     (holding) => holding.quantity > 0 && marketFor(holding) === "jp",
   ).length;
@@ -173,9 +211,21 @@ export default async function PortfolioPage({
   } catch {
     quotes = new Map();
   }
-  const valuedHoldings = calculateValuation(marketHoldings, quotes);
+  const realizedByStock = new Map(
+    marketHoldings.map((holding) => [
+      holding.stockId,
+      realizedProfitLossForStock(realized, holding.stockId, holding.currency),
+    ]),
+  );
+  const valuedHoldings = calculateValuation(
+    marketHoldings,
+    quotes,
+    realizedByStock,
+  );
   const summary =
     summarizeValuation(valuedHoldings)[market === "jp" ? "JPY" : "USD"];
+  const currency = market === "jp" ? "JPY" : "USD";
+  const realizedProfitLoss = realizedProfitLossForCurrency(realized, currency);
   const valuationByStockId = new Map(
     valuedHoldings.map((item) => [item.holding.stockId, item]),
   );
@@ -192,7 +242,10 @@ export default async function PortfolioPage({
   const recordStat = (stockId: string) => {
     const stat = stats.get(stockId);
     return stat
-      ? { count: stat.count, lastDecidedLabel: shortJapanDate(stat.lastDecidedOn) }
+      ? {
+          count: stat.count,
+          lastDecidedLabel: shortJapanDate(stat.lastDecidedOn),
+        }
       : null;
   };
   const allocation =
@@ -213,8 +266,22 @@ export default async function PortfolioPage({
         <h1 className="page-title">ポートフォリオ</h1>
         <MarketTabs market={market} jpCount={jpCount} usCount={usCount} />
       </div>
-      <Summary market={market} summary={summary} allocation={allocation} />
-      <section className="space-y-2" aria-labelledby="portfolio-holdings-heading">
+      <Summary
+        market={market}
+        summary={summary}
+        realizedProfitLoss={realizedProfitLoss}
+        allocation={allocation}
+      />
+      {unknownCurrencySales > 0 && (
+        <p className="text-sm text-attention">
+          通貨が不明な売却が{unknownCurrencySales}
+          件あります。この売却の実現損益は不明で、円・ドルの合計には含めていません。
+        </p>
+      )}
+      <section
+        className="space-y-2"
+        aria-labelledby="portfolio-holdings-heading"
+      >
         <h2 id="portfolio-holdings-heading" className="px-1 font-semibold">
           保有銘柄
         </h2>
@@ -235,7 +302,10 @@ export default async function PortfolioPage({
         )}
       </section>
       {warningHoldings.length > 0 && (
-        <section className="space-y-2" aria-labelledby="portfolio-warnings-heading">
+        <section
+          className="space-y-2"
+          aria-labelledby="portfolio-warnings-heading"
+        >
           <h2 id="portfolio-warnings-heading" className="px-1 font-semibold">
             売買履歴の確認が必要な銘柄
           </h2>
@@ -264,6 +334,10 @@ export default async function PortfolioPage({
           </p>
           <p>
             参考平均購入単価と参考取得額は株式分割・スピンオフの調整後で、手数料を含みません。表示丸めのため、表示上の株数と単価の積が取得額と一致しない場合があります。
+          </p>
+          <p>
+            実現損益は売却ごとに「売却数量 ×（売却単価 −
+            売却直前の移動平均取得単価）」で計算し、手数料・為替・決済額は含めません。売却価格や取得単価が不明な売却が1件でもある通貨の合計は「不明」と表示します。円とドルの換算・合算は行いません。
           </p>
           <p>
             現金補償は含みません。表示する取得額は税務上の取得価額ではありません。
