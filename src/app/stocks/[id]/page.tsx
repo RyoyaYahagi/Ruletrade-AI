@@ -75,6 +75,9 @@ function DecisionCard({
         <h3 className={decisionTypeTagClass(decision.type)}>
           {decisionTypeLabel[decision.type]}
         </h3>
+        {decision.origin === "muse" && (
+          <span className="chip">Museから保存</span>
+        )}
         {linkedTrades.map((text) => (
           <span key={text} className="text-xs text-muted-foreground">
             関連売買: {text}
@@ -457,6 +460,11 @@ export default async function StockPage({
                     </time>
                     {compared &&
                       ` · ${slashDate(compared.decidedAt ?? compared.createdAt).slice(5)} の${decisionTypeLabel[compared.type]}メモと比較`}
+                    {review.origin === "muse" && (
+                      <span className="chip ml-2 align-middle">
+                        Museから保存
+                      </span>
+                    )}
                   </p>
                   <div className="journal-text whitespace-pre-wrap text-[15px]">
                     <span className="sr-only">そのときの考え: </span>
