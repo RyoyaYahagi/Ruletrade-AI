@@ -38,6 +38,8 @@ export async function GET() {
           ...StockSchema.parse(row),
           normalizedName: row.normalizedName,
           marketCode: row.marketCode,
+          fundIsin: row.fundIsin,
+          fundAssociationCode: row.fundAssociationCode,
         })),
       stockBucketChanges: tx
         .select()

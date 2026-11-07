@@ -656,3 +656,39 @@ describe("calculatePortfolio", () => {
     });
   });
 });
+
+describe("fund holdings", () => {
+  it("values a fund by its association NAV quote", () => {
+    const fund: PortfolioStock = {
+      id: "stock-1",
+      name: "架空インデックスファンド",
+      ticker: null,
+      marketCode: "JP",
+      fundIsin: "JP90C000GKC6",
+      fundAssociationCode: "03311187",
+    };
+    const [fundHolding] = calculatePortfolio(
+      [trade("t1", "buy", 10_000, 3, 1)],
+      [fund],
+    );
+    expect(fundHolding).toMatchObject({
+      fundIsin: "JP90C000GKC6",
+      fundAssociationCode: "03311187",
+    });
+    const quote: MarketQuote = {
+      symbol: "FUND:JP90C000GKC6:03311187",
+      price: 4.2755,
+      currency: "JPY",
+      priceAt: "2026-11-06T06:00:00.000Z",
+      marketState: null,
+      delayedByMinutes: null,
+      sourceName: "投資信託協会",
+    };
+    const [valued] = calculateValuation(
+      [fundHolding],
+      new Map([[quote.symbol, quote]]),
+    );
+    expect(valued.marketValue).toBeCloseTo(42_755);
+    expect(valued.unrealizedProfitLoss).toBeCloseTo(12_755);
+  });
+});

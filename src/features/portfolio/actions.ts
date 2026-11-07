@@ -24,6 +24,8 @@ export async function listPortfolioAction(): Promise<PortfolioHolding[]> {
         marketCode: stocks.marketCode,
         market: stocks.market,
         bucket: stocks.bucket,
+        fundIsin: stocks.fundIsin,
+        fundAssociationCode: stocks.fundAssociationCode,
       })
       .from(stocks)
       .all();
@@ -71,6 +73,8 @@ export async function listRealizedProfitLossAction(
         marketCode: stocks.marketCode,
         market: stocks.market,
         bucket: stocks.bucket,
+        fundIsin: stocks.fundIsin,
+        fundAssociationCode: stocks.fundAssociationCode,
       })
       .from(stocks)
       .all();

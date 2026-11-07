@@ -3,8 +3,8 @@ import "server-only";
 import { asc } from "drizzle-orm";
 
 import { getUsdJpyRate } from "@/features/market-data/exchange-rate";
-import { yahooMarketPriceProvider } from "@/features/market-data/provider";
-import { toYahooSymbol } from "@/features/market-data/symbols";
+import { marketPriceProvider } from "@/features/market-data/quotes";
+import { toQuoteSymbol } from "@/features/market-data/symbols";
 import { listPortfolioAction } from "@/features/portfolio/actions";
 import {
   buildBucketSummary,
@@ -34,7 +34,7 @@ export async function loadBucketSummary(
     ...new Set(
       holdings
         .filter((holding) => holding.quantity > 0)
-        .map((holding) => toYahooSymbol(holding.ticker, holding.marketCode))
+        .map((holding) => toQuoteSymbol(holding))
         .filter((symbol): symbol is string => symbol !== null),
     ),
   ];
@@ -42,7 +42,7 @@ export async function loadBucketSummary(
   const [quotes, exchangeRate] = await Promise.all([
     symbols.length === 0
       ? Promise.resolve(new Map())
-      : yahooMarketPriceProvider.getQuotes(symbols).catch(() => new Map()),
+      : marketPriceProvider.getQuotes(symbols).catch(() => new Map()),
     getUsdJpyRate(),
   ]);
 

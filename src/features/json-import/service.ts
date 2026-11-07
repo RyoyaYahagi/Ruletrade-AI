@@ -18,6 +18,9 @@ const timestamp = z.string().datetime();
 const stockSchema = StockSchema.extend({
   normalizedName: z.string().min(1),
   marketCode: z.string().nullable(),
+  // 基準価額コードより前のバックアップには無い
+  fundIsin: z.string().nullable().default(null),
+  fundAssociationCode: z.string().nullable().default(null),
 });
 const batchSchema = z.object({
   id,

@@ -11,8 +11,8 @@ import {
   successResponse,
 } from "@/features/integration/responses";
 import type { MarketQuote } from "@/features/market-data/provider";
-import { yahooMarketPriceProvider } from "@/features/market-data/provider";
-import { toYahooSymbol } from "@/features/market-data/symbols";
+import { marketPriceProvider } from "@/features/market-data/quotes";
+import { toQuoteSymbol } from "@/features/market-data/symbols";
 import {
   listPortfolioAction,
   listRealizedProfitLossAction,
@@ -44,12 +44,12 @@ export async function GET(request: Request) {
     );
     const symbols = holdings
       .filter((holding) => holding.quantity > 0)
-      .map((holding) => toYahooSymbol(holding.ticker, holding.marketCode))
+      .map((holding) => toQuoteSymbol(holding))
       .filter((symbol): symbol is string => symbol !== null);
 
     let quotes: Map<string, MarketQuote>;
     try {
-      quotes = await yahooMarketPriceProvider.getQuotes(symbols);
+      quotes = await marketPriceProvider.getQuotes(symbols);
     } catch {
       // 株価取得が失敗しても台帳の保有情報を返す（仕様 §4.2）。
       quotes = new Map();

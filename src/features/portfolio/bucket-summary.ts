@@ -1,6 +1,6 @@
 import type { ExchangeRate } from "@/features/market-data/exchange-rate";
 import type { MarketQuote } from "@/features/market-data/provider";
-import { toYahooSymbol } from "@/features/market-data/symbols";
+import { toQuoteSymbol } from "@/features/market-data/symbols";
 import type { PortfolioHolding } from "@/features/portfolio/portfolio";
 import type { Transaction } from "@/schemas/transaction";
 import type { Bucket } from "@/schemas/stock";
@@ -145,7 +145,7 @@ export function buildBucketSummary(input: BucketSummaryInput): BucketSummary {
       marketValueComplete = false;
       continue;
     }
-    const symbol = toYahooSymbol(holding.ticker, holding.marketCode);
+    const symbol = toQuoteSymbol(holding);
     const quote = symbol === null ? null : (quotes.get(symbol) ?? null);
     if (quote !== null && quote.currency === holding.currency) {
       marketByBucket[bucket][holding.currency] +=

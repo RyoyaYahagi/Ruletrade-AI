@@ -5,6 +5,10 @@ import { randomUUID } from "node:crypto";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import {
+  FUND_ASSOCIATION_CODE_PATTERN,
+  FUND_ISIN_PATTERN,
+} from "@/features/market-data/symbols";
 import { getDb } from "@/lib/db";
 import { stockBucketChanges, stocks } from "@/lib/db/schema";
 import {
@@ -81,4 +85,59 @@ export async function listStockBucketHistoryAction(
     .orderBy(asc(stockBucketChanges.changedAt), asc(stockBucketChanges.id))
     .all()
     .map((row) => StockBucketChangeSchema.parse(row));
+}
+
+const SetStockFundCodesInputSchema = z
+  .object({
+    stockId: z.string().min(1),
+    fundIsin: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(
+        FUND_ISIN_PATTERN,
+        "ISINコードは JP から始まる12桁で入力してください。",
+      )
+      .or(z.literal("")),
+    fundAssociationCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(
+        FUND_ASSOCIATION_CODE_PATTERN,
+        "協会コードは英数字8桁で入力してください。",
+      )
+      .or(z.literal("")),
+  })
+  .refine(
+    ({ fundIsin, fundAssociationCode }) =>
+      (fundIsin === "") === (fundAssociationCode === ""),
+    "ISINコードと協会コードは両方を入力するか、両方を空にしてください。",
+  );
+
+export type SetStockFundCodesResult =
+  | { ok: true; fundIsin: string | null; fundAssociationCode: string | null }
+  | { ok: false; message: string };
+
+export async function setStockFundCodesAction(
+  input: unknown,
+): Promise<SetStockFundCodesResult> {
+  const parsed = SetStockFundCodesInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "コードを確認してください。",
+    };
+  }
+  const { stockId } = parsed.data;
+  const fundIsin = parsed.data.fundIsin || null;
+  const fundAssociationCode = parsed.data.fundAssociationCode || null;
+  const db = getDb();
+  const existing = db.select().from(stocks).where(eq(stocks.id, stockId)).get();
+  if (!existing) return { ok: false, message: "銘柄が見つかりません。" };
+  db.update(stocks)
+    .set({ fundIsin, fundAssociationCode })
+    .where(eq(stocks.id, stockId))
+    .run();
+  return { ok: true, fundIsin, fundAssociationCode };
 }

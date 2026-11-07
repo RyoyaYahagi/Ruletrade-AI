@@ -1,5 +1,5 @@
 import type { MarketQuote } from "@/features/market-data/provider";
-import { toYahooSymbol } from "@/features/market-data/symbols";
+import { toQuoteSymbol } from "@/features/market-data/symbols";
 import type { PortfolioHolding } from "@/features/portfolio/portfolio";
 
 export type PortfolioCurrency = "JPY" | "USD";
@@ -42,7 +42,7 @@ export function calculateValuation(
   realizedByStock: ReadonlyMap<string, number | null> = new Map(),
 ): ValuedHolding[] {
   return holdings.map((holding) => {
-    const symbol = toYahooSymbol(holding.ticker, holding.marketCode);
+    const symbol = toQuoteSymbol(holding);
     const quote = symbol === null ? null : (quotes.get(symbol) ?? null);
     const marketValue = quote === null ? null : holding.quantity * quote.price;
     const currencyMatches =
