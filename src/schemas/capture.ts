@@ -38,3 +38,13 @@ export const CaptureSchema = z
 
 export type CaptureStatus = z.infer<typeof CaptureStatusSchema>;
 export type Capture = z.infer<typeof CaptureSchema>;
+
+export const CaptureInputSchema = z.object({
+  rawInput: z.string().refine((value) => value.trim().length > 0, {
+    message: "rawInput は空白以外の文字を含めてください。",
+  }),
+  stockId: z.string().min(1).nullable().optional().default(null),
+  stockHint: z.string().nullable().optional().default(null),
+});
+
+export type CaptureInput = z.infer<typeof CaptureInputSchema>;

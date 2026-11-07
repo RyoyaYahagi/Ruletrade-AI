@@ -84,7 +84,7 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
       },
     }),
   );
-  await page.goto("/capture");
+  await page.goto("/capture/structured");
   await page
     .getByLabel("いま考えていること")
     .fill("架空候補確認社について記録する。");
@@ -92,6 +92,7 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(/\/stocks\//);
   const stockUrl = page.url();
+  const stockId = stockUrl.split("/").pop()!;
   await page.goto(`${stockUrl}?tab=trades`);
   const tradeForm = page
     .locator("form")
@@ -102,7 +103,7 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
     await tradeForm.getByRole("button", { name: "売買履歴に追加" }).click();
     await expect(tradeForm.getByLabel("数量", { exact: true })).toHaveValue("");
   }
-  await page.getByRole("link", { name: "考えを記録" }).click();
+  await page.goto(`/capture/structured?stockId=${stockId}`);
   await page
     .getByLabel("いま考えていること")
     .fill("過去の購入理由を記録する。");
@@ -120,7 +121,6 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(stockUrl);
   const exported = await (await page.request.get("/api/export")).json();
-  const stockId = stockUrl.split("/").pop();
   expect(
     exported.transactions
       .filter((trade: Transaction) => trade.stockId === stockId)

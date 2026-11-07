@@ -11,6 +11,7 @@ import type {
   ValuedHolding,
   ValuationSummary,
 } from "@/features/portfolio/valuation";
+import type { Capture, CaptureStatus } from "@/schemas/capture";
 import type { Decision, DecisionPoint, DecisionType } from "@/schemas/decision";
 import type { Origin } from "@/schemas/origin";
 import type { Review } from "@/schemas/review";
@@ -69,6 +70,18 @@ export type IntegrationTransaction = {
   accountType: string | null;
   sourceBroker: "rakuten" | "sbi" | "nomura" | "monex" | null;
   sourceTradeType: string | null;
+};
+
+export type IntegrationCapture = {
+  id: string;
+  stockId: string | null;
+  stockHint: string | null;
+  rawInput: string;
+  origin: Origin;
+  status: CaptureStatus;
+  decisionId: string | null;
+  createdAt: string;
+  organizedAt: string | null;
 };
 
 export type IntegrationReview = {
@@ -278,6 +291,20 @@ export function toTransaction(
     accountType: transaction.accountType ?? null,
     sourceBroker: transaction.sourceBroker ?? null,
     sourceTradeType: transaction.sourceTradeType ?? null,
+  };
+}
+
+export function toCapture(capture: Capture): IntegrationCapture {
+  return {
+    id: capture.id,
+    stockId: capture.stockId,
+    stockHint: capture.stockHint,
+    rawInput: capture.rawInput,
+    origin: capture.origin,
+    status: capture.status,
+    decisionId: capture.decisionId,
+    createdAt: capture.createdAt,
+    organizedAt: capture.organizedAt,
   };
 }
 

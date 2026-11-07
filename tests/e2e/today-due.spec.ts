@@ -30,7 +30,7 @@ async function captureDecision(
     transaction: null,
     followUpQuestion: null,
   };
-  await page.goto("/capture");
+  await page.goto("/capture/structured");
   await page.getByLabel("いま考えていること").fill(`${name}の判断メモ。`);
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await expect(

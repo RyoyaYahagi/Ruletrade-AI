@@ -105,7 +105,7 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
         json: extraction,
       });
     });
-    await page.goto("/capture");
+    await page.goto("/capture/structured");
     await page
       .getByLabel("いま考えていること")
       .fill("CSV照合テスト用の判断メモ。");

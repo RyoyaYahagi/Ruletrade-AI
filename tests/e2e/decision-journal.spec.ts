@@ -42,7 +42,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
     });
   });
 
-  await page.goto("/capture");
+  await page.goto("/capture/structured");
   await expect(page.getByRole("heading", { name: "いま何を考えていますか？" })).toBeVisible();
   await page.screenshot({ path: "test-results/mvp-home-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 375, height: 812 });
@@ -170,7 +170,7 @@ test("transcribes a voice capture fixture and lets the user review the text", as
     });
   });
 
-  await page.goto("/capture");
+  await page.goto("/capture/structured");
   await page.getByRole("button", { name: "話して記録" }).click();
   await page.getByRole("button", { name: "録音を停止" }).click();
   await expect(page.getByLabel("いま考えていること")).toHaveValue("キオクシアを100株買った。");
