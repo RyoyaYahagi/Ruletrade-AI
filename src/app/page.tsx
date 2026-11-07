@@ -12,6 +12,7 @@ import {
   shortJapanDate,
 } from "@/features/decisions/decision-display";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
+import { loadBucketWarning } from "@/features/portfolio/bucket-warning-data";
 import { listPortfolioAction } from "@/features/portfolio/actions";
 import { japanDate } from "@/features/transactions/matching";
 
@@ -45,6 +46,7 @@ export default async function HomePage() {
       listPendingCapturesAction(),
     ]);
   const holdings = portfolio.filter((holding) => holding.quantity > 0);
+  const bucketWarning = await loadBucketWarning(portfolio);
   const today = japanDate();
 
   return (
@@ -56,10 +58,46 @@ export default async function HomePage() {
         <h1 className="page-title mt-0.5">今日</h1>
       </header>
 
+      {bucketWarning && (
+        <section
+          className="motion-rise space-y-3 rounded-2xl border border-attention/30 bg-attention-soft p-5"
+          style={riseStyle(1)}
+          aria-labelledby="bucket-warning-heading"
+        >
+          <p className="text-xs font-semibold text-attention">枠の警告</p>
+          <h2 id="bucket-warning-heading" className="font-semibold">
+            サテライトの時価割合が警告線を超えています
+          </h2>
+          <p className="text-sm">
+            現在{" "}
+            <span className="font-mono font-semibold">
+              {bucketWarning.marketValuePct.toLocaleString("ja-JP", {
+                maximumFractionDigits: 1,
+              })}
+              %
+            </span>{" "}
+            / 警告線{" "}
+            <span className="font-mono">
+              {bucketWarning.warnPct.toLocaleString("ja-JP", {
+                maximumFractionDigits: 1,
+              })}
+              %
+            </span>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            利確や枠の見直しを自動で行うことはありません。まずは状態を確認してください。
+          </p>
+          <Link href="/portfolio" className="button-soft w-full">
+            ポートフォリオで確認
+            <ChevronRight aria-hidden size={18} />
+          </Link>
+        </section>
+      )}
+
       {dueItems.length > 0 && (
         <section
           className="motion-rise space-y-3"
-          style={riseStyle(1)}
+          style={riseStyle(2)}
           aria-labelledby="due-heading"
         >
           <h2 id="due-heading" className="flex items-center gap-2 px-1 font-semibold">
@@ -71,7 +109,10 @@ export default async function HomePage() {
           {dueItems.map(({ stock, decision, dueReviewAt }) => (
             <article key={decision.id} className="surface space-y-3 p-5">
               <div className="flex items-center justify-between gap-2">
-                <Link href={`/stocks/${stock.id}`} className="font-semibold hover:underline">
+                <Link
+                  href={`/stocks/${stock.id}`}
+                  className="font-semibold hover:underline"
+                >
                   {stock.name}
                   {stock.ticker && (
                     <span className="ml-2 font-mono text-xs font-medium text-muted-foreground">
@@ -89,14 +130,18 @@ export default async function HomePage() {
                 {shortJapanDate(decision.decidedAt ?? decision.createdAt)} の
                 {decisionTypeLabel[decision.type]}メモ
               </p>
-              <p className="journal-text line-clamp-4">「{decision.rawInput}」</p>
+              <p className="journal-text line-clamp-4">
+                「{decision.rawInput}」
+              </p>
               {decision.reviewConditions.length > 0 && (
                 <ul className="flex flex-wrap gap-1.5" aria-label="見直し条件">
-                  {decision.reviewConditions.slice(0, 3).map((condition, index) => (
-                    <li key={`${decision.id}-${index}`} className="chip">
-                      見直し：{condition}
-                    </li>
-                  ))}
+                  {decision.reviewConditions
+                    .slice(0, 3)
+                    .map((condition, index) => (
+                      <li key={`${decision.id}-${index}`} className="chip">
+                        見直し：{condition}
+                      </li>
+                    ))}
                 </ul>
               )}
               <Link
@@ -114,7 +159,7 @@ export default async function HomePage() {
       {pendingCaptures.length > 0 && (
         <section
           className="motion-rise space-y-3"
-          style={riseStyle(2)}
+          style={riseStyle(3)}
           aria-labelledby="inbox-heading"
         >
           <h2 id="inbox-heading" className="flex items-center gap-2 px-1 font-semibold">
@@ -153,34 +198,42 @@ export default async function HomePage() {
       {unlinked.length > 0 && (
         <section
           className="motion-rise space-y-3"
-          style={riseStyle(3)}
+          style={riseStyle(4)}
           aria-labelledby="unlinked-heading"
         >
           <h2 id="unlinked-heading" className="px-1 font-semibold">
             理由が残っていない売買
           </h2>
           <ul className="surface divide-y">
-            {unlinked.slice(0, UNLINKED_LIMIT).map(({ stock, transaction: trade }) => (
-              <li key={trade.id} className="flex items-center justify-between gap-3 py-2 pr-2 pl-5">
-                <span className="py-2">
-                  <span className="block font-semibold">{stock.name}</span>
-                  <span className="mt-0.5 block text-sm text-muted-foreground">
-                    {shortJapanDate(trade.executedAt)}{" "}
-                    {trade.side === "buy" ? "購入" : "売却"}{" "}
-                    {formatPortfolioQuantity(trade.quantity)}
-                  </span>
-                </span>
-                <Link
-                  href={`/stocks/${trade.stockId}/capture?transactionId=${trade.id}`}
-                  className="flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-primary"
+            {unlinked
+              .slice(0, UNLINKED_LIMIT)
+              .map(({ stock, transaction: trade }) => (
+                <li
+                  key={trade.id}
+                  className="flex items-center justify-between gap-3 py-2 pr-2 pl-5"
                 >
-                  理由を残す
-                </Link>
-              </li>
-            ))}
+                  <span className="py-2">
+                    <span className="block font-semibold">{stock.name}</span>
+                    <span className="mt-0.5 block text-sm text-muted-foreground">
+                      {shortJapanDate(trade.executedAt)}{" "}
+                      {trade.side === "buy" ? "購入" : "売却"}{" "}
+                      {formatPortfolioQuantity(trade.quantity)}
+                    </span>
+                  </span>
+                  <Link
+                    href={`/stocks/${trade.stockId}/capture?transactionId=${trade.id}`}
+                    className="flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-primary"
+                  >
+                    理由を残す
+                  </Link>
+                </li>
+              ))}
           </ul>
           {unlinked.length > UNLINKED_LIMIT && (
-            <Link href="/transactions" className="block px-1 text-sm font-medium text-primary">
+            <Link
+              href="/transactions"
+              className="block px-1 text-sm font-medium text-primary"
+            >
               ほか {unlinked.length - UNLINKED_LIMIT} 件を売買で見る
             </Link>
           )}
@@ -189,7 +242,7 @@ export default async function HomePage() {
 
       <section
         className="motion-rise space-y-3"
-        style={riseStyle(4)}
+        style={riseStyle(5)}
         aria-labelledby="holdings-heading"
       >
         <div className="flex items-center justify-between gap-3 px-1">
@@ -215,10 +268,13 @@ export default async function HomePage() {
                     className="flex min-w-0 items-center justify-between gap-3 px-5 py-3.5"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate font-semibold">{holding.stockName}</span>
+                      <span className="block truncate font-semibold">
+                        {holding.stockName}
+                      </span>
                       {stat ? (
                         <span className="mt-0.5 block text-xs text-muted-foreground">
-                          最後の記録 {shortJapanDate(stat.lastDecidedOn)} · 記録 {stat.count}件
+                          最後の記録 {shortJapanDate(stat.lastDecidedOn)} · 記録{" "}
+                          {stat.count}件
                         </span>
                       ) : (
                         <span className="mt-0.5 block text-xs text-attention">
@@ -239,7 +295,7 @@ export default async function HomePage() {
 
       <section
         className="motion-rise space-y-3"
-        style={riseStyle(5)}
+        style={riseStyle(6)}
         aria-labelledby="recent-heading"
       >
         <h2 id="recent-heading" className="px-1 font-semibold">
@@ -256,10 +312,15 @@ export default async function HomePage() {
           <ul className="surface divide-y">
             {recentItems.map(({ stock, decision }) => (
               <li key={decision.id}>
-                <Link href={`/stocks/${stock.id}#${decision.id}`} className="block space-y-1.5 px-5 py-3.5">
+                <Link
+                  href={`/stocks/${stock.id}#${decision.id}`}
+                  className="block space-y-1.5 px-5 py-3.5"
+                >
                   <span className="flex items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-semibold">{stock.name}</span>
+                      <span className="truncate text-sm font-semibold">
+                        {stock.name}
+                      </span>
                       <span className={decisionTypeTagClass(decision.type)}>
                         {decisionTypeLabel[decision.type]}
                       </span>

@@ -1024,6 +1024,7 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 | `asOf`                 | `string`           | 判定に使った現在時刻（ISO 8601 UTC） |
 | `dueDecisions`         | `DueDecision[]`    | 期限が到来した判断                   |
 | `unlinkedTransactions` | `DueTransaction[]` | 理由が残っていない売買               |
+| `bucketWarning`        | `BucketWarning \| null` | 時価ベースのサテライト割合が警告線を超えたときの警告（CS-06 で追加） |
 
 ```ts
 type DueDecision = {
@@ -1037,12 +1038,25 @@ type DueTransaction = {
   stock: Stock;
   transaction: Transaction;
 };
+
+type BucketWarning = {
+  warnPct: number;
+  marketValuePct: number;
+  marketValueJpy: number | null;
+  exchangeRate: {
+    rate: number;
+    priceAt: string | null;
+    sourceName: string | null;
+  } | null;
+  message: string;
+};
 ```
 
 - `dueDecisions` は `dueReviewAt` の昇順。
 - `unlinkedTransactions` は `executedAt` の降順。
 - `decision.reviewAt` は元の値のまま。期限として採用した日は `dueReviewAt` で返す。
 - `dueOn` は `dueReviewAt` の JST の日付。
+- `bucketWarning` は追加フィールドであり、既存フィールドの形は変えない。警告線（`satelliteWarnPct`）が未設定、割合が警告線以下、または換算レートを取得できないときは `null`。`marketValueJpy` は円換算したサテライト評価額、`exchangeRate` は表示に使った参考レートと時点。
 
 エラー:
 
