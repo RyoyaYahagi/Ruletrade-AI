@@ -55,6 +55,7 @@ export function mapStockRow(row: typeof stocks.$inferSelect) {
     ticker: row.ticker,
     name: row.name,
     market: row.market,
+    bucket: row.bucket,
     createdAt: row.createdAt,
   };
 }

@@ -23,6 +23,7 @@ export async function listPortfolioAction(): Promise<PortfolioHolding[]> {
         ticker: stocks.ticker,
         marketCode: stocks.marketCode,
         market: stocks.market,
+        bucket: stocks.bucket,
       })
       .from(stocks)
       .all();
@@ -69,6 +70,7 @@ export async function listRealizedProfitLossAction(
         ticker: stocks.ticker,
         marketCode: stocks.marketCode,
         market: stocks.market,
+        bucket: stocks.bucket,
       })
       .from(stocks)
       .all();

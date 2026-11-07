@@ -15,9 +15,34 @@ export const stocks = sqliteTable(
     normalizedName: text("normalized_name").notNull(),
     market: text("market"),
     marketCode: text("market_code"),
+    bucket: text("bucket", {
+      enum: ["core", "satellite", "unclassified"],
+    })
+      .notNull()
+      .default("unclassified"),
     createdAt: text("created_at").notNull(),
   },
   (table) => [index("stocks_ticker_idx").on(table.ticker)],
+);
+
+export const stockBucketChanges = sqliteTable(
+  "stock_bucket_changes",
+  {
+    id: text("id").primaryKey(),
+    stockId: text("stock_id")
+      .notNull()
+      .references(() => stocks.id, { onDelete: "cascade" }),
+    fromBucket: text("from_bucket").notNull(),
+    toBucket: text("to_bucket").notNull(),
+    reason: text("reason"),
+    changedAt: text("changed_at").notNull(),
+  },
+  (table) => [
+    index("stock_bucket_changes_stock_changed_idx").on(
+      table.stockId,
+      table.changedAt,
+    ),
+  ],
 );
 
 export const decisions = sqliteTable(
@@ -207,6 +232,7 @@ export const integrationRequests = sqliteTable("integration_requests", {
 
 export const schema = {
   stocks,
+  stockBucketChanges,
   decisions,
   transactions,
   reviews,

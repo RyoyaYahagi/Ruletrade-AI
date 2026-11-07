@@ -8,6 +8,7 @@ import {
   importBatches,
   importBatchStocks,
   reviews,
+  stockBucketChanges,
   stocks,
   transactions,
   transactionImportSources,
@@ -37,6 +38,11 @@ export async function GET() {
           normalizedName: row.normalizedName,
           marketCode: row.marketCode,
         })),
+      stockBucketChanges: tx
+        .select()
+        .from(stockBucketChanges)
+        .orderBy(asc(stockBucketChanges.changedAt), asc(stockBucketChanges.id))
+        .all(),
       decisions: tx
         .select()
         .from(decisions)
@@ -91,7 +97,7 @@ export async function GET() {
     }));
 
     return new Response(
-      JSON.stringify({ formatVersion: 3, exportedAt, ...data }, null, 2),
+      JSON.stringify({ formatVersion: 4, exportedAt, ...data }, null, 2),
       {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
