@@ -11,6 +11,7 @@ import {
   successResponse,
 } from "@/features/integration/responses";
 import { listDueDecisions, listUnlinkedTransactions } from "@/features/due/due";
+import { loadBucketWarning } from "@/features/portfolio/bucket-warning-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,15 +23,18 @@ export async function GET(request: Request) {
 
     // Capture the rule's reference time once so asOf and the due decision agree.
     const asOf = new Date().toISOString();
-    const [dueDecisions, unlinkedTransactions] = await Promise.all([
-      listDueDecisions(asOf),
-      listUnlinkedTransactions(),
-    ]);
+    const [dueDecisions, unlinkedTransactions, bucketWarning] =
+      await Promise.all([
+        listDueDecisions(asOf),
+        listUnlinkedTransactions(),
+        loadBucketWarning(),
+      ]);
 
     return successResponse({
       asOf,
       dueDecisions: dueDecisions.map(toDueDecision),
       unlinkedTransactions: unlinkedTransactions.map(toDueTransaction),
+      bucketWarning,
     });
   } catch {
     return internalErrorResponse();
