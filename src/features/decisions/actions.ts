@@ -28,7 +28,6 @@ import {
 import { listDueDecisions } from "@/features/due/due";
 
 import type { Decision } from "@/schemas/decision";
-import type { DueDecision } from "@/features/due/due";
 import type { Review } from "@/schemas/review";
 import type { Stock } from "@/schemas/stock";
 import type { Transaction } from "@/schemas/transaction";
@@ -168,6 +167,7 @@ export async function saveDecisionAction(input: unknown): Promise<{
         reviewDates: JSON.stringify(reviewDates),
         decidedAt,
         createdAt: now,
+        origin: "web",
       })
       .run();
 
@@ -266,7 +266,9 @@ export async function listDecisionStatsAction(): Promise<
   return stats;
 }
 
-export async function listDueDecisionsAction(): Promise<DueDecision[]> {
+export async function listDueDecisionsAction(): Promise<
+  Array<{ stock: Stock; decision: Decision }>
+> {
   return listReviewsDueAction();
 }
 
@@ -311,8 +313,14 @@ export async function getStockTimelineAction(input: {
 
 export async function listReviewsDueAction(
   asOf = new Date().toISOString(),
-): Promise<DueDecision[]> {
-  return listDueDecisions(asOf);
+): Promise<Array<{ stock: Stock; decision: Decision }>> {
+  // 既存の Action は採用期限を reviewAt に返す契約を維持する。
+  return (await listDueDecisions(asOf)).map(
+    ({ stock, decision, dueReviewAt }) => ({
+      stock: StockSchema.parse(stock),
+      decision: { ...decision, reviewAt: dueReviewAt },
+    }),
+  );
 }
 
 export async function saveReviewAction(input: unknown): Promise<Review> {
@@ -343,10 +351,11 @@ export async function saveReviewAction(input: unknown): Promise<Review> {
         id,
         differences: JSON.stringify(parsed.differences),
         createdAt,
+        origin: "web",
       })
       .run();
   });
-  return ReviewSchema.parse({ ...parsed, id, createdAt });
+  return ReviewSchema.parse({ ...parsed, id, createdAt, origin: "web" });
 }
 
 export async function listReviewsForStockAction(input: {

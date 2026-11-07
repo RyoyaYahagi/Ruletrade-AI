@@ -14,6 +14,10 @@ vi.mock("@/features/portfolio/actions", () => ({
   listPortfolioAction: async () => mocks.holdings,
 }));
 
+vi.mock("@/features/decisions/actions", () => ({
+  listDecisionStatsAction: async () => new Map(),
+}));
+
 vi.mock("@/features/market-data/provider", () => ({
   yahooMarketPriceProvider: {
     getQuotes: async () => mocks.quotes,

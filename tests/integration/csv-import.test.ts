@@ -292,6 +292,30 @@ describe("CSV import database service", () => {
     expect(db.select().from(schema.reviews).all()).toHaveLength(1);
   });
 
+  it("preserves imported stocks referenced by inbox captures", async () => {
+    const schema = await import("@/lib/db/schema");
+    const db = dbModule.getDb();
+    const { batchId } = await service.importCsv(
+      new TextEncoder().encode(syntheticCsv([fakeTrade])),
+      "captures.csv",
+    );
+    const [importedStock] = db.select().from(schema.stocks).all();
+    db.insert(schema.captures)
+      .values({
+        id: "kept-capture",
+        stockId: importedStock.id,
+        rawInput: "架空の原文",
+        createdAt: "2026-01-01T12:00:00.000Z",
+      })
+      .run();
+    service.undoImport(batchId);
+    expect(db.select().from(schema.stocks).all()).toHaveLength(1);
+    expect(db.select().from(schema.captures).all()[0].stockId).toBe(
+      importedStock.id,
+    );
+    db.delete(schema.captures).run();
+  });
+
   it("matches existing stocks with an unset canonical market and separates JP and US tickers", async () => {
     const { stocks } = await import("@/lib/db/schema");
     const db = dbModule.getDb();

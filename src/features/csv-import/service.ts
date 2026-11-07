@@ -5,6 +5,7 @@ import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 
 import { getDb, type AppDatabase } from "@/lib/db";
 import {
+  captures,
   decisions,
   importBatchStocks,
   importBatches,
@@ -734,7 +735,12 @@ export function undoImport(batchId: string) {
           .from(reviews)
           .where(eq(reviews.stockId, item.stockId))
           .get();
-        if (!transactionRef && !decisionRef && !reviewRef)
+        const captureRef = tx
+          .select({ id: captures.id })
+          .from(captures)
+          .where(eq(captures.stockId, item.stockId))
+          .get();
+        if (!transactionRef && !decisionRef && !reviewRef && !captureRef)
           tx.delete(stocks).where(eq(stocks.id, item.stockId)).run();
       }
       tx.update(importBatches)

@@ -1,4 +1,5 @@
 import { DecisionSchema, DecisionTypeSchema } from "@/schemas/decision";
+import { OriginSchema } from "@/schemas/origin";
 import type { stocks } from "@/lib/db/schema";
 
 import type { Decision } from "@/schemas/decision";
@@ -22,6 +23,7 @@ type DecisionRow = {
   editHistory?: string | null;
   decidedAt?: string | null;
   createdAt: string;
+  origin?: string | null;
 };
 
 export function mapDecisionRow(row: DecisionRow): Decision {
@@ -43,6 +45,7 @@ export function mapDecisionRow(row: DecisionRow): Decision {
     assumptions: parseStringArray(row.assumptions),
     reviewConditions: parseStringArray(row.reviewConditions),
     addConditions: parseStringArray(row.addConditions),
+    origin: OriginSchema.parse(row.origin ?? "web"),
   };
 }
 
