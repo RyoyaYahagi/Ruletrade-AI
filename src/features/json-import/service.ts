@@ -35,7 +35,12 @@ const batchSchema = z.object({
   undoneAt: timestamp.nullable(),
 });
 const backupSchema = z.object({
-  formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  formatVersion: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+  ]),
   exportedAt: timestamp,
   stocks: z.array(stockSchema),
   decisions: z.array(DecisionSchema),
@@ -43,6 +48,19 @@ const backupSchema = z.object({
   reviews: z.array(ReviewSchema),
   // Version 1 and 2 backups predate the inbox and have no captures.
   captures: z.array(CaptureSchema).default([]),
+  // Version 1-3 backups predate stock buckets.
+  stockBucketChanges: z
+    .array(
+      z.object({
+        id,
+        stockId: id,
+        fromBucket: z.enum(["core", "satellite", "unclassified"]),
+        toBucket: z.enum(["core", "satellite", "unclassified"]),
+        reason: z.string().nullable(),
+        changedAt: timestamp,
+      }),
+    )
+    .default([]),
   importBatches: z.array(batchSchema),
   importBatchStocks: z.array(
     z.object({
@@ -107,6 +125,9 @@ export function importJson(value: unknown) {
     requireReference(stockIds.has(row.stockId));
     if (row.decisionId != null)
       requireReference(decisionIds.get(row.decisionId) === row.stockId);
+  }
+  for (const row of data.stockBucketChanges) {
+    requireReference(stockIds.has(row.stockId));
   }
   for (const row of data.captures) {
     if (row.stockId != null) requireReference(stockIds.has(row.stockId));
@@ -179,6 +200,7 @@ export function importJson(value: unknown) {
     Row[]
   > = {
     stocks: data.stocks,
+    stockBucketChanges: data.stockBucketChanges,
     importBatches: data.importBatches,
     decisions: data.decisions.map((row) => ({
       ...row,
@@ -214,6 +236,7 @@ export function importJson(value: unknown) {
     // Table/column names come exclusively from the application's schema, never the file.
     for (const key of [
       "stocks",
+      "stockBucketChanges",
       "importBatches",
       "decisions",
       "transactions",

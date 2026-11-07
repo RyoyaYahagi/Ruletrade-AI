@@ -33,9 +33,10 @@ describe("JSON export", () => {
     );
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(await response.json()).toEqual({
-      formatVersion: 3,
+      formatVersion: 4,
       exportedAt: expect.any(String),
       stocks: [],
+      stockBucketChanges: [],
       decisions: [],
       transactions: [],
       reviews: [],

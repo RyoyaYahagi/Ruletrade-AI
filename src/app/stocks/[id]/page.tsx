@@ -17,6 +17,9 @@ import {
 } from "@/features/decisions/actions";
 import { listPortfolioAction } from "@/features/portfolio/actions";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
+import { BucketEditor } from "@/features/stocks/bucket-editor";
+import { bucketLabel } from "@/features/stocks/bucket";
+import { listStockBucketHistoryAction } from "@/features/stocks/actions";
 import type { Decision } from "@/schemas/decision";
 
 export const dynamic = "force-dynamic";
@@ -229,9 +232,13 @@ export default async function StockPage({
     : "timeline";
   let data;
   let reviews;
+  let bucketHistory;
   try {
-    data = await getStockTimelineAction({ stockId: id });
-    reviews = await listReviewsForStockAction({ stockId: id });
+    [data, reviews, bucketHistory] = await Promise.all([
+      getStockTimelineAction({ stockId: id }),
+      listReviewsForStockAction({ stockId: id }),
+      listStockBucketHistoryAction(id),
+    ]);
   } catch {
     notFound();
   }
@@ -276,7 +283,8 @@ export default async function StockPage({
           {data.stock.ticker && (
             <p className="mt-1 font-mono text-xs text-muted-foreground">
               {data.stock.ticker}
-              {data.stock.market ? ` · ${data.stock.market}` : ""}
+              {data.stock.market ? ` · ${data.stock.market}` : ""} ·{" "}
+              {bucketLabel(data.stock.bucket)}
             </p>
           )}
         </div>
@@ -307,6 +315,11 @@ export default async function StockPage({
             </div>
           )}
         </dl>
+        <BucketEditor
+          stockId={data.stock.id}
+          bucket={data.stock.bucket}
+          history={bucketHistory}
+        />
       </div>
 
       <nav aria-label="表示の切り替え" className="grid grid-cols-3 border-b">

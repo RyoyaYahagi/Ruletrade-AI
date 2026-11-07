@@ -1,3 +1,4 @@
+import type { Bucket } from "@/schemas/stock";
 import type { Transaction } from "@/schemas/transaction";
 import {
   CORPORATE_ACTIONS,
@@ -12,6 +13,7 @@ export type PortfolioStock = {
   ticker: string | null;
   marketCode: string | null;
   market?: string | null;
+  bucket?: Bucket;
 };
 
 export type PortfolioHolding = {
@@ -19,6 +21,7 @@ export type PortfolioHolding = {
   stockName: string;
   ticker: string | null;
   marketCode: string | null;
+  bucket: Bucket;
   quantity: number;
   averagePurchasePrice: number | null;
   acquisitionAmount: number | null;
@@ -402,6 +405,7 @@ export function calculatePortfolio(
         stockName: stock.name,
         ticker: stock.ticker,
         marketCode: stock.marketCode,
+        bucket: stock.bucket ?? "unclassified",
         quantity:
           Math.abs(position.quantity) <= quantityEpsilon(position.quantity)
             ? 0

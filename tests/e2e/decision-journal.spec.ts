@@ -118,7 +118,7 @@ test("records a decision, compares it with the past, reviews a sale, and shows t
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
   const exported = JSON.parse(await readFile(downloadPath!, "utf8"));
-  expect(exported.formatVersion).toBe(3);
+  expect(exported.formatVersion).toBe(4);
   expect(exported.decisions).toEqual(expect.arrayContaining([expect.objectContaining({ rawInput: originalThought })]));
   expect(exported.transactions).toHaveLength(2);
   expect(exported.reviews).toHaveLength(1);

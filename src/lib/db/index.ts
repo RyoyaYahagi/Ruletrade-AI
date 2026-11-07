@@ -37,9 +37,21 @@ function initializeSchema(connection: Database.Database) {
       normalized_name TEXT NOT NULL,
       market TEXT,
       market_code TEXT,
+      bucket TEXT NOT NULL DEFAULT 'unclassified',
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS stocks_ticker_idx ON stocks(ticker);
+
+    CREATE TABLE IF NOT EXISTS stock_bucket_changes (
+      id TEXT PRIMARY KEY,
+      stock_id TEXT NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+      from_bucket TEXT NOT NULL,
+      to_bucket TEXT NOT NULL,
+      reason TEXT,
+      changed_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS stock_bucket_changes_stock_changed_idx
+      ON stock_bucket_changes(stock_id, changed_at);
 
     CREATE TABLE IF NOT EXISTS decisions (
       id TEXT PRIMARY KEY,
@@ -210,6 +222,10 @@ function initializeSchema(connection: Database.Database) {
   );
   if (!stockColumns.has("market_code"))
     connection.exec("ALTER TABLE stocks ADD COLUMN market_code TEXT");
+  if (!stockColumns.has("bucket"))
+    connection.exec(
+      "ALTER TABLE stocks ADD COLUMN bucket TEXT NOT NULL DEFAULT 'unclassified'",
+    );
   const existingColumns = new Set(
     (
       connection.pragma("table_info(transactions)") as Array<{ name: string }>
