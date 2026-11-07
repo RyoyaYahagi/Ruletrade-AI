@@ -187,6 +187,9 @@ export default async function PortfolioPage({
     listDecisionStatsAction(),
   ]);
   const realized = await listRealizedProfitLossAction();
+  const unknownCurrencySales =
+    realized.totalsByCurrency.find((total) => total.currency === null)
+      ?.saleCount ?? 0;
   const jpCount = holdings.filter(
     (holding) => holding.quantity > 0 && marketFor(holding) === "jp",
   ).length;
@@ -269,6 +272,12 @@ export default async function PortfolioPage({
         realizedProfitLoss={realizedProfitLoss}
         allocation={allocation}
       />
+      {unknownCurrencySales > 0 && (
+        <p className="text-sm text-attention">
+          通貨が不明な売却が{unknownCurrencySales}
+          件あります。この売却の実現損益は不明で、円・ドルの合計には含めていません。
+        </p>
+      )}
       <section
         className="space-y-2"
         aria-labelledby="portfolio-holdings-heading"

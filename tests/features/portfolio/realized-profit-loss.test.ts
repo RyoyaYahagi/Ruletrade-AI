@@ -458,7 +458,7 @@ describe("calculateRealizedProfitLoss", () => {
     });
   });
 
-  it("nulls the whole sale when the sell currency differs from the holding", () => {
+  it("preserves sale proceeds but leaves profit unknown when currencies differ", () => {
     const result = calculateRealizedProfitLoss(
       [
         trade("buy", "buy", 10, 1000, 1),
@@ -473,7 +473,7 @@ describe("calculateRealizedProfitLoss", () => {
       price: 120,
       priceCurrency: "USD",
       averagePurchasePrice: 1000,
-      proceeds: null,
+      proceeds: 600,
       costBasis: 5000,
       realizedProfitLoss: null,
       currency: "JPY",

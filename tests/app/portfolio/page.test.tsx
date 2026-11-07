@@ -232,6 +232,27 @@ describe("portfolio page valuation UI", () => {
     expect(markup).toContain("+1,234円");
   });
 
+  it("shows unknown-currency sales instead of silently omitting them", async () => {
+    mocks.realized = {
+      sales: [],
+      stockTotals: [],
+      totalsByCurrency: [
+        {
+          currency: null,
+          saleCount: 2,
+          computedCount: 0,
+          proceeds: null,
+          costBasis: null,
+          realizedProfitLoss: null,
+          completeness: false,
+        },
+      ],
+    };
+    const markup = await render();
+    expect(markup).toContain("通貨が不明な売却が2件あります");
+    expect(markup).toContain("円・ドルの合計には含めていません");
+  });
+
   it("marks realized profit/loss as unknown when a sale cannot be calculated", async () => {
     mocks.realized = {
       sales: [],

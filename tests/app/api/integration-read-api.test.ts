@@ -736,6 +736,28 @@ describe("GET /holdings", () => {
 });
 
 describe("GET /realized-pnl", () => {
+  it("returns known sale proceeds in the sale currency and preserves unknown fee currency", async () => {
+    dbModule
+      .getDb()
+      .$client.prepare(
+        "UPDATE transactions SET price_currency = 'USD', fee = 10, fee_currency = NULL WHERE id = ?",
+      )
+      .run(TRANSACTION_A_SELL.id);
+    const data = await readData(
+      await routes.realizedPnl.GET(apiRequest("/realized-pnl")),
+    );
+    const sales = data.sales as Array<Record<string, unknown>>;
+    const sale = sales.find(
+      (item) => item.transactionId === TRANSACTION_A_SELL.id,
+    );
+    expect(sale).toMatchObject({
+      proceeds: { amount: 56000, currency: "USD" },
+      costBasis: { amount: 50000, currency: "JPY" },
+      fee: { amount: 10, currency: null },
+      realizedProfitLoss: null,
+    });
+  });
+
   it("returns the sale, the stock total, and the currency total with the spec field names", async () => {
     const response = await routes.realizedPnl.GET(apiRequest("/realized-pnl"));
     expect(response.status).toBe(200);

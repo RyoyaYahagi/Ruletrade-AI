@@ -460,12 +460,10 @@ export function calculateRealizedProfitLoss(
 function realizedSale(sell: SellSnapshot, stock: PortfolioStock): RealizedSale {
   const { transaction, averagePurchasePrice, currency } = sell;
   const warning = realizedWarning(sell);
-  const sellCurrency = transaction.priceCurrency ?? currency;
   const proceeds =
-    transaction.price !== null &&
-    (currency === null || sellCurrency === currency)
-      ? transaction.quantity * transaction.price
-      : null;
+    transaction.price === null
+      ? null
+      : transaction.quantity * transaction.price;
   const costBasis =
     averagePurchasePrice === null
       ? null
