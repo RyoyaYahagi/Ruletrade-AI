@@ -7,8 +7,10 @@ import {
   formatPortfolioAmount,
   formatPortfolioQuantity,
 } from "@/features/portfolio/format";
-import { BucketQuickSelect } from "@/features/stocks/bucket-editor";
-import { bucketLabel } from "@/features/stocks/bucket";
+import {
+  BucketBadge,
+  BucketQuickSelect,
+} from "@/features/stocks/bucket-editor";
 import type { ValuedHolding } from "@/features/portfolio/valuation";
 
 function signed(value: number, currency: "JPY" | "USD"): string {
@@ -62,9 +64,13 @@ export function PortfolioHoldingRow({
           <span className="line-clamp-2 font-semibold">
             {holding.stockName}
           </span>
-          <span className="block truncate font-mono text-xs text-muted-foreground">
-            {code} · {formatPortfolioQuantity(holding.quantity)} ·{" "}
-            {bucketLabel(holding.bucket)}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0">
+              <BucketBadge bucket={holding.bucket} />
+            </span>
+            <span className="truncate font-mono text-xs text-muted-foreground">
+              · {code} · {formatPortfolioQuantity(holding.quantity)}
+            </span>
           </span>
           {recordStat ? (
             <span className="mt-1 block text-xs">

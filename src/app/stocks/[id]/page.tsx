@@ -19,7 +19,6 @@ import { listPortfolioAction } from "@/features/portfolio/actions";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
 import { BucketEditor } from "@/features/stocks/bucket-editor";
 import { FundCodeEditor } from "@/features/stocks/fund-code-editor";
-import { bucketLabel } from "@/features/stocks/bucket";
 import { listStockBucketHistoryAction } from "@/features/stocks/actions";
 import type { Decision } from "@/schemas/decision";
 
@@ -284,12 +283,15 @@ export default async function StockPage({
           {data.stock.ticker && (
             <p className="mt-1 font-mono text-xs text-muted-foreground">
               {data.stock.ticker}
-              {data.stock.market ? ` · ${data.stock.market}` : ""} ·{" "}
-              {bucketLabel(data.stock.bucket)}
+              {data.stock.market ? ` · ${data.stock.market}` : ""}
             </p>
           )}
         </div>
-        <dl className="grid grid-cols-3 gap-2">
+        <BucketEditor
+          stockId={data.stock.id}
+          bucket={data.stock.bucket}
+          history={bucketHistory}
+        >
           <div className="rounded-xl bg-card px-3 py-2.5">
             <dt className="text-[11px] text-muted-foreground">保有</dt>
             <dd className="mt-0.5 font-mono">
@@ -315,12 +317,7 @@ export default async function StockPage({
               </dd>
             </div>
           )}
-        </dl>
-        <BucketEditor
-          stockId={data.stock.id}
-          bucket={data.stock.bucket}
-          history={bucketHistory}
-        />
+        </BucketEditor>
         {data.stock.ticker === null && holding && (
           <FundCodeEditor
             stockId={data.stock.id}
