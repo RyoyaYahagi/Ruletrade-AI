@@ -91,6 +91,21 @@ describe("CSV import parser", () => {
     ]);
   });
 
+  it("merges a renamed Rakuten fund into its current display name", () => {
+    const bytes = new TextEncoder().encode(
+      "約定日,受渡日,ファンド名,分配金,口座,取引,買付方法,数量［口］,単価,経費,為替レート,受付金額[現地通貨],受渡金額/(ポイント利用)[円],決済通貨\n" +
+        '"2023/6/13","2023/6/19","eMAXIS Slim 全世界株式(オール・カントリー)","再投資型","つみたてNISA","買付","積立","14,973","18,843","0","-","-","28,214","円"\n' +
+        '"2025/6/13","2025/6/19","eMAXIS Slim 全世界株式(オール・カントリー)(オルカン)","再投資型","特定","買付","積立","10,000","30,000","0","-","-","30,000","円"\n',
+    );
+    const names = parseCsv(bytes).transactions.map(
+      ({ stockName }) => stockName,
+    );
+    expect(names).toEqual([
+      "eMAXIS Slim 全世界株式(オール・カントリー)(オルカン)",
+      "eMAXIS Slim 全世界株式(オール・カントリー)(オルカン)",
+    ]);
+  });
+
   it("rejects an investment-fund row whose price unit is ambiguous", () => {
     const bytes = new TextEncoder().encode(
       "約定日,受渡日,ファンド名,分配金,口座,取引,買付方法,数量［口］,単価,経費,為替レート,受付金額[現地通貨],受渡金額/(ポイント利用)[円],決済通貨\n" +

@@ -31,6 +31,21 @@ function unitPrice(
   return matches.length === 1 ? quotedPrice / matches[0] : null;
 }
 
+// 楽天はファンドの表示名を途中で変えることがあり、同じファンドが新旧の名前で CSV に並ぶ。
+// 銘柄は名前で照合されるため、旧名を現在の表示名へ寄せて1銘柄にまとめる。
+// 末尾の括弧（愛称）を一律に外す方法は「(S&P500)」のような正式名の一部まで消すので採らない。
+const FUND_NAME_ALIASES = new Map<string, string>([
+  [
+    "eMAXIS Slim 全世界株式(オール・カントリー)",
+    "eMAXIS Slim 全世界株式(オール・カントリー)(オルカン)",
+  ],
+]);
+
+function canonicalFundName(value: string): string {
+  const name = normalizeText(value);
+  return FUND_NAME_ALIASES.get(name) ?? value;
+}
+
 // 受渡金額の末尾の「(1)」はポイント利用額。受渡金額そのものには含めない
 function parseAmountWithPoints(value: string | undefined): number | null {
   return parseNumber(normalizeText(value).replace(/\(\s*[\d,]+\s*\)$/, ""));
@@ -59,7 +74,7 @@ export function parseRakutenFund(
     );
     const tradeRaw = r["取引"] ?? "";
     const trade = normalizeText(tradeRaw);
-    const stockName = r["ファンド名"] ?? "";
+    const stockName = canonicalFundName(r["ファンド名"] ?? "");
     const line = sourceLines[i];
     const side =
       trade === "買付" || trade === "再投資"
