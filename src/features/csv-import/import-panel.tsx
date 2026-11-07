@@ -206,7 +206,7 @@ export function ImportPanel({ batches }: { batches: Batches }) {
         </h2>
         <div className="surface p-5">
         <p className="text-sm leading-6 text-muted-foreground">
-          楽天証券の日本株・米国株、SBI証券・野村證券・マネックス証券の日本株CSVに対応しています。投資信託は対象外です。
+          楽天証券の日本株・米国株・投資信託、SBI証券・野村證券・マネックス証券の日本株CSVに対応しています。
         </p>
         <label className="mt-4 block text-sm">
           CSVを選択
