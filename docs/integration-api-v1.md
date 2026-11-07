@@ -1213,7 +1213,7 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 - 対象は `side = "sell"` の売買。`from` / `to` は `executedAt` の JST の暦日で比較する。
 - `from` > `to` は 400。省略時は全期間。
 - 並び順: `executedAt` の昇順、同じなら `id` の昇順（損益の確定順）。
-- `totalsByCurrency` は、売却が 1 件以上ある通貨だけを返す。通貨を跨いだ合計は返さない。
+- `totalsByCurrency` は、売却が 1 件以上ある通貨だけを返す（保有通貨が不明な売却があれば `currency: null` のグループも返す）。通貨を跨いだ合計は返さない。
 
 計算ルール（`calculatePortfolio` の既存ルールに揃える）:
 
@@ -1257,7 +1257,7 @@ type RealizedSale = {
 };
 
 type RealizedTotals = {
-  currency: "JPY" | "USD";
+  currency: "JPY" | "USD" | null;
   saleCount: number;
   computedCount: number;
   proceeds: Money | null;
@@ -1279,7 +1279,7 @@ type RealizedStockTotals = RealizedTotals & {
 - `fee`: 売買の手数料（参考）。実現損益には含めない。未入力なら `null`。
 - `realizedProfitLoss`: `proceeds - costBasis`（手数料控除前）。不明なら `null`。
 - `warning`: 実現損益を計算できない理由。計算できた売却では `null`。
-- `currency` が `null` の売却（保有通貨が不明）は、`stockTotals` / `totalsByCurrency` のどの合計にも入らず、明細だけに出る。
+- `currency` が `null` の売却（保有通貨が不明）は、`currency: null` の合計グループにまとめる。このグループは必ず `completeness: false` になる。合計から外すと、計算できない売却があるのに合計が完全に見えてしまうため。
 - `saleCount` は合計の対象になった売却件数、`computedCount` はそのうち `realizedProfitLoss` が `null` でない件数。
 - `completeness`: `saleCount === computedCount` のときだけ `true`。`false` のとき、`proceeds` / `costBasis` / `realizedProfitLoss` の合計は `null` にする（一部だけの合計を完全に見せない）。
 - 全売却済みの銘柄は `GET /holdings` に出ないため、実現損益はこの専用エンドポイントで読む。
