@@ -261,3 +261,28 @@ export function buildBucketSummary(input: BucketSummaryInput): BucketSummary {
     marketValueComplete,
   };
 }
+
+/**
+ * サテライトに足せる残り（負なら上限を超えている額）。割合パネルと枠の設定フォームで同じ式を使う。
+ * コアが無いと割合がサテライトと未分類だけで決まり残り枠が意味を持たないため、null を返す。
+ */
+export function satelliteRemainingJpy(
+  summary: Pick<
+    BucketSummary,
+    "totalInvestedJpy" | "satelliteInvestedJpy" | "coreRegistered"
+  >,
+  capPct: number | null,
+): { capAmountJpy: number; remainingJpy: number } | null {
+  if (
+    capPct === null ||
+    !summary.coreRegistered ||
+    summary.totalInvestedJpy === null ||
+    summary.satelliteInvestedJpy === null
+  )
+    return null;
+  const capAmountJpy = (summary.totalInvestedJpy * capPct) / 100;
+  return {
+    capAmountJpy,
+    remainingJpy: capAmountJpy - summary.satelliteInvestedJpy,
+  };
+}

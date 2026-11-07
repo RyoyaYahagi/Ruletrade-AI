@@ -345,15 +345,16 @@ describe("portfolio page valuation UI", () => {
 
     const markup = await render();
 
-    expect(markup).toContain("サテライト割合（投入額ベース）");
+    expect(markup).toContain("サテライト割合");
     expect(markup).toContain("100%");
-    expect(markup).toContain("上限未設定");
     expect(markup).toContain(
-      "コア未登録のため、割合はサテライトのみで計算されています。",
+      "コアに区分した銘柄がまだありません。割合はサテライトと未分類だけで計算しているため、残り枠は出していません。",
     );
-    expect(markup).toContain("未分類の銘柄はサテライト側に含めています。");
+    expect(markup).toContain("銘柄の区分を見る");
+    expect(markup).toContain("未分類はサテライト側に数えています");
     expect(markup).toContain("1 USD = 150円");
-    expect(markup).toContain("警告線未設定");
+    expect(markup).toContain("警告線 未設定");
+    expect(markup).not.toContain("サテライトに足せる残り");
   });
 
   it("shows the remaining cap or the overage against the invested amount", async () => {
@@ -366,12 +367,36 @@ describe("portfolio page valuation UI", () => {
       satelliteInvestedJpy: 60000,
       satelliteInvestedPct: 60,
       satelliteMarketValuePct: 60,
+      coreRegistered: true,
+    });
+
+    const over = await render();
+
+    expect(over).toContain("上限を超えている額");
+    expect(over).toContain("40,000円");
+    expect(over).toContain("上限 20%（20,000円）に対して現在 60%");
+
+    mocks.settings = { ...mocks.settings, satelliteCapPct: 70 };
+    const under = await render();
+
+    expect(under).toContain("サテライトに足せる残り");
+    expect(under).toContain("10,000円");
+    expect(under).toContain("上限 70%（70,000円）まで · 現在 60%");
+  });
+
+  it("asks for a cap instead of showing the remaining amount when the cap is unset", async () => {
+    mocks.bucketSummary = bucketSummary({
+      totalInvestedJpy: 100000,
+      satelliteInvestedJpy: 60000,
+      satelliteInvestedPct: 60,
+      satelliteMarketValuePct: 60,
+      coreRegistered: true,
     });
 
     const markup = await render();
 
-    expect(markup).toContain("上限 20%");
-    expect(markup).toContain("40,000円 超過しています");
+    expect(markup).toContain("上限が未設定のため、残り枠は出していません。");
+    expect(markup).toContain('href="/more#bucket-settings"');
   });
 
   it("does not show a ratio when the exchange rate is unavailable", async () => {
@@ -387,11 +412,9 @@ describe("portfolio page valuation UI", () => {
     const markup = await render();
 
     expect(markup).toContain(
-      "換算レートを取得できないため、円換算の割合を表示できません。",
+      "USD建ての銘柄があり、換算レートを取得できなかったため、円換算の割合と残り枠を出していません。古いレートは使いません。",
     );
-    expect(markup).toContain(
-      "換算レートを取得できませんでした。古いレートは使いません。",
-    );
+    expect(markup).toContain("算出できません");
   });
 
   it("highlights the market ratio when it exceeds the warning line", async () => {
@@ -408,8 +431,11 @@ describe("portfolio page valuation UI", () => {
 
     const markup = await render();
 
-    expect(markup).toContain("警告線 40% を超えています");
-    expect(markup).toContain("50%");
+    expect(markup).toContain("警告線を超えています");
+    expect(markup).toContain("50% / 40%");
+    expect(markup).toContain(
+      "時価ベースのサテライト割合です。上限の判定には使いません。",
+    );
   });
 
   it("marks realized profit/loss as unknown when a sale cannot be calculated", async () => {

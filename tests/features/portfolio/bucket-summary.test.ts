@@ -5,6 +5,7 @@ import type { MarketQuote } from "@/features/market-data/provider";
 import {
   buildBucketSummary,
   calculateInvestedTotals,
+  satelliteRemainingJpy,
 } from "@/features/portfolio/bucket-summary";
 import {
   calculateValuation,
@@ -297,5 +298,34 @@ describe("buildBucketSummary", () => {
       valuation.JPY.acquisitionAmount! +
         valuation.USD.acquisitionAmount! * RATE.rate,
     );
+  });
+});
+
+describe("satelliteRemainingJpy", () => {
+  const base = {
+    totalInvestedJpy: 100000,
+    satelliteInvestedJpy: 60000,
+    coreRegistered: true,
+  };
+
+  it("returns the remaining amount under the cap and a negative value over it", () => {
+    expect(satelliteRemainingJpy(base, 70)).toEqual({
+      capAmountJpy: 70000,
+      remainingJpy: 10000,
+    });
+    expect(satelliteRemainingJpy(base, 20)).toEqual({
+      capAmountJpy: 20000,
+      remainingJpy: -40000,
+    });
+  });
+
+  it("returns null without a cap, without core or without invested totals", () => {
+    expect(satelliteRemainingJpy(base, null)).toBeNull();
+    expect(
+      satelliteRemainingJpy({ ...base, coreRegistered: false }, 70),
+    ).toBeNull();
+    expect(
+      satelliteRemainingJpy({ ...base, totalInvestedJpy: null }, 70),
+    ).toBeNull();
   });
 });
