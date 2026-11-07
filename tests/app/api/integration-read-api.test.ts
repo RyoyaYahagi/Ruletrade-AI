@@ -65,6 +65,7 @@ const STOCK_D = {
 };
 
 const DECISION_A1 = {
+  origin: "muse",
   id: "decision-a1",
   stockId: STOCK_A.id,
   type: "buy",
@@ -207,6 +208,7 @@ const TRANSACTION_C_BUY = {
 };
 
 const REVIEW_A = {
+  origin: "muse",
   id: "review-a",
   stockId: STOCK_A.id,
   decisionId: DECISION_A1.id,
@@ -249,6 +251,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   const db = dbModule.getDb();
+  db.delete(schema.captures).run();
   db.delete(schema.reviews).run();
   db.delete(schema.transactions).run();
   db.delete(schema.decisions).run();
@@ -414,6 +417,36 @@ describe("authentication", () => {
   });
 });
 
+describe("write-scope authentication helper", () => {
+  it("keeps write authorization separate and disables writes when unset", async () => {
+    const { authorizeIntegrationRequest } =
+      await import("@/features/integration/auth");
+    expect(
+      authorizeIntegrationRequest(apiRequest("/status", WRITE_TOKEN), "write"),
+    ).toBeNull();
+    for (const token of [READ_TOKEN, null, "wrong-token"]) {
+      const response = authorizeIntegrationRequest(
+        apiRequest("/status", token),
+        "write",
+      );
+      expect(response?.status).toBe(401);
+      expect(response?.headers.get("www-authenticate")).toBe("Bearer");
+    }
+    const original = process.env.RULETRADE_WRITE_TOKEN;
+    delete process.env.RULETRADE_WRITE_TOKEN;
+    try {
+      expect(
+        authorizeIntegrationRequest(apiRequest("/status", WRITE_TOKEN), "write")
+          ?.status,
+      ).toBe(404);
+      expect((await routes.status.GET(apiRequest("/status"))).status).toBe(200);
+    } finally {
+      if (original === undefined) delete process.env.RULETRADE_WRITE_TOKEN;
+      else process.env.RULETRADE_WRITE_TOKEN = original;
+    }
+  });
+});
+
 describe("common response shape", () => {
   it("adds generatedAt and the common headers to every read endpoint", async () => {
     const responses = [
@@ -461,7 +494,7 @@ describe("common response shape", () => {
 });
 
 describe("GET /status", () => {
-  it("returns fixed counts and latest record timestamps without R-02 fields", async () => {
+  it("returns fixed counts and latest record timestamps", async () => {
     const response = await routes.status.GET(apiRequest("/status"));
     expect(response.status).toBe(200);
     const data = await readData(response);
@@ -474,16 +507,42 @@ describe("GET /status", () => {
         decisions: 3,
         transactions: 4,
         reviews: 1,
+        capturesPending: 0,
       },
       latest: {
         stocks: STOCK_C.createdAt,
         decisions: DECISION_A2.createdAt,
         transactions: TRANSACTION_A_SELL.createdAt,
         reviews: REVIEW_A.createdAt,
+        captures: null,
       },
     });
-    expect(data.counts).not.toHaveProperty("capturesPending");
-    expect(data.latest).not.toHaveProperty("captures");
+  });
+});
+
+describe("capture status", () => {
+  it("counts only pending captures and includes the latest capture of any status", async () => {
+    dbModule
+      .getDb()
+      .insert(schema.captures)
+      .values([
+        {
+          id: "pending",
+          rawInput: "未整理",
+          status: "pending",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          id: "discarded",
+          rawInput: "破棄済み",
+          status: "discarded",
+          createdAt: "2026-02-01T00:00:00.000Z",
+        },
+      ])
+      .run();
+    const data = await readData(await routes.status.GET(apiRequest("/status")));
+    expect(data.counts).toMatchObject({ capturesPending: 1 });
+    expect(data.latest).toMatchObject({ captures: "2026-02-01T00:00:00.000Z" });
   });
 });
 
@@ -788,10 +847,11 @@ describe("GET /stocks/:id", () => {
       decidedAt: "2026-11-07",
       createdAt: "2026-11-07T12:45:00.000Z",
     });
-    expect(decisionA1).not.toHaveProperty("origin");
+    expect(decisionA1.origin).toBe("muse");
     expect(decisionA1).not.toHaveProperty("editHistory");
 
     const decisionA2 = timeline[3].decision as Record<string, unknown>;
+    expect(decisionA2.origin).toBe("web");
     expect(decisionA2).toMatchObject({
       summary: "様子を見る。",
       decidedAt: null,
@@ -822,7 +882,7 @@ describe("GET /stocks/:id", () => {
       differences: ["在庫の見方だけ変わった"],
       reflection: REVIEW_A.reflection,
     });
-    expect(review).not.toHaveProperty("origin");
+    expect(review.origin).toBe("muse");
   });
 
   it("returns 404 for an unknown stock", async () => {

@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     try {
       quotes = await yahooMarketPriceProvider.getQuotes(symbols);
     } catch {
+      // 株価取得が失敗しても台帳の保有情報を返す（仕様 §4.2）。
       quotes = new Map();
     }
 

@@ -1,4 +1,4 @@
-import { count, max } from "drizzle-orm";
+import { count, eq, max } from "drizzle-orm";
 
 import packageJson from "../../../../../../package.json";
 import {
@@ -10,7 +10,13 @@ import {
   successResponse,
 } from "@/features/integration/responses";
 import { getDb } from "@/lib/db";
-import { decisions, reviews, stocks, transactions } from "@/lib/db/schema";
+import {
+  captures,
+  decisions,
+  reviews,
+  stocks,
+  transactions,
+} from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,40 +30,38 @@ export async function GET(request: Request) {
       apiVersion: "v1" as const,
       appVersion: packageJson.version,
       counts: {
-        stocks: Number(
-          tx.select({ value: count() }).from(stocks).get()?.value ?? 0,
-        ),
-        decisions: Number(
-          tx.select({ value: count() }).from(decisions).get()?.value ?? 0,
-        ),
-        transactions: Number(
-          tx.select({ value: count() }).from(transactions).get()?.value ?? 0,
-        ),
-        reviews: Number(
-          tx.select({ value: count() }).from(reviews).get()?.value ?? 0,
-        ),
+        capturesPending: tx
+          .select({ value: count() })
+          .from(captures)
+          .where(eq(captures.status, "pending"))
+          .get()!.value,
+        stocks: tx.select({ value: count() }).from(stocks).get()!.value,
+        decisions: tx.select({ value: count() }).from(decisions).get()!.value,
+        transactions: tx.select({ value: count() }).from(transactions).get()!
+          .value,
+        reviews: tx.select({ value: count() }).from(reviews).get()!.value,
       },
       latest: {
-        stocks:
-          tx
-            .select({ value: max(stocks.createdAt) })
-            .from(stocks)
-            .get()?.value ?? null,
-        decisions:
-          tx
-            .select({ value: max(decisions.createdAt) })
-            .from(decisions)
-            .get()?.value ?? null,
-        transactions:
-          tx
-            .select({ value: max(transactions.createdAt) })
-            .from(transactions)
-            .get()?.value ?? null,
-        reviews:
-          tx
-            .select({ value: max(reviews.createdAt) })
-            .from(reviews)
-            .get()?.value ?? null,
+        captures: tx
+          .select({ value: max(captures.createdAt) })
+          .from(captures)
+          .get()!.value,
+        stocks: tx
+          .select({ value: max(stocks.createdAt) })
+          .from(stocks)
+          .get()!.value,
+        decisions: tx
+          .select({ value: max(decisions.createdAt) })
+          .from(decisions)
+          .get()!.value,
+        transactions: tx
+          .select({ value: max(transactions.createdAt) })
+          .from(transactions)
+          .get()!.value,
+        reviews: tx
+          .select({ value: max(reviews.createdAt) })
+          .from(reviews)
+          .get()!.value,
       },
     }));
 

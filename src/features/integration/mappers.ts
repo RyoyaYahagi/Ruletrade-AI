@@ -8,6 +8,7 @@ import type {
   ValuationSummary,
 } from "@/features/portfolio/valuation";
 import type { Decision, DecisionPoint, DecisionType } from "@/schemas/decision";
+import type { Origin } from "@/schemas/origin";
 import type { Review } from "@/schemas/review";
 import type { Transaction } from "@/schemas/transaction";
 
@@ -43,6 +44,7 @@ export type IntegrationDecision = {
   reviewDates: string[];
   decidedAt: string | null;
   createdAt: string;
+  origin: Origin;
 };
 
 export type IntegrationTransaction = {
@@ -74,6 +76,7 @@ export type IntegrationReview = {
   differences: string[];
   reflection: string;
   createdAt: string;
+  origin: Origin;
 };
 
 export type IntegrationHolding = {
@@ -185,6 +188,7 @@ export function toDecision(decision: Decision): IntegrationDecision {
       (decision.reviewAt === null ? [] : [decision.reviewAt]),
     decidedAt: decision.decidedAt ?? null,
     createdAt: decision.createdAt,
+    origin: decision.origin,
   };
 }
 
@@ -236,6 +240,7 @@ export function toReview(review: Review): IntegrationReview {
     differences: review.differences,
     reflection: review.reflection,
     createdAt: review.createdAt,
+    origin: review.origin,
   };
 }
 
