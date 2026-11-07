@@ -7,6 +7,8 @@ import type {
   RealizedProfitLossResult,
 } from "@/features/portfolio/portfolio";
 import type { MarketQuote } from "@/features/market-data/provider";
+import type { BucketSummary } from "@/features/portfolio/bucket-summary";
+import type { AppSettings } from "@/schemas/app-settings";
 
 const emptyRealized: RealizedProfitLossResult = {
   sales: [],
@@ -22,6 +24,13 @@ const mocks = vi.hoisted(() => ({
     stockTotals: [],
     totalsByCurrency: [],
   } as RealizedProfitLossResult,
+  bucketSummary: null as unknown as BucketSummary,
+  settings: {
+    id: "default",
+    satelliteCapPct: null,
+    satelliteWarnPct: null,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  } as AppSettings,
 }));
 
 vi.mock("@/features/portfolio/actions", () => ({
@@ -39,12 +48,65 @@ vi.mock("@/features/market-data/provider", () => ({
   },
 }));
 
+vi.mock("@/features/portfolio/bucket-data", () => ({
+  loadBucketSummary: async () => mocks.bucketSummary,
+}));
+
+vi.mock("@/features/settings/settings", () => ({
+  getAppSettings: () => mocks.settings,
+}));
+
+function bucketTotals(
+  bucket: "core" | "satellite" | "unclassified",
+  investedJpy: number | null,
+  marketValueJpy: number | null,
+) {
+  return {
+    bucket,
+    stockCount: 1,
+    heldStockCount: 1,
+    investedByCurrency: { JPY: investedJpy ?? 0, USD: 0 },
+    investedJpy,
+    marketValueByCurrency: { JPY: marketValueJpy ?? 0, USD: 0 },
+    marketValueJpy,
+    investedComplete: investedJpy !== null,
+    marketValueComplete: marketValueJpy !== null,
+  };
+}
+
+function bucketSummary(overrides: Partial<BucketSummary> = {}): BucketSummary {
+  return {
+    buckets: {
+      core: bucketTotals("core", 0, 0),
+      satellite: bucketTotals("satellite", 0, 0),
+      unclassified: bucketTotals("unclassified", 0, 0),
+    },
+    totalInvestedJpy: 0,
+    totalMarketValueJpy: 0,
+    satelliteInvestedJpy: 0,
+    satelliteInvestedPct: null,
+    satelliteMarketValueJpy: 0,
+    satelliteMarketValuePct: null,
+    exchangeRate: null,
+    rateRequired: false,
+    rateUnavailable: false,
+    includesUnclassified: false,
+    coreRegistered: false,
+    substitutedStockIds: [],
+    substitutedStockNames: [],
+    investedComplete: true,
+    marketValueComplete: true,
+    ...overrides,
+  };
+}
+
 function holding(overrides: Partial<PortfolioHolding> = {}): PortfolioHolding {
   return {
     stockId: "stock-1",
     stockName: "テスト銘柄",
     ticker: "7203",
     marketCode: "JP",
+    bucket: "unclassified",
     quantity: 2,
     averagePurchasePrice: 1000,
     acquisitionAmount: 2000,
@@ -96,6 +158,13 @@ describe("portfolio page valuation UI", () => {
       ["AAPL", quote({ symbol: "AAPL", price: 150, currency: "USD" })],
     ]);
     mocks.realized = emptyRealized;
+    mocks.bucketSummary = bucketSummary();
+    mocks.settings = {
+      id: "default",
+      satelliteCapPct: null,
+      satelliteWarnPct: null,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
   });
 
   it("defaults to domestic stocks and shows compact rows and selected-market totals", async () => {
@@ -251,6 +320,96 @@ describe("portfolio page valuation UI", () => {
     const markup = await render();
     expect(markup).toContain("通貨が不明な売却が2件あります");
     expect(markup).toContain("円・ドルの合計には含めていません");
+  });
+
+  it("shows invested ratio, unregistered core and unset cap without breaking", async () => {
+    mocks.bucketSummary = bucketSummary({
+      buckets: {
+        core: bucketTotals("core", 0, 0),
+        satellite: bucketTotals("satellite", 60000, 60000),
+        unclassified: bucketTotals("unclassified", 40000, 40000),
+      },
+      totalInvestedJpy: 100000,
+      totalMarketValueJpy: 100000,
+      satelliteInvestedJpy: 100000,
+      satelliteInvestedPct: 100,
+      satelliteMarketValueJpy: 100000,
+      satelliteMarketValuePct: 100,
+      includesUnclassified: true,
+      exchangeRate: {
+        rate: 150,
+        priceAt: "2026-11-07T05:21:16.000Z",
+        sourceName: "Delayed Quote",
+      },
+    });
+
+    const markup = await render();
+
+    expect(markup).toContain("サテライト割合（投入額ベース）");
+    expect(markup).toContain("100%");
+    expect(markup).toContain("上限未設定");
+    expect(markup).toContain(
+      "コア未登録のため、割合はサテライトのみで計算されています。",
+    );
+    expect(markup).toContain("未分類の銘柄はサテライト側に含めています。");
+    expect(markup).toContain("1 USD = 150円");
+    expect(markup).toContain("警告線未設定");
+  });
+
+  it("shows the remaining cap or the overage against the invested amount", async () => {
+    mocks.settings = {
+      ...mocks.settings,
+      satelliteCapPct: 20,
+    };
+    mocks.bucketSummary = bucketSummary({
+      totalInvestedJpy: 100000,
+      satelliteInvestedJpy: 60000,
+      satelliteInvestedPct: 60,
+      satelliteMarketValuePct: 60,
+    });
+
+    const markup = await render();
+
+    expect(markup).toContain("上限 20%");
+    expect(markup).toContain("40,000円 超過しています");
+  });
+
+  it("does not show a ratio when the exchange rate is unavailable", async () => {
+    mocks.bucketSummary = bucketSummary({
+      totalInvestedJpy: null,
+      satelliteInvestedJpy: null,
+      satelliteInvestedPct: null,
+      satelliteMarketValuePct: null,
+      rateRequired: true,
+      rateUnavailable: true,
+    });
+
+    const markup = await render();
+
+    expect(markup).toContain(
+      "換算レートを取得できないため、円換算の割合を表示できません。",
+    );
+    expect(markup).toContain(
+      "換算レートを取得できませんでした。古いレートは使いません。",
+    );
+  });
+
+  it("highlights the market ratio when it exceeds the warning line", async () => {
+    mocks.settings = {
+      ...mocks.settings,
+      satelliteWarnPct: 40,
+    };
+    mocks.bucketSummary = bucketSummary({
+      totalInvestedJpy: 100000,
+      satelliteInvestedPct: 30,
+      satelliteMarketValuePct: 50,
+      satelliteMarketValueJpy: 50000,
+    });
+
+    const markup = await render();
+
+    expect(markup).toContain("警告線 40% を超えています");
+    expect(markup).toContain("50%");
   });
 
   it("marks realized profit/loss as unknown when a sale cannot be calculated", async () => {
