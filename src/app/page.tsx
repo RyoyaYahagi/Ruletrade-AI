@@ -2,10 +2,9 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import {
   listDecisionStatsAction,
-  listDueDecisionsAction,
   listRecentDecisionsAction,
-  listStocksAction,
 } from "@/features/decisions/actions";
+import { listDueDecisions, listUnlinkedTransactions } from "@/features/due/due";
 import {
   decisionTypeLabel,
   decisionTypeTagClass,
@@ -13,7 +12,6 @@ import {
 } from "@/features/decisions/decision-display";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
 import { listPortfolioAction } from "@/features/portfolio/actions";
-import { listTransactionsAction } from "@/features/transactions/actions";
 import { japanDate } from "@/features/transactions/matching";
 
 export const dynamic = "force-dynamic";
@@ -30,17 +28,13 @@ function todayLabel() {
 }
 
 export default async function HomePage() {
-  const [dueItems, recentItems, stocks, portfolio, transactions, stats] =
-    await Promise.all([
-      listDueDecisionsAction(),
-      listRecentDecisionsAction({ limit: 5 }),
-      listStocksAction(),
-      listPortfolioAction(),
-      listTransactionsAction(),
-      listDecisionStatsAction(),
-    ]);
-  const stockById = new Map(stocks.map((stock) => [stock.id, stock]));
-  const unlinked = transactions.filter((trade) => !trade.decisionId);
+  const [dueItems, recentItems, portfolio, unlinked, stats] = await Promise.all([
+    listDueDecisions(),
+    listRecentDecisionsAction({ limit: 5 }),
+    listPortfolioAction(),
+    listUnlinkedTransactions(),
+    listDecisionStatsAction(),
+  ]);
   const holdings = portfolio.filter((holding) => holding.quantity > 0);
   const today = japanDate();
 
@@ -61,7 +55,7 @@ export default async function HomePage() {
               {dueItems.length}
             </span>
           </h2>
-          {dueItems.map(({ stock, decision }) => (
+          {dueItems.map(({ stock, decision, dueReviewAt }) => (
             <article key={decision.id} className="surface space-y-3 p-5">
               <div className="flex items-center justify-between gap-2">
                 <Link href={`/stocks/${stock.id}`} className="font-semibold hover:underline">
@@ -73,9 +67,9 @@ export default async function HomePage() {
                   )}
                 </Link>
                 <span className="shrink-0 rounded-full bg-attention-soft px-2.5 py-1 text-xs font-medium text-attention">
-                  {japanDate(decision.reviewAt!) === today
+                  {japanDate(dueReviewAt) === today
                     ? "今日"
-                    : `予定日 ${shortJapanDate(decision.reviewAt!)}`}
+                    : `予定日 ${shortJapanDate(dueReviewAt)}`}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -110,12 +104,10 @@ export default async function HomePage() {
             理由が残っていない売買
           </h2>
           <ul className="surface divide-y">
-            {unlinked.slice(0, UNLINKED_LIMIT).map((trade) => (
+            {unlinked.slice(0, UNLINKED_LIMIT).map(({ stock, transaction: trade }) => (
               <li key={trade.id} className="flex items-center justify-between gap-3 py-2 pr-2 pl-5">
                 <span className="py-2">
-                  <span className="block font-semibold">
-                    {stockById.get(trade.stockId)?.name ?? "銘柄"}
-                  </span>
+                  <span className="block font-semibold">{stock.name}</span>
                   <span className="mt-0.5 block text-sm text-muted-foreground">
                     {shortJapanDate(trade.executedAt)}{" "}
                     {trade.side === "buy" ? "購入" : "売却"}{" "}

@@ -1,4 +1,5 @@
 import type { MarketQuote } from "@/features/market-data/provider";
+import type { DueDecision, DueTransaction } from "@/features/due/due";
 import type {
   PortfolioHolding,
   PortfolioStock,
@@ -80,6 +81,18 @@ export type IntegrationReview = {
   reflection: string;
   createdAt: string;
   origin: Origin;
+};
+
+export type IntegrationDueDecision = {
+  stock: IntegrationStock;
+  decision: IntegrationDecision;
+  dueReviewAt: string;
+  dueOn: string;
+};
+
+export type IntegrationDueTransaction = {
+  stock: IntegrationStock;
+  transaction: IntegrationTransaction;
 };
 
 export type IntegrationHolding = {
@@ -265,6 +278,24 @@ export function toTransaction(
     accountType: transaction.accountType ?? null,
     sourceBroker: transaction.sourceBroker ?? null,
     sourceTradeType: transaction.sourceTradeType ?? null,
+  };
+}
+
+export function toDueDecision(item: DueDecision): IntegrationDueDecision {
+  return {
+    stock: toStock(item.stock),
+    decision: toDecision(item.decision),
+    dueReviewAt: item.dueReviewAt,
+    dueOn: item.dueOn,
+  };
+}
+
+export function toDueTransaction(
+  item: DueTransaction,
+): IntegrationDueTransaction {
+  return {
+    stock: toStock(item.stock),
+    transaction: toTransaction(item.transaction),
   };
 }
 
