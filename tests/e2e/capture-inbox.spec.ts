@@ -144,6 +144,12 @@ test("saves from a stock detail page with the stock fixed", async ({ page }) => 
       origin: "web",
       status: "pending",
     });
+
+    // 未整理の受け箱は「今日」で新しい順に見返せる。
+    await page.goto("/");
+    const inbox = page.getByRole("region", { name: /受け箱/ });
+    await expect(inbox.getByText(stockName)).toBeVisible();
+    await expect(inbox.getByText(`「${rawInput}」`)).toBeVisible();
   } finally {
     withDatabase((db) => {
       db.prepare("DELETE FROM captures WHERE raw_input = ?").run(rawInput);

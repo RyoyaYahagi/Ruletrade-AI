@@ -81,7 +81,7 @@ export function InboxCaptureForm({
             考えをそのまま残す
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            AIは使いません。書いた原文をそのまま保存し、あとで整理できます。
+            AIは使いません。書いた原文をそのまま保存し、「今日」の受け箱で見返せます。
           </p>
         </div>
 
@@ -89,7 +89,7 @@ export function InboxCaptureForm({
           <section
             role="status"
             aria-live="polite"
-            className="surface space-y-3 border border-primary/20 p-5"
+            className="surface motion-soft-rise space-y-3 border border-primary/20 p-5"
           >
             <p className="flex items-center gap-2 font-semibold text-primary">
               <Check aria-hidden size={18} />
@@ -176,12 +176,11 @@ export function InboxCaptureForm({
         </div>
 
         {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-          >
-            {error}
-          </p>
+          <div role="alert" className="motion-expand">
+            <p className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
+            </p>
+          </div>
         )}
 
         <div className="action-bar space-y-2">
@@ -191,8 +190,21 @@ export function InboxCaptureForm({
             disabled={saving}
             className="button-primary min-h-14 w-full"
           >
-            <Inbox aria-hidden size={18} />
-            {saving ? "保存しています…" : "受け箱に保存"}
+            {saving ? (
+              <>
+                <span aria-hidden className="flex gap-1">
+                  <span className="motion-dot" />
+                  <span className="motion-dot" />
+                  <span className="motion-dot" />
+                </span>
+                保存しています
+              </>
+            ) : (
+              <>
+                <Inbox aria-hidden size={18} />
+                受け箱に保存
+              </>
+            )}
           </button>
           <p className="text-center text-xs text-muted-foreground">
             保存時に振り返り日は付けません
