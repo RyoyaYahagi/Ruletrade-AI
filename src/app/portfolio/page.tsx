@@ -8,6 +8,9 @@ import {
   listPortfolioAction,
   listRealizedProfitLossAction,
 } from "@/features/portfolio/actions";
+import { loadBucketSummary } from "@/features/portfolio/bucket-data";
+import { BucketAllocationPanel } from "@/features/portfolio/components/bucket-allocation-panel";
+import { getAppSettings } from "@/features/settings/settings";
 import { formatPortfolioAmount } from "@/features/portfolio/format";
 import { PortfolioAllocation } from "@/features/portfolio/components/portfolio-allocation";
 import { PortfolioHoldingRow } from "@/features/portfolio/components/portfolio-holding-row";
@@ -186,7 +189,11 @@ export default async function PortfolioPage({
     listPortfolioAction(),
     listDecisionStatsAction(),
   ]);
-  const realized = await listRealizedProfitLossAction();
+  const [bucketSummary, settings, realized] = await Promise.all([
+    loadBucketSummary(holdings),
+    Promise.resolve(getAppSettings()),
+    listRealizedProfitLossAction(),
+  ]);
   const unknownCurrencySales =
     realized.totalsByCurrency.find((total) => total.currency === null)
       ?.saleCount ?? 0;
@@ -264,6 +271,7 @@ export default async function PortfolioPage({
     <main className="page-shell space-y-6">
       <div className="space-y-4">
         <h1 className="page-title">ポートフォリオ</h1>
+        <BucketAllocationPanel summary={bucketSummary} settings={settings} />
         <MarketTabs market={market} jpCount={jpCount} usCount={usCount} />
       </div>
       <Summary
