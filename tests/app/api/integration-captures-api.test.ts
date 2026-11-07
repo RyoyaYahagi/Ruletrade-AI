@@ -214,7 +214,9 @@ describe("GET /captures", () => {
       await routes.captures.GET(apiRequest("/captures?status=discarded")),
     );
     expect(
-      (discarded.captures as Array<{ id: string }>).map((capture) => capture.id),
+      (discarded.captures as Array<{ id: string }>).map(
+        (capture) => capture.id,
+      ),
     ).toEqual(["capture-discarded"]);
 
     const organized = await readData(
@@ -227,12 +229,7 @@ describe("GET /captures", () => {
     );
     expect(
       (all.captures as Array<{ id: string }>).map((capture) => capture.id),
-    ).toEqual([
-      "capture-discarded",
-      "capture-a",
-      "capture-b",
-      "capture-new",
-    ]);
+    ).toEqual(["capture-discarded", "capture-a", "capture-b", "capture-new"]);
   });
 
   it("returns 400 for an invalid status and ignores unknown parameters", async () => {
@@ -242,9 +239,7 @@ describe("GET /captures", () => {
     expect(invalid.status).toBe(400);
     expect(await readError(invalid)).toBe("validation_error");
 
-    const empty = await routes.captures.GET(
-      apiRequest("/captures?status="),
-    );
+    const empty = await routes.captures.GET(apiRequest("/captures?status="));
     expect(empty.status).toBe(400);
 
     const unknown = await routes.captures.GET(
@@ -342,16 +337,11 @@ describe("POST /captures", () => {
     await routes.captures.POST(captureRequest(body));
     const db = dbModule.getDb();
     const id = db.select().from(schema.captures).get()!.id;
-    db.update(schema.captures)
-      .set({ stockHint: "現在のヒント" })
-      .run();
+    db.update(schema.captures).set({ stockHint: "現在のヒント" }).run();
 
     const replay = await routes.captures.POST(captureRequest(body));
     expect(replay.status).toBe(200);
-    const capture = (await readData(replay)).capture as Record<
-      string,
-      unknown
-    >;
+    const capture = (await readData(replay)).capture as Record<string, unknown>;
     expect(capture.id).toBe(id);
     expect(capture.stockHint).toBe("現在のヒント");
   });
@@ -366,9 +356,9 @@ describe("POST /captures", () => {
     );
     expect(second.status).toBe(409);
     expect(await readError(second)).toBe("idempotency_key_reused");
-    expect(
-      dbModule.getDb().select().from(schema.captures).all(),
-    ).toHaveLength(1);
+    expect(dbModule.getDb().select().from(schema.captures).all()).toHaveLength(
+      1,
+    );
   });
 
   it("returns 409 when the same key was used by another endpoint", async () => {
@@ -391,6 +381,19 @@ describe("POST /captures", () => {
     expect(await readError(response)).toBe("idempotency_key_reused");
     expect(dbModule.getDb().select().from(schema.captures).all()).toHaveLength(
       0,
+    );
+  });
+
+  it("includes unknown JSON fields in the request hash without storing them", async () => {
+    const body = { ...validBody(), extra: { note: "first" } };
+    expect((await routes.captures.POST(captureRequest(body))).status).toBe(201);
+    expect((await routes.captures.POST(captureRequest(body))).status).toBe(200);
+    const changed = { ...body, extra: { note: "second" } };
+    expect((await routes.captures.POST(captureRequest(changed))).status).toBe(
+      409,
+    );
+    expect(dbModule.getDb().select().from(schema.captures).all()).toHaveLength(
+      1,
     );
   });
 

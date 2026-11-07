@@ -4,6 +4,7 @@ export type IntegrationErrorCode =
   | "validation_error"
   | "method_not_allowed"
   | "idempotency_key_reused"
+  | "capture_not_pending"
   | "internal_error";
 
 const errorDefinitions: Record<
@@ -23,6 +24,10 @@ const errorDefinitions: Record<
   idempotency_key_reused: {
     status: 409,
     message: "同じ clientRequestId が別のリクエストで使用されています。",
+  },
+  capture_not_pending: {
+    status: 409,
+    message: "受け箱はすでに整理済みまたは破棄済みです。",
   },
   internal_error: {
     status: 500,

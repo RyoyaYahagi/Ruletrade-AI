@@ -10,6 +10,7 @@ import {
 import {
   executeIdempotentWrite,
   isClientRequestId,
+  prepareRequestBodyForHash,
 } from "@/features/integration/idempotency";
 import { toCapture } from "@/features/integration/mappers";
 import {
@@ -30,11 +31,9 @@ const CAPTURES_ENDPOINT = "POST /captures";
 const statusValues = new Set(["pending", "organized", "discarded", "all"]);
 
 const CreateCaptureRequestSchema = CaptureInputSchema.extend({
-  clientRequestId: z
-    .string()
-    .refine(isClientRequestId, {
-      message: "clientRequestId は UUID 形式で指定してください。",
-    }),
+  clientRequestId: z.string().refine(isClientRequestId, {
+    message: "clientRequestId は UUID 形式で指定してください。",
+  }),
 });
 
 class CaptureStockNotFoundError extends Error {
@@ -94,11 +93,10 @@ export async function POST(request: Request) {
       db,
       clientRequestId: input.clientRequestId,
       endpoint: CAPTURES_ENDPOINT,
-      requestBody: {
-        rawInput: input.rawInput,
-        stockId: input.stockId,
-        stockHint: input.stockHint,
-      },
+      requestBody: prepareRequestBodyForHash(body as Record<string, unknown>, {
+        stockId: null,
+        stockHint: null,
+      }),
       resourceType: "capture",
       write: (tx, now) => {
         if (input.stockId !== null) {

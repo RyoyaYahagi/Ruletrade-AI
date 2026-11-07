@@ -45,6 +45,23 @@ function canonicalize(value: unknown): unknown {
 }
 
 /**
+ * 仕様 §5.1 のハッシュ対象を作る。clientRequestId だけを除き、省略された
+ * 任意フィールドには既定値（配列は []、それ以外は null）を入れる。
+ * 値は受信した本文のまま残し、Zod の trim や配列の正規化を混ぜない。
+ */
+export function prepareRequestBodyForHash(
+  body: Record<string, unknown>,
+  defaults: Record<string, unknown>,
+): Record<string, unknown> {
+  const prepared = { ...body };
+  delete prepared.clientRequestId;
+  for (const [key, value] of Object.entries(defaults)) {
+    if (!(key in prepared)) prepared[key] = value;
+  }
+  return prepared;
+}
+
+/**
  * 仕様 §5.1 の「clientRequestId を除いた本文」のハッシュ。
  * 呼び出し側が省略時の既定値（配列は []、それ以外は null）を入れてから渡す。
  */
@@ -134,9 +151,7 @@ export function executeIdempotentWrite<T>(options: {
         const raced = tx
           .select()
           .from(integrationRequests)
-          .where(
-            eq(integrationRequests.clientRequestId, clientRequestId),
-          )
+          .where(eq(integrationRequests.clientRequestId, clientRequestId))
           .get();
         if (raced) {
           throw new ExistingRequestError(raced);

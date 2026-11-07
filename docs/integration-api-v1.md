@@ -1401,6 +1401,7 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 - 同時に同じキーが来た場合、SQLite の主キー制約で片方だけが成功する。負けた側はコミット済みの行を読み、本文とエンドポイントが同じなら 200 の再送、違えば 409 を返す。
 - 再送の判定に使う「同じ本文」は、上記の正規化後のハッシュで比較する。
 - `decision-link` の再送で `decision` を返すときは、売買の現在の `decisionId` に対応する判断を返す（再送後に別の判断へ差し替えられていれば、その現在の判断）。
+- Web で紐付けが解除された後の `decision-link` の再送では、現在の状態に合わせて `decision` は `null` を返す。
 - `decision-link` の再送では何も変更しないため、`previousDecisionId` は `null` を返す（初回にどの判断から差し替えたかは保存しない）。
 
 初回成功のステータス:
@@ -1685,7 +1686,7 @@ Content-Type: application/json; charset=utf-8
 | -------------------- | ---------------- | ------------------------------------------------------------------- |
 | `replayed`           | `boolean`        | 再送なら `true`                                                     |
 | `transaction`        | `Transaction`    | 紐付け後の売買                                                      |
-| `decision`           | `Decision`       | 紐付けた判断                                                        |
+| `decision`           | `Decision \| null` | 紐付けた判断（再送前に Web で解除された場合は `null`）                                                        |
 | `previousDecisionId` | `string \| null` | 差し替え前の判断 ID。初回に紐付けがなければ `null`。再送時も `null` |
 
 エラー:

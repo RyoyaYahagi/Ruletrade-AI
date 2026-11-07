@@ -114,7 +114,7 @@ cp .env.example .env.local
 | `GEMINI_MODEL`            | 内容整理・比較に利用するGeminiモデル。初期値は `.env.example` を参照してください。   |
 | `RULETRADE_DATABASE_PATH` | 記録を保存するSQLiteデータベースの場所。初期値は `.data/ruletrade-mvp.sqlite` です。 |
 | `RULETRADE_READ_TOKEN` | Muse 連携 API の読み取り用トークン。未設定なら読み取り API は無効です。 |
-| `RULETRADE_WRITE_TOKEN` | Muse 連携 API の書き込み用トークン。読み取り用とは異なる値を設定します。書き込み API は後続の実装で提供します。 |
+| `RULETRADE_WRITE_TOKEN` | Muse 連携 API の書き込み用トークン。読み取り用とは異なる値を設定します。判断・振り返りの確定保存と、売買への判断紐付けを提供します。下書きは保存しません。 |
 
 `.env.local` や記録を保存したデータベースはGitにコミットしないでください。APIキーはサーバー側で使用します。
 

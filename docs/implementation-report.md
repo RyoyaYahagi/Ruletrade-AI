@@ -3,6 +3,8 @@
 対象ブランチ: `simplify-v2`
 確認日: 2026-09-27
 
+この文書は当時の Simplified MVP の記録です。その後 R-02〜R-08 で `captures` と `integration_requests`、`origin`、Muse 向けのスコープ別 API を追加しました。現行のデータモデルと連携仕様は [architecture.md](architecture.md) と [integration-api-v1.md](integration-api-v1.md) を参照してください。
+
 ## 1. 削除した主要機能・基盤
 
 TradingRule / Rule Builder と承認フロー、RAG・embedding・文書/PDF取込、ポートフォリオ・watchlist・練習モード、課金、管理コンソール、通知、マルチエージェント、OpenAI等の複数AI providerとprovider gateway、Codex連携、独自認証・ユーザー所有権基盤、独自SQLite query builder、OpenAPI定義・生成型を削除しました。旧schemaからのデータ移行は行いません。旧DBとは別の `.data/ruletrade-mvp.sqlite` を使います。
@@ -19,7 +21,7 @@ Google公式Gemini SDKの `@google/genai` 1.x と、SQLiteを直接扱うDrizzle
 
 ## 4. DB schema
 
-SQLite/Drizzleの4テーブルで構成します。
+SQLite/Drizzleの4テーブルで構成します（当時。現在は `captures` と `integration_requests` を加えた6テーブルです）。
 
 - `stocks`: `id`, nullable `ticker`, `name`, `normalized_name`, nullable `market`, `created_at`。
 - `decisions`: `id`, `stock_id`, `type`, source of truthの`raw_input`、nullable `transcript` / `follow_up_answer` / `thesis` / `review_at`、抽出した前提・見直し条件・買い増し条件、`created_at`。
