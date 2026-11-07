@@ -43,6 +43,7 @@ export const decisions = sqliteTable(
     editHistory: text("edit_history_json"),
     decidedAt: text("decided_at"),
     createdAt: text("created_at").notNull(),
+    origin: text("origin").notNull().default("web"),
   },
   (table) => [
     index("decisions_stock_created_idx").on(table.stockId, table.createdAt),
@@ -168,11 +169,41 @@ export const reviews = sqliteTable(
     differences: text("differences_json").notNull(),
     reflection: text("reflection").notNull(),
     createdAt: text("created_at").notNull(),
+    origin: text("origin").notNull().default("web"),
   },
   (table) => [
     index("reviews_stock_created_idx").on(table.stockId, table.createdAt),
   ],
 );
+
+export const captures = sqliteTable(
+  "captures",
+  {
+    id: text("id").primaryKey(),
+    stockId: text("stock_id").references(() => stocks.id, {
+      onDelete: "set null",
+    }),
+    stockHint: text("stock_hint"),
+    rawInput: text("raw_input").notNull(),
+    origin: text("origin").notNull().default("web"),
+    status: text("status").notNull().default("pending"),
+    decisionId: text("decision_id").references(() => decisions.id, {
+      onDelete: "set null",
+    }),
+    createdAt: text("created_at").notNull(),
+    organizedAt: text("organized_at"),
+  },
+  (table) => [index("captures_status_idx").on(table.status)],
+);
+
+export const integrationRequests = sqliteTable("integration_requests", {
+  clientRequestId: text("client_request_id").primaryKey().notNull(),
+  endpoint: text("endpoint").notNull(),
+  requestHash: text("request_hash").notNull(),
+  resourceType: text("resource_type").notNull(),
+  resourceId: text("resource_id").notNull(),
+  createdAt: text("created_at").notNull(),
+});
 
 export const schema = {
   stocks,
@@ -183,4 +214,6 @@ export const schema = {
   importBatchStocks,
   transactionImportSources,
   importChanges,
+  captures,
+  integrationRequests,
 };

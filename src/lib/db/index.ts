@@ -53,7 +53,8 @@ function initializeSchema(connection: Database.Database) {
       review_conditions_json TEXT NOT NULL,
       add_conditions_json TEXT NOT NULL,
       review_at TEXT,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      origin TEXT NOT NULL DEFAULT 'web'
     );
     CREATE INDEX IF NOT EXISTS decisions_stock_created_idx ON decisions(stock_id, created_at);
     CREATE INDEX IF NOT EXISTS decisions_review_at_idx ON decisions(review_at);
@@ -80,9 +81,32 @@ function initializeSchema(connection: Database.Database) {
       summary TEXT NOT NULL,
       differences_json TEXT NOT NULL,
       reflection TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      origin TEXT NOT NULL DEFAULT 'web'
     );
     CREATE INDEX IF NOT EXISTS reviews_stock_created_idx ON reviews(stock_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS captures (
+      id TEXT PRIMARY KEY,
+      stock_id TEXT REFERENCES stocks(id) ON DELETE SET NULL,
+      stock_hint TEXT,
+      raw_input TEXT NOT NULL,
+      origin TEXT NOT NULL DEFAULT 'web',
+      status TEXT NOT NULL DEFAULT 'pending',
+      decision_id TEXT REFERENCES decisions(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL,
+      organized_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS captures_status_idx ON captures(status);
+
+    CREATE TABLE IF NOT EXISTS integration_requests (
+      client_request_id TEXT PRIMARY KEY NOT NULL,
+      endpoint TEXT NOT NULL,
+      request_hash TEXT NOT NULL,
+      resource_type TEXT NOT NULL,
+      resource_id TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
 
     CREATE TABLE IF NOT EXISTS import_batches (
       id TEXT PRIMARY KEY,
@@ -147,6 +171,22 @@ function initializeSchema(connection: Database.Database) {
     if (!decisionColumns.has(name)) {
       connection.exec(`ALTER TABLE decisions ADD COLUMN ${name} ${declaration}`);
     }
+  }
+  if (!decisionColumns.has("origin")) {
+    connection.exec(
+      "ALTER TABLE decisions ADD COLUMN origin TEXT NOT NULL DEFAULT 'web'",
+    );
+  }
+
+  const reviewColumns = new Set(
+    (connection.pragma("table_info(reviews)") as Array<{ name: string }>).map(
+      ({ name }) => name,
+    ),
+  );
+  if (!reviewColumns.has("origin")) {
+    connection.exec(
+      "ALTER TABLE reviews ADD COLUMN origin TEXT NOT NULL DEFAULT 'web'",
+    );
   }
 
   const transactionColumns: Record<string, string> = {
