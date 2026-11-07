@@ -4,6 +4,7 @@ import {
   listDecisionStatsAction,
   listRecentDecisionsAction,
 } from "@/features/decisions/actions";
+import { listPendingCapturesAction } from "@/features/capture/inbox-actions";
 import { listDueDecisions, listUnlinkedTransactions } from "@/features/due/due";
 import {
   decisionTypeLabel,
@@ -18,6 +19,12 @@ import { japanDate } from "@/features/transactions/matching";
 export const dynamic = "force-dynamic";
 
 const UNLINKED_LIMIT = 3;
+const PENDING_CAPTURE_LIMIT = 3;
+
+// セクションを上から順に少しずつ遅らせて出す（motion-rise の段差追従）。
+function riseStyle(index: number) {
+  return { "--motion-index": index } as React.CSSProperties;
+}
 
 function todayLabel() {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -29,22 +36,22 @@ function todayLabel() {
 }
 
 export default async function HomePage() {
-  const [dueItems, recentItems, portfolio, unlinked, stats] = await Promise.all(
-    [
+  const [dueItems, recentItems, portfolio, unlinked, stats, pendingCaptures] =
+    await Promise.all([
       listDueDecisions(),
       listRecentDecisionsAction({ limit: 5 }),
       listPortfolioAction(),
       listUnlinkedTransactions(),
       listDecisionStatsAction(),
-    ],
-  );
+      listPendingCapturesAction(),
+    ]);
   const holdings = portfolio.filter((holding) => holding.quantity > 0);
   const bucketWarning = await loadBucketWarning(portfolio);
   const today = japanDate();
 
   return (
     <main className="page-shell space-y-9">
-      <header>
+      <header className="motion-rise" style={riseStyle(0)}>
         <p className="font-mono text-xs tracking-wide text-muted-foreground">
           {todayLabel()}
         </p>
@@ -55,7 +62,8 @@ export default async function HomePage() {
           点滅や destructive の赤は使わない。売買を促す語（「利確」など）は文言に入れない */}
       {bucketWarning && (
         <section
-          className="space-y-3 rounded-2xl bg-attention-soft p-5"
+          className="motion-rise space-y-3 rounded-2xl bg-attention-soft p-5"
+          style={riseStyle(1)}
           aria-labelledby="bucket-warning-heading"
         >
           <p className="text-xs font-semibold text-attention">枠の警告</p>
@@ -94,13 +102,14 @@ export default async function HomePage() {
       )}
 
       {dueItems.length > 0 && (
-        <section className="space-y-3" aria-labelledby="due-heading">
-          <h2
-            id="due-heading"
-            className="flex items-center gap-2 px-1 font-semibold"
-          >
+        <section
+          className="motion-rise space-y-3"
+          style={riseStyle(2)}
+          aria-labelledby="due-heading"
+        >
+          <h2 id="due-heading" className="flex items-center gap-2 px-1 font-semibold">
             振り返りの時期です
-            <span className="rounded-full bg-attention-soft px-2 font-mono text-xs text-attention">
+            <span className="motion-pop inline-block rounded-full bg-attention-soft px-2 font-mono text-xs text-attention">
               {dueItems.length}
             </span>
           </h2>
@@ -154,8 +163,51 @@ export default async function HomePage() {
         </section>
       )}
 
+      {pendingCaptures.length > 0 && (
+        <section
+          className="motion-rise space-y-3"
+          style={riseStyle(3)}
+          aria-labelledby="inbox-heading"
+        >
+          <h2 id="inbox-heading" className="flex items-center gap-2 px-1 font-semibold">
+            受け箱
+            <span className="rounded-full bg-secondary px-2 font-mono text-xs text-muted-foreground">
+              未整理 {pendingCaptures.length}
+            </span>
+          </h2>
+          <ul className="surface divide-y">
+            {pendingCaptures
+              .slice(0, PENDING_CAPTURE_LIMIT)
+              .map(({ capture, stockName }) => (
+                <li key={capture.id} className="space-y-1 px-5 py-3.5">
+                  <span className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span className="truncate font-semibold text-foreground">
+                      {stockName ?? "銘柄未定"}
+                    </span>
+                    <span className="shrink-0 font-mono">
+                      {shortJapanDate(capture.createdAt)}
+                    </span>
+                  </span>
+                  <p className="journal-text line-clamp-3 text-sm whitespace-pre-wrap text-foreground/80">
+                    「{capture.rawInput}」
+                  </p>
+                </li>
+              ))}
+          </ul>
+          {pendingCaptures.length > PENDING_CAPTURE_LIMIT && (
+            <p className="px-1 text-sm text-muted-foreground">
+              ほか {pendingCaptures.length - PENDING_CAPTURE_LIMIT} 件が未整理です
+            </p>
+          )}
+        </section>
+      )}
+
       {unlinked.length > 0 && (
-        <section className="space-y-3" aria-labelledby="unlinked-heading">
+        <section
+          className="motion-rise space-y-3"
+          style={riseStyle(4)}
+          aria-labelledby="unlinked-heading"
+        >
           <h2 id="unlinked-heading" className="px-1 font-semibold">
             理由が残っていない売買
           </h2>
@@ -195,7 +247,11 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="space-y-3" aria-labelledby="holdings-heading">
+      <section
+        className="motion-rise space-y-3"
+        style={riseStyle(5)}
+        aria-labelledby="holdings-heading"
+      >
         <div className="flex items-center justify-between gap-3 px-1">
           <h2 id="holdings-heading" className="font-semibold">
             保有している銘柄
@@ -244,7 +300,11 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section className="space-y-3" aria-labelledby="recent-heading">
+      <section
+        className="motion-rise space-y-3"
+        style={riseStyle(6)}
+        aria-labelledby="recent-heading"
+      >
         <h2 id="recent-heading" className="px-1 font-semibold">
           最近の記録
         </h2>

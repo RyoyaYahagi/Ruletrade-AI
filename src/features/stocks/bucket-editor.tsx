@@ -311,25 +311,27 @@ export function BucketQuickSelect({
         </div>
       </div>
       {selected !== bucket && (
-        <div className="space-y-2 rounded-xl border bg-card p-3">
-          <ConfirmText from={bucket} to={selected} />
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void save()}
-              className="button-soft"
-            >
-              {saving ? "変更しています…" : "変更を保存"}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => setSelected(bucket)}
-              className="min-h-11 px-2 text-sm text-muted-foreground"
-            >
-              やめる
-            </button>
+        <div className="motion-expand">
+          <div className="space-y-2 rounded-xl border bg-card p-3">
+            <ConfirmText from={bucket} to={selected} />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void save()}
+                className="button-soft"
+              >
+                {saving ? "変更しています…" : "変更を保存"}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setSelected(bucket)}
+                className="min-h-11 px-2 text-sm text-muted-foreground"
+              >
+                やめる
+              </button>
+            </div>
           </div>
         </div>
       )}
