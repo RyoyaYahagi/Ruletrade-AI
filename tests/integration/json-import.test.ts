@@ -136,7 +136,7 @@ describe("JSON import", () => {
   it("rejects unknown versions, malformed data, missing references and repeated IDs without writing", async () => {
     const before = await snapshot();
     for (const value of [
-      { ...backup, formatVersion: 3 },
+      { ...backup, formatVersion: 4 },
       { ...backup, stocks: [] },
       {
         ...backup,
@@ -179,30 +179,37 @@ describe("JSON import", () => {
     expect(restored.reviews).toHaveLength(1);
   });
 
-  it("imports a v1 backup and keeps its content stable through a v2 export and reimport", async () => {
+  it("imports a v1 backup and keeps its content stable through a v3 export and reimport", async () => {
     const client = database.getDb().$client;
-    client.exec("DELETE FROM reviews; DELETE FROM import_changes; DELETE FROM transaction_import_sources; DELETE FROM transactions; DELETE FROM decisions; DELETE FROM import_batch_stocks; DELETE FROM import_batches; DELETE FROM stocks;");
+    client.exec("DELETE FROM reviews; DELETE FROM captures; DELETE FROM import_changes; DELETE FROM transaction_import_sources; DELETE FROM transactions; DELETE FROM decisions; DELETE FROM import_batch_stocks; DELETE FROM import_batches; DELETE FROM stocks;");
     const legacy = structuredClone(backup) as Record<string, unknown>;
     legacy.formatVersion = 1;
+    delete legacy.captures;
     for (const decision of legacy.decisions as Array<Record<string, unknown>>) {
       delete decision.summary;
       delete decision.points;
       delete decision.followUpQuestion;
+      delete decision.origin;
       for (const edit of (decision.editHistory ?? []) as Array<Record<string, unknown>>) {
         const previous = edit.previous as Record<string, unknown>;
         delete previous.summary;
         delete previous.points;
         delete previous.followUpQuestion;
+        delete previous.origin;
       }
     }
+    for (const review of legacy.reviews as Array<Record<string, unknown>>)
+      delete review.origin;
     expect((await send(legacy)).status).toBe(200);
-    const v2 = await (await exportRoute.GET()).json();
-    expect(v2.formatVersion).toBe(2);
-    expect(v2.decisions[0]).toMatchObject({ points: [], followUpQuestion: null, followUpAnswer: "次の決算を確認する。" });
-    const firstSnapshot = structuredClone(v2);
+    const v3 = await (await exportRoute.GET()).json();
+    expect(v3.formatVersion).toBe(3);
+    expect(v3.decisions[0]).toMatchObject({ points: [], followUpQuestion: null, followUpAnswer: "次の決算を確認する。", origin: "web" });
+    expect(v3.reviews[0]).toMatchObject({ origin: "web" });
+    expect(v3.captures).toEqual([]);
+    const firstSnapshot = structuredClone(v3);
     delete firstSnapshot.exportedAt;
-    client.exec("DELETE FROM reviews; DELETE FROM import_changes; DELETE FROM transaction_import_sources; DELETE FROM transactions; DELETE FROM decisions; DELETE FROM import_batch_stocks; DELETE FROM import_batches; DELETE FROM stocks;");
-    expect((await send(v2)).status).toBe(200);
+    client.exec("DELETE FROM reviews; DELETE FROM captures; DELETE FROM import_changes; DELETE FROM transaction_import_sources; DELETE FROM transactions; DELETE FROM decisions; DELETE FROM import_batch_stocks; DELETE FROM import_batches; DELETE FROM stocks;");
+    expect((await send(v3)).status).toBe(200);
     expect(await snapshot()).toEqual(firstSnapshot);
   });
 });

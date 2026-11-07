@@ -3,6 +3,7 @@ import { asc } from "drizzle-orm";
 import { mapDecisionRow } from "@/features/decisions/decision-mapper";
 import { getDb } from "@/lib/db";
 import {
+  captures,
   decisions,
   importBatches,
   importBatchStocks,
@@ -12,6 +13,7 @@ import {
   transactionImportSources,
   importChanges,
 } from "@/lib/db/schema";
+import { CaptureSchema } from "@/schemas/capture";
 import { DecisionSchema } from "@/schemas/decision";
 import { ReviewSchema } from "@/schemas/review";
 import { StockSchema } from "@/schemas/stock";
@@ -80,10 +82,16 @@ export async function GET() {
           ReviewSchema.parse(review);
           return review;
         }),
+      captures: tx
+        .select()
+        .from(captures)
+        .orderBy(asc(captures.createdAt), asc(captures.id))
+        .all()
+        .map((row) => CaptureSchema.parse(row)),
     }));
 
     return new Response(
-      JSON.stringify({ formatVersion: 2, exportedAt, ...data }, null, 2),
+      JSON.stringify({ formatVersion: 3, exportedAt, ...data }, null, 2),
       {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
