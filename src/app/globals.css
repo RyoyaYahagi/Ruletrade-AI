@@ -69,6 +69,11 @@
   --radius: 0.75rem;
 }
 
+/* 押した瞬間に少し縮めて反応を返す。無効なボタンは縮めない */
+@utility pressable {
+  @apply transition-transform duration-120 ease-out not-disabled:active:scale-[0.97];
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -115,15 +120,15 @@
   }
 
   .button-primary {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50;
+    @apply pressable inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .button-soft {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50;
+    @apply pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .button-outline {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-primary px-5 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply pressable inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-primary px-5 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .input {
@@ -132,6 +137,110 @@
 
   .action-bar {
     @apply sticky bottom-0 z-10 -mx-4 mt-8 border-t bg-card px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6;
+  }
+}
+
+/*
+ * モーションは motion-reference.takayustudio.jp の定番から選ぶ。読ませる画面なので移動量は小さく保つ。
+ * prefers-reduced-motion では下の base 層の指定で、どれも最終状態だけを表示する。
+ */
+@layer utilities {
+  /* フェード＋スライド（600ms easeOutCubic）。--motion-index ごとに 60ms ずらして段差追従させる */
+  .motion-rise {
+    animation: motion-rise 600ms cubic-bezier(0.33, 1, 0.68, 1) both;
+    animation-delay: calc(var(--motion-index, 0) * 60ms);
+  }
+
+  /* ソフトライズ（ぼかしと上昇を解く）。保存結果など、操作の結果として現れるもの */
+  .motion-soft-rise {
+    animation: motion-soft-rise 700ms cubic-bezier(0.61, 1, 0.88, 1) both;
+  }
+
+  /* ポップスケール（520ms easeOutBack）。件数バッジ */
+  .motion-pop {
+    animation: motion-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms both;
+  }
+
+  /* インライン検証（620ms easeOutCubic）。メッセージ行を対象の直下へ展開する */
+  .motion-expand {
+    display: grid;
+    animation: motion-expand 620ms cubic-bezier(0.33, 1, 0.68, 1) both;
+  }
+  .motion-expand > * {
+    overflow: hidden;
+  }
+
+  /* スケルトン。実データが届くまでの骨格 */
+  .skeleton {
+    @apply rounded-md;
+    background: linear-gradient(90deg, var(--muted) 0%, #f7f8f5 50%, var(--muted) 100%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s linear infinite;
+  }
+
+  .motion-dot {
+    @apply size-1.5 rounded-full bg-current;
+    animation: motion-dot 900ms ease-in-out infinite;
+  }
+  .motion-dot:nth-child(2) {
+    animation-delay: 120ms;
+  }
+  .motion-dot:nth-child(3) {
+    animation-delay: 240ms;
+  }
+}
+
+@keyframes motion-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes motion-soft-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(6px);
+  }
+}
+
+@keyframes motion-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+@keyframes motion-expand {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes motion-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
   }
 }
 
