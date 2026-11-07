@@ -221,6 +221,13 @@ export const captures = sqliteTable(
   (table) => [index("captures_status_idx").on(table.status)],
 );
 
+export const appSettings = sqliteTable("app_settings", {
+  id: text("id").primaryKey(),
+  satelliteCapPct: real("satellite_cap_pct"),
+  satelliteWarnPct: real("satellite_warn_pct"),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const integrationRequests = sqliteTable("integration_requests", {
   clientRequestId: text("client_request_id").primaryKey().notNull(),
   endpoint: text("endpoint").notNull(),
@@ -241,5 +248,6 @@ export const schema = {
   transactionImportSources,
   importChanges,
   captures,
+  appSettings,
   integrationRequests,
 };
