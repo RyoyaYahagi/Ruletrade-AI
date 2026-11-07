@@ -170,6 +170,7 @@ export function parseRakutenFund(
       sourceBroker: "rakuten",
       sourceTradeType: tradeRaw,
       sourceRowNumber: line,
+      assetClass: "fund",
     });
   }
   return { transactions, excluded, unknown };

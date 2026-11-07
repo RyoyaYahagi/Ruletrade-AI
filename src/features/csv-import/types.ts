@@ -27,6 +27,8 @@ export type NormalizedTransaction = {
   sourceBroker: Broker;
   sourceTradeType: string;
   sourceRowNumber: number;
+  /** 投資信託のCSVから読んだ行だけ "fund"。株式・ETFの行には付かない */
+  assetClass?: "fund";
 };
 
 export type ExcludedRow = {
