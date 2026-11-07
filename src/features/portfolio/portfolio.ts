@@ -27,8 +27,56 @@ export type PortfolioHolding = {
   adjustments: string[];
 };
 
+export type RealizedProfitLossDetail = {
+  transactionId: string;
+  stockId: string;
+  executedAt: string;
+  quantity: number;
+  sellPrice: number | null;
+  averagePurchasePrice: number | null;
+  realizedProfitLoss: number | null;
+  currency: "JPY" | "USD" | null;
+  warning: string | null;
+};
+
+export type RealizedProfitLossTotal = {
+  realizedProfitLoss: number | null;
+  calculatedCount: number;
+  totalCount: number;
+};
+
+export type StockRealizedProfitLoss = RealizedProfitLossTotal & {
+  stockId: string;
+  currency: "JPY" | "USD" | null;
+};
+
+export type CurrencyRealizedProfitLoss = RealizedProfitLossTotal & {
+  currency: "JPY" | "USD" | null;
+};
+
+export type RealizedProfitLossResult = {
+  details: RealizedProfitLossDetail[];
+  byStock: StockRealizedProfitLoss[];
+  byCurrency: CurrencyRealizedProfitLoss[];
+};
+
+export type RealizedProfitLossPeriod = {
+  from?: string | null;
+  to?: string | null;
+};
+
 const OVERSELL_WARNING = "売買履歴上、保有数量を超える売却があります";
 const MIXED_CURRENCY_WARNING = "異なる通貨の取引が混在しています";
+const UNKNOWN_HOLDING_CURRENCY_WARNING =
+  "保有通貨が不明なため実現損益を計算できません";
+const CURRENCY_MISMATCH_WARNING =
+  "売却通貨が保有通貨と一致しないため実現損益を計算できません";
+const UNKNOWN_SELL_PRICE_WARNING =
+  "売却単価が不明なため実現損益を計算できません";
+const UNKNOWN_AVERAGE_PRICE_WARNING =
+  "平均取得単価が不明なため実現損益を計算できません";
+
+type PortfolioCurrency = "JPY" | "USD";
 
 function quantityEpsilon(...quantities: number[]): number {
   return Number.EPSILON * Math.max(1, ...quantities.map(Math.abs)) * 8;
@@ -37,12 +85,29 @@ function quantityEpsilon(...quantities: number[]): number {
 type Position = {
   quantity: number;
   averagePurchasePrice: number | null;
-  currency: "JPY" | "USD" | null;
+  currency: PortfolioCurrency | null;
   priceKnown: boolean;
   hasOversell: boolean;
   hasWarning: boolean;
   warningReason: string | null;
   adjustments: string[];
+};
+
+type SellSnapshot = {
+  transaction: Transaction;
+  averagePurchasePrice: number | null;
+  currency: PortfolioCurrency | null;
+  oversell: boolean;
+};
+
+type PortfolioEvent =
+  | { type: "transaction"; transaction: Transaction }
+  | { type: "action"; action: CorporateAction; stockId: string };
+
+type PortfolioEventEntry = {
+  sortAt: string;
+  sortPriority: number;
+  event: PortfolioEvent;
 };
 
 function compareDate(a: string, b: string): number {
@@ -53,7 +118,7 @@ function applyBuy(
   position: Position,
   quantity: number,
   price: number | null,
-  currency: "JPY" | "USD" | null,
+  currency: PortfolioCurrency | null,
 ): void {
   const previousQuantity = position.quantity;
   position.quantity += quantity;
@@ -90,10 +155,41 @@ function applyBuy(
   }
 }
 
-export function calculatePortfolio(
+function applySell(position: Position, quantity: number): boolean {
+  const oversell =
+    quantity - position.quantity > quantityEpsilon(quantity, position.quantity);
+  if (oversell) {
+    position.hasWarning = true;
+    position.hasOversell = true;
+    position.warningReason = OVERSELL_WARNING;
+    position.priceKnown = false;
+    position.averagePurchasePrice = null;
+    position.currency = null;
+  }
+  position.quantity -= quantity;
+  if (
+    Math.abs(position.quantity) <= quantityEpsilon(position.quantity, quantity)
+  ) {
+    position.quantity = 0;
+    position.priceKnown = true;
+    position.averagePurchasePrice = null;
+    position.currency = null;
+    if (position.warningReason === MIXED_CURRENCY_WARNING) {
+      position.hasWarning = false;
+      position.warningReason = null;
+    }
+  }
+  return oversell;
+}
+
+function buildPortfolioEvents(
   transactions: readonly Transaction[],
   stocks: readonly PortfolioStock[],
-): PortfolioHolding[] {
+): {
+  events: PortfolioEventEntry[];
+  stockById: Map<string, PortfolioStock>;
+  childStockIds: Map<string, string>;
+} {
   const eligibleStock = (stock: PortfolioStock) => {
     const market = stock.marketCode ?? stock.market ?? null;
     return market === null || market === "JP";
@@ -123,14 +219,7 @@ export function calculatePortfolio(
     childStockIds.set(action.childTicker, childStock.id);
   }
 
-  type PortfolioEvent =
-    | { type: "transaction"; transaction: Transaction }
-    | { type: "action"; action: CorporateAction; stockId: string };
-  const events: Array<{
-    sortAt: string;
-    sortPriority: number;
-    event: PortfolioEvent;
-  }> = transactions.map((transaction) => ({
+  const events: PortfolioEventEntry[] = transactions.map((transaction) => ({
     sortAt: transaction.executedAt,
     sortPriority: 1,
     event: { type: "transaction", transaction },
@@ -164,6 +253,22 @@ export function calculatePortfolio(
         : a.event.type === "action" && b.event.type === "action"
           ? a.event.action.type.localeCompare(b.event.action.type)
           : 0),
+  );
+
+  return { events, stockById, childStockIds };
+}
+
+function replayPortfolio(
+  transactions: readonly Transaction[],
+  stocks: readonly PortfolioStock[],
+  onSell?: (sell: SellSnapshot) => void,
+): {
+  positions: Map<string, Position>;
+  stockById: Map<string, PortfolioStock>;
+} {
+  const { events, stockById, childStockIds } = buildPortfolioEvents(
+    transactions,
+    stocks,
   );
   const positions = new Map<string, Position>();
 
@@ -246,36 +351,26 @@ export function calculatePortfolio(
     const amount = transaction.quantity;
 
     if (transaction.side === "sell") {
-      if (
-        amount - position.quantity >
-        quantityEpsilon(amount, position.quantity)
-      ) {
-        position.hasWarning = true;
-        position.hasOversell = true;
-        position.warningReason = OVERSELL_WARNING;
-        position.priceKnown = false;
-        position.averagePurchasePrice = null;
-        position.currency = null;
-      }
-      position.quantity -= amount;
-      if (
-        Math.abs(position.quantity) <=
-        quantityEpsilon(position.quantity, amount)
-      ) {
-        position.quantity = 0;
-        position.priceKnown = true;
-        position.averagePurchasePrice = null;
-        position.currency = null;
-        if (position.warningReason === MIXED_CURRENCY_WARNING) {
-          position.hasWarning = false;
-          position.warningReason = null;
-        }
-      }
+      const averagePurchasePrice = position.priceKnown
+        ? position.averagePurchasePrice
+        : null;
+      const currency = position.currency;
+      const oversell = applySell(position, amount);
+      onSell?.({ transaction, averagePurchasePrice, currency, oversell });
     } else {
       const transactionCurrency = transaction.priceCurrency ?? null;
       applyBuy(position, amount, transaction.price, transactionCurrency);
     }
   }
+
+  return { positions, stockById };
+}
+
+export function calculatePortfolio(
+  transactions: readonly Transaction[],
+  stocks: readonly PortfolioStock[],
+): PortfolioHolding[] {
+  const { positions, stockById } = replayPortfolio(transactions, stocks);
 
   return [...positions.entries()]
     .filter(
@@ -310,4 +405,138 @@ export function calculatePortfolio(
         adjustments: position.adjustments,
       };
     });
+}
+
+export function calculateRealizedProfitLoss(
+  transactions: readonly Transaction[],
+  stocks: readonly PortfolioStock[],
+  period: RealizedProfitLossPeriod = {},
+): RealizedProfitLossResult {
+  const sells: SellSnapshot[] = [];
+  const { stockById } = replayPortfolio(transactions, stocks, (sell) => {
+    sells.push(sell);
+  });
+
+  const details = sells.map((sell) => {
+    if (!stockById.has(sell.transaction.stockId)) {
+      throw new Error(`Portfolio stock not found: ${sell.transaction.stockId}`);
+    }
+    return realizedDetail(sell);
+  });
+  const filtered = details.filter((detail) =>
+    withinPeriod(detail.executedAt, period),
+  );
+
+  return {
+    details: filtered,
+    byStock: summarizeByStock(filtered),
+    byCurrency: summarizeByCurrency(filtered),
+  };
+}
+
+function realizedDetail(sell: SellSnapshot): RealizedProfitLossDetail {
+  const { transaction, averagePurchasePrice, currency } = sell;
+  const warning = realizedWarning(sell);
+  return {
+    transactionId: transaction.id,
+    stockId: transaction.stockId,
+    executedAt: transaction.executedAt,
+    quantity: transaction.quantity,
+    sellPrice: transaction.price,
+    averagePurchasePrice,
+    realizedProfitLoss:
+      warning === null &&
+      transaction.price !== null &&
+      averagePurchasePrice !== null
+        ? transaction.quantity * (transaction.price - averagePurchasePrice)
+        : null,
+    currency,
+    warning,
+  };
+}
+
+function realizedWarning(sell: SellSnapshot): string | null {
+  const { transaction, averagePurchasePrice, currency, oversell } = sell;
+  const sellCurrency = transaction.priceCurrency ?? currency;
+  if (oversell) return OVERSELL_WARNING;
+  if (currency === null) return UNKNOWN_HOLDING_CURRENCY_WARNING;
+  if (sellCurrency !== currency) return CURRENCY_MISMATCH_WARNING;
+  if (transaction.price === null) return UNKNOWN_SELL_PRICE_WARNING;
+  if (averagePurchasePrice === null) return UNKNOWN_AVERAGE_PRICE_WARNING;
+  return null;
+}
+
+function withinPeriod(
+  executedAt: string,
+  period: RealizedProfitLossPeriod,
+): boolean {
+  const time = Date.parse(executedAt);
+  const from = period.from == null ? null : Date.parse(period.from);
+  const to = period.to == null ? null : Date.parse(period.to);
+  return (from === null || time >= from) && (to === null || time <= to);
+}
+
+function summarizeRealizedProfitLoss(
+  details: readonly RealizedProfitLossDetail[],
+): RealizedProfitLossTotal {
+  let realizedProfitLoss = 0;
+  let calculatedCount = 0;
+  for (const detail of details) {
+    if (detail.realizedProfitLoss === null) continue;
+    realizedProfitLoss += detail.realizedProfitLoss;
+    calculatedCount += 1;
+  }
+  return {
+    realizedProfitLoss:
+      calculatedCount === details.length ? realizedProfitLoss : null,
+    calculatedCount,
+    totalCount: details.length,
+  };
+}
+
+function summarizeByStock(
+  details: readonly RealizedProfitLossDetail[],
+): StockRealizedProfitLoss[] {
+  const groups = new Map<string, RealizedProfitLossDetail[]>();
+  for (const detail of details) {
+    const key = `${detail.stockId}\u0000${detail.currency ?? ""}`;
+    const group = groups.get(key) ?? [];
+    group.push(detail);
+    groups.set(key, group);
+  }
+  return [...groups.values()]
+    .map((group) => ({
+      stockId: group[0].stockId,
+      currency: group[0].currency,
+      ...summarizeRealizedProfitLoss(group),
+    }))
+    .sort(
+      (a, b) =>
+        a.stockId.localeCompare(b.stockId) ||
+        (a.currency ?? "").localeCompare(b.currency ?? ""),
+    );
+}
+
+function summarizeByCurrency(
+  details: readonly RealizedProfitLossDetail[],
+): CurrencyRealizedProfitLoss[] {
+  const groups = new Map<
+    PortfolioCurrency | null,
+    RealizedProfitLossDetail[]
+  >();
+  for (const detail of details) {
+    const group = groups.get(detail.currency) ?? [];
+    group.push(detail);
+    groups.set(detail.currency, group);
+  }
+  return [...groups.entries()]
+    .map(([currency, group]) => ({
+      currency,
+      ...summarizeRealizedProfitLoss(group),
+    }))
+    .sort((a, b) => currencyOrder(a.currency) - currencyOrder(b.currency));
+}
+
+function currencyOrder(currency: PortfolioCurrency | null): number {
+  return currency === "JPY" ? 0 : currency === "USD" ? 1 : 2;
 }
