@@ -1,5 +1,6 @@
 import { DecisionSchema, DecisionTypeSchema } from "@/schemas/decision";
 import { OriginSchema } from "@/schemas/origin";
+import type { stocks } from "@/lib/db/schema";
 
 import type { Decision } from "@/schemas/decision";
 
@@ -45,6 +46,16 @@ export function mapDecisionRow(row: DecisionRow): Decision {
     reviewConditions: parseStringArray(row.reviewConditions),
     addConditions: parseStringArray(row.addConditions),
     origin: OriginSchema.parse(row.origin ?? "web"),
+  };
+}
+
+export function mapStockRow(row: typeof stocks.$inferSelect) {
+  return {
+    id: row.id,
+    ticker: row.ticker,
+    name: row.name,
+    market: row.market,
+    createdAt: row.createdAt,
   };
 }
 
