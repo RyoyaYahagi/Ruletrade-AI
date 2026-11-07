@@ -34,6 +34,7 @@ function valuedHolding(overrides: Partial<ValuedHolding> = {}): ValuedHolding {
     marketValue: 2400,
     unrealizedProfitLoss: 400,
     unrealizedProfitLossRate: 20,
+    realizedProfitLoss: 0,
     ...overrides,
   };
 }

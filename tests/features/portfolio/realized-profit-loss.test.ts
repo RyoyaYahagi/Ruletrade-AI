@@ -44,7 +44,7 @@ function trade(
 }
 
 describe("calculateRealizedProfitLoss", () => {
-  it("returns no details when every transaction is a purchase", () => {
+  it("returns no sales when every transaction is a purchase", () => {
     expect(
       calculateRealizedProfitLoss(
         [
@@ -53,7 +53,7 @@ describe("calculateRealizedProfitLoss", () => {
         ],
         [stock],
       ),
-    ).toEqual({ details: [], byStock: [], byCurrency: [] });
+    ).toEqual({ sales: [], stockTotals: [], totalsByCurrency: [] });
   });
 
   it("calculates a partial sale from the weighted average cost", () => {
@@ -61,40 +61,59 @@ describe("calculateRealizedProfitLoss", () => {
       [
         trade("buy-1", "buy", 100, 1000, 1),
         trade("buy-2", "buy", 100, 2000, 2),
-        trade("sell-1", "sell", 50, 2500, 3),
+        trade("sell-1", "sell", 50, 2500, 3, {
+          decisionId: "decision-1",
+        }),
       ],
       [stock],
     );
 
     // Average cost = (100 * 1000 + 100 * 2000) / 200 = 1500.
-    expect(result.details).toEqual([
+    expect(result.sales).toEqual([
       {
         transactionId: "sell-1",
         stockId: stock.id,
-        executedAt: "2026-01-03T00:00:00.000Z",
+        stockName: stock.name,
+        ticker: stock.ticker,
+        side: "sell",
         quantity: 50,
-        sellPrice: 2500,
-        averagePurchasePrice: 1500,
-        realizedProfitLoss: 50 * (2500 - 1500),
+        executedAt: "2026-01-03T00:00:00.000Z",
         currency: "JPY",
+        price: 2500,
+        priceCurrency: "JPY",
+        averagePurchasePrice: 1500,
+        proceeds: 125000,
+        costBasis: 75000,
+        fee: null,
+        feeCurrency: null,
+        realizedProfitLoss: 50000,
         warning: null,
+        decisionId: "decision-1",
       },
     ]);
-    expect(result.byStock).toEqual([
+    expect(result.stockTotals).toEqual([
       {
         stockId: stock.id,
+        stockName: stock.name,
+        ticker: stock.ticker,
         currency: "JPY",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 125000,
+        costBasis: 75000,
         realizedProfitLoss: 50000,
-        calculatedCount: 1,
-        totalCount: 1,
+        completeness: true,
       },
     ]);
-    expect(result.byCurrency).toEqual([
+    expect(result.totalsByCurrency).toEqual([
       {
         currency: "JPY",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 125000,
+        costBasis: 75000,
         realizedProfitLoss: 50000,
-        calculatedCount: 1,
-        totalCount: 1,
+        completeness: true,
       },
     ]);
   });
@@ -111,7 +130,7 @@ describe("calculateRealizedProfitLoss", () => {
     );
 
     expect(
-      result.details.map(
+      result.sales.map(
         ({ transactionId, averagePurchasePrice, realizedProfitLoss }) => ({
           transactionId,
           averagePurchasePrice,
@@ -130,10 +149,11 @@ describe("calculateRealizedProfitLoss", () => {
         realizedProfitLoss: 20 * (3500 - 3000),
       },
     ]);
-    expect(result.byCurrency[0]).toMatchObject({
+    expect(result.totalsByCurrency[0]).toMatchObject({
+      saleCount: 2,
+      computedCount: 2,
       realizedProfitLoss: 30000,
-      calculatedCount: 2,
-      totalCount: 2,
+      completeness: true,
     });
   });
 
@@ -162,21 +182,28 @@ describe("calculateRealizedProfitLoss", () => {
       );
 
       // 10 shares of 1000 become 100 shares of 100 after the 1:10 split.
-      expect(result.details[0]).toMatchObject({
+      expect(result.sales[0]).toMatchObject({
         quantity: 6,
-        sellPrice: 200,
+        price: 200,
         averagePurchasePrice: 100,
-        realizedProfitLoss: 6 * (200 - 100),
+        proceeds: 1200,
+        costBasis: 600,
+        realizedProfitLoss: 600,
         currency: "JPY",
         warning: null,
       });
-      expect(result.byStock).toEqual([
+      expect(result.stockTotals).toEqual([
         {
           stockId: furukawa.id,
+          stockName: furukawa.name,
+          ticker: furukawa.ticker,
           currency: "JPY",
+          saleCount: 1,
+          computedCount: 1,
+          proceeds: 1200,
+          costBasis: 600,
           realizedProfitLoss: 600,
-          calculatedCount: 1,
-          totalCount: 1,
+          completeness: true,
         },
       ]);
     } finally {
@@ -201,40 +228,56 @@ describe("calculateRealizedProfitLoss", () => {
       [stock, usdStock],
     );
 
-    expect(result.byStock).toEqual([
+    expect(result.stockTotals).toEqual([
       {
         stockId: stock.id,
+        stockName: stock.name,
+        ticker: stock.ticker,
         currency: "JPY",
-        realizedProfitLoss: 50 * (1200 - 1000),
-        calculatedCount: 1,
-        totalCount: 1,
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 60000,
+        costBasis: 50000,
+        realizedProfitLoss: 10000,
+        completeness: true,
       },
       {
         stockId: usdStock.id,
+        stockName: usdStock.name,
+        ticker: usdStock.ticker,
         currency: "USD",
-        realizedProfitLoss: 5 * (120 - 100),
-        calculatedCount: 1,
-        totalCount: 1,
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 600,
+        costBasis: 500,
+        realizedProfitLoss: 100,
+        completeness: true,
       },
     ]);
-    expect(result.byCurrency).toEqual([
+    expect(result.totalsByCurrency).toEqual([
       {
         currency: "JPY",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 60000,
+        costBasis: 50000,
         realizedProfitLoss: 10000,
-        calculatedCount: 1,
-        totalCount: 1,
+        completeness: true,
       },
       {
         currency: "USD",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 600,
+        costBasis: 500,
         realizedProfitLoss: 100,
-        calculatedCount: 1,
-        totalCount: 1,
+        completeness: true,
       },
     ]);
-    expect(result.byCurrency).toHaveLength(2);
+    expect(result.totalsByCurrency).toHaveLength(2);
   });
 
-  it("ignores fees on both purchases and sales", () => {
+  it("returns fees as reference values without subtracting them", () => {
     const result = calculateRealizedProfitLoss(
       [
         trade("buy", "buy", 10, 1000, 1, {
@@ -249,12 +292,16 @@ describe("calculateRealizedProfitLoss", () => {
       [stock],
     );
 
-    expect(result.details[0]).toMatchObject({
+    expect(result.sales[0]).toMatchObject({
       averagePurchasePrice: 1000,
-      sellPrice: 1200,
+      price: 1200,
+      fee: 300,
+      feeCurrency: "JPY",
+      proceeds: 12000,
+      costBasis: 10000,
       realizedProfitLoss: 10 * (1200 - 1000),
     });
-    expect(result.byCurrency[0].realizedProfitLoss).toBe(2000);
+    expect(result.totalsByCurrency[0].realizedProfitLoss).toBe(2000);
   });
 
   it("keeps an unknown-price sale with a warning and an incomplete total", () => {
@@ -266,31 +313,48 @@ describe("calculateRealizedProfitLoss", () => {
       [stock],
     );
 
-    expect(result.details).toEqual([
+    expect(result.sales).toEqual([
       {
         transactionId: "sell-unknown-price",
         stockId: stock.id,
-        executedAt: "2026-01-02T00:00:00.000Z",
+        stockName: stock.name,
+        ticker: stock.ticker,
+        side: "sell",
         quantity: 5,
-        sellPrice: null,
-        averagePurchasePrice: 1000,
-        realizedProfitLoss: null,
+        executedAt: "2026-01-02T00:00:00.000Z",
         currency: "JPY",
+        price: null,
+        priceCurrency: "JPY",
+        averagePurchasePrice: 1000,
+        proceeds: null,
+        costBasis: 5000,
+        fee: null,
+        feeCurrency: null,
+        realizedProfitLoss: null,
         warning: "売却単価が不明なため実現損益を計算できません",
+        decisionId: null,
       },
     ]);
-    expect(result.byStock[0]).toEqual({
+    expect(result.stockTotals[0]).toEqual({
       stockId: stock.id,
+      stockName: stock.name,
+      ticker: stock.ticker,
       currency: "JPY",
+      saleCount: 1,
+      computedCount: 0,
+      proceeds: null,
+      costBasis: null,
       realizedProfitLoss: null,
-      calculatedCount: 0,
-      totalCount: 1,
+      completeness: false,
     });
-    expect(result.byCurrency[0]).toEqual({
+    expect(result.totalsByCurrency[0]).toEqual({
       currency: "JPY",
+      saleCount: 1,
+      computedCount: 0,
+      proceeds: null,
+      costBasis: null,
       realizedProfitLoss: null,
-      calculatedCount: 0,
-      totalCount: 1,
+      completeness: false,
     });
   });
 
@@ -305,18 +369,26 @@ describe("calculateRealizedProfitLoss", () => {
     );
 
     // 5 * (1200 - 1000) = 1000 is calculable, but the second sale is not.
-    expect(result.byStock[0]).toEqual({
+    expect(result.stockTotals[0]).toEqual({
       stockId: stock.id,
+      stockName: stock.name,
+      ticker: stock.ticker,
       currency: "JPY",
+      saleCount: 2,
+      computedCount: 1,
+      proceeds: null,
+      costBasis: null,
       realizedProfitLoss: null,
-      calculatedCount: 1,
-      totalCount: 2,
+      completeness: false,
     });
-    expect(result.byCurrency[0]).toEqual({
+    expect(result.totalsByCurrency[0]).toEqual({
       currency: "JPY",
+      saleCount: 2,
+      computedCount: 1,
+      proceeds: null,
+      costBasis: null,
       realizedProfitLoss: null,
-      calculatedCount: 1,
-      totalCount: 2,
+      completeness: false,
     });
   });
 
@@ -329,15 +401,18 @@ describe("calculateRealizedProfitLoss", () => {
       [stock],
     );
 
-    expect(result.details[0]).toMatchObject({
+    expect(result.sales[0]).toMatchObject({
       averagePurchasePrice: null,
+      proceeds: 6000,
+      costBasis: null,
       realizedProfitLoss: null,
       warning: "平均取得単価が不明なため実現損益を計算できません",
     });
-    expect(result.byCurrency[0]).toMatchObject({
+    expect(result.totalsByCurrency[0]).toMatchObject({
+      saleCount: 1,
+      computedCount: 0,
       realizedProfitLoss: null,
-      calculatedCount: 0,
-      totalCount: 1,
+      completeness: false,
     });
   });
 
@@ -350,24 +425,36 @@ describe("calculateRealizedProfitLoss", () => {
       [stock],
     );
 
-    expect(result.details).toEqual([
+    expect(result.sales).toEqual([
       {
         transactionId: "oversell",
         stockId: stock.id,
-        executedAt: "2026-01-02T00:00:00.000Z",
+        stockName: stock.name,
+        ticker: stock.ticker,
+        side: "sell",
         quantity: 15,
-        sellPrice: 1200,
-        averagePurchasePrice: 1000,
-        realizedProfitLoss: null,
+        executedAt: "2026-01-02T00:00:00.000Z",
         currency: "JPY",
+        price: 1200,
+        priceCurrency: "JPY",
+        averagePurchasePrice: 1000,
+        proceeds: 18000,
+        costBasis: 15000,
+        fee: null,
+        feeCurrency: null,
+        realizedProfitLoss: null,
         warning: "売買履歴上、保有数量を超える売却があります",
+        decisionId: null,
       },
     ]);
-    expect(result.byCurrency[0]).toEqual({
+    expect(result.totalsByCurrency[0]).toEqual({
       currency: "JPY",
+      saleCount: 1,
+      computedCount: 0,
+      proceeds: null,
+      costBasis: null,
       realizedProfitLoss: null,
-      calculatedCount: 0,
-      totalCount: 1,
+      completeness: false,
     });
   });
 
@@ -382,18 +469,24 @@ describe("calculateRealizedProfitLoss", () => {
       [stock],
     );
 
-    expect(result.details[0]).toMatchObject({
-      sellPrice: 120,
+    expect(result.sales[0]).toMatchObject({
+      price: 120,
+      priceCurrency: "USD",
       averagePurchasePrice: 1000,
+      proceeds: null,
+      costBasis: 5000,
       realizedProfitLoss: null,
       currency: "JPY",
       warning: "売却通貨が保有通貨と一致しないため実現損益を計算できません",
     });
-    expect(result.byCurrency[0]).toEqual({
+    expect(result.totalsByCurrency[0]).toEqual({
       currency: "JPY",
+      saleCount: 1,
+      computedCount: 0,
+      proceeds: null,
+      costBasis: null,
       realizedProfitLoss: null,
-      calculatedCount: 0,
-      totalCount: 1,
+      completeness: false,
     });
   });
 
@@ -412,8 +505,11 @@ describe("calculateRealizedProfitLoss", () => {
       [usdStock],
     );
 
-    expect(result.details[0]).toMatchObject({
+    expect(result.sales[0]).toMatchObject({
       averagePurchasePrice: 100,
+      priceCurrency: null,
+      proceeds: 600,
+      costBasis: 500,
       realizedProfitLoss: 5 * (120 - 100),
       currency: "USD",
       warning: null,
@@ -433,65 +529,135 @@ describe("calculateRealizedProfitLoss", () => {
       [stock],
     );
 
-    expect(result.details[0]).toMatchObject({
+    expect(result.sales[0]).toMatchObject({
       averagePurchasePrice: null,
+      proceeds: 6000,
+      costBasis: null,
       realizedProfitLoss: null,
       currency: null,
       warning: "保有通貨が不明なため実現損益を計算できません",
     });
-    expect(result.byCurrency).toEqual([
+    expect(result.totalsByCurrency).toEqual([
       {
         currency: null,
+        saleCount: 1,
+        computedCount: 0,
+        proceeds: null,
+        costBasis: null,
         realizedProfitLoss: null,
-        calculatedCount: 0,
-        totalCount: 1,
+        completeness: false,
       },
     ]);
   });
 
-  it("filters details and totals by the inclusive execution period", () => {
+  it("filters sales and totals by inclusive JST execution days after replaying all history", () => {
     const transactions = [
       trade("buy", "buy", 100, 1000, 1),
-      trade("sell-early", "sell", 10, 1100, 5, {
-        executedAt: "2026-01-05T12:00:00.000Z",
+      // 2026-01-04 23:59 JST: outside a from=2026-01-05 period.
+      trade("sell-before", "sell", 1, 1000, 4, {
+        executedAt: "2026-01-04T14:59:59.999Z",
       }),
-      trade("sell-start", "sell", 20, 1200, 10, {
-        executedAt: "2026-01-10T00:00:00.000Z",
+      // 2026-01-05 00:00 JST: included at the lower boundary.
+      trade("sell-start", "sell", 20, 1200, 5, {
+        executedAt: "2026-01-04T15:00:00.000Z",
       }),
+      // 2026-01-15 23:59:59.999 JST: included at the upper boundary.
       trade("sell-end", "sell", 5, 900, 15, {
-        executedAt: "2026-01-15T00:00:00.000Z",
+        executedAt: "2026-01-15T14:59:59.999Z",
+      }),
+      // 2026-01-16 00:00 JST: outside a to=2026-01-15 period.
+      trade("sell-after", "sell", 1, 900, 16, {
+        executedAt: "2026-01-15T15:00:00.000Z",
       }),
     ];
 
     const result = calculateRealizedProfitLoss(transactions, [stock], {
-      from: "2026-01-10T00:00:00.000Z",
-      to: "2026-01-15T00:00:00.000Z",
+      from: "2026-01-05",
+      to: "2026-01-15",
     });
 
-    expect(result.details.map(({ transactionId }) => transactionId)).toEqual([
+    expect(result.sales.map(({ transactionId }) => transactionId)).toEqual([
       "sell-start",
       "sell-end",
     ]);
-    // Average cost stays 1000: 20 * (1200 - 1000) + 5 * (900 - 1000) = 3500.
-    expect(result.byCurrency).toEqual([
+    // Average cost stays 1000 from the pre-period purchase.
+    // 20 * (1200 - 1000) + 5 * (900 - 1000) = 3500.
+    expect(result.totalsByCurrency).toEqual([
       {
         currency: "JPY",
+        saleCount: 2,
+        computedCount: 2,
+        proceeds: 28500,
+        costBasis: 25000,
         realizedProfitLoss: 3500,
-        calculatedCount: 2,
-        totalCount: 2,
+        completeness: true,
       },
     ]);
 
     expect(
       calculateRealizedProfitLoss(transactions, [stock], {
-        from: "2026-01-05T12:00:00.000Z",
-      }).details.map(({ transactionId }) => transactionId),
-    ).toEqual(["sell-early", "sell-start", "sell-end"]);
+        from: "2026-01-05",
+      }).sales.map(({ transactionId }) => transactionId),
+    ).toEqual(["sell-start", "sell-end", "sell-after"]);
     expect(
       calculateRealizedProfitLoss(transactions, [stock], {
-        to: "2026-01-05T12:00:00.000Z",
-      }).details.map(({ transactionId }) => transactionId),
-    ).toEqual(["sell-early"]);
+        to: "2026-01-05",
+      }).sales.map(({ transactionId }) => transactionId),
+    ).toEqual(["sell-before", "sell-start"]);
+  });
+
+  it("limits sales and totals to the requested stock without changing the cost replay", () => {
+    const result = calculateRealizedProfitLoss(
+      [
+        trade("jpy-buy", "buy", 10, 1000, 1),
+        trade("jpy-sell", "sell", 5, 1200, 2),
+        trade("usd-buy", "buy", 10, 100, 1, {
+          stockId: usdStock.id,
+          priceCurrency: "USD",
+        }),
+        trade("usd-sell", "sell", 5, 120, 2, {
+          stockId: usdStock.id,
+          priceCurrency: "USD",
+        }),
+      ],
+      [stock, usdStock],
+      { stockId: usdStock.id },
+    );
+
+    expect(result.sales.map(({ transactionId }) => transactionId)).toEqual([
+      "usd-sell",
+    ]);
+    expect(result.stockTotals.map(({ stockId }) => stockId)).toEqual([
+      usdStock.id,
+    ]);
+    expect(result.totalsByCurrency).toEqual([
+      {
+        currency: "USD",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: 600,
+        costBasis: 500,
+        realizedProfitLoss: 100,
+        completeness: true,
+      },
+    ]);
+  });
+
+  it("includes fully sold stocks in the results", () => {
+    const result = calculateRealizedProfitLoss(
+      [
+        trade("buy", "buy", 10, 1000, 1),
+        trade("sell-all", "sell", 10, 1200, 2),
+      ],
+      [stock],
+    );
+
+    expect(result.sales).toHaveLength(1);
+    expect(result.stockTotals[0]).toMatchObject({
+      stockId: stock.id,
+      saleCount: 1,
+      realizedProfitLoss: 2000,
+    });
   });
 
   it("throws for a sale whose stock is not in the stock list", () => {

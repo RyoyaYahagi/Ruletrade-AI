@@ -4,6 +4,7 @@ import {
   SONY_FINANCIAL_STOCK,
   type CorporateAction,
 } from "@/features/portfolio/corporate-actions";
+import { japanDate } from "@/features/transactions/matching";
 
 export type PortfolioStock = {
   id: string;
@@ -27,42 +28,53 @@ export type PortfolioHolding = {
   adjustments: string[];
 };
 
-export type RealizedProfitLossDetail = {
+export type RealizedSale = {
   transactionId: string;
   stockId: string;
-  executedAt: string;
+  stockName: string;
+  ticker: string | null;
+  side: "sell";
   quantity: number;
-  sellPrice: number | null;
+  executedAt: string;
+  currency: "JPY" | "USD" | null;
+  price: number | null;
+  priceCurrency: "JPY" | "USD" | null;
   averagePurchasePrice: number | null;
+  proceeds: number | null;
+  costBasis: number | null;
+  fee: number | null;
+  feeCurrency: "JPY" | "USD" | null;
   realizedProfitLoss: number | null;
-  currency: "JPY" | "USD" | null;
   warning: string | null;
+  decisionId: string | null;
 };
 
-export type RealizedProfitLossTotal = {
+export type RealizedTotals = {
+  currency: "JPY" | "USD" | null;
+  saleCount: number;
+  computedCount: number;
+  proceeds: number | null;
+  costBasis: number | null;
   realizedProfitLoss: number | null;
-  calculatedCount: number;
-  totalCount: number;
+  completeness: boolean;
 };
 
-export type StockRealizedProfitLoss = RealizedProfitLossTotal & {
+export type RealizedStockTotals = RealizedTotals & {
   stockId: string;
-  currency: "JPY" | "USD" | null;
-};
-
-export type CurrencyRealizedProfitLoss = RealizedProfitLossTotal & {
-  currency: "JPY" | "USD" | null;
+  stockName: string;
+  ticker: string | null;
 };
 
 export type RealizedProfitLossResult = {
-  details: RealizedProfitLossDetail[];
-  byStock: StockRealizedProfitLoss[];
-  byCurrency: CurrencyRealizedProfitLoss[];
+  sales: RealizedSale[];
+  stockTotals: RealizedStockTotals[];
+  totalsByCurrency: RealizedTotals[];
 };
 
 export type RealizedProfitLossPeriod = {
   from?: string | null;
   to?: string | null;
+  stockId?: string | null;
 };
 
 const OVERSELL_WARNING = "売買履歴上、保有数量を超える売却があります";
@@ -417,41 +429,69 @@ export function calculateRealizedProfitLoss(
     sells.push(sell);
   });
 
-  const details = sells.map((sell) => {
-    if (!stockById.has(sell.transaction.stockId)) {
-      throw new Error(`Portfolio stock not found: ${sell.transaction.stockId}`);
-    }
-    return realizedDetail(sell);
-  });
-  const filtered = details.filter((detail) =>
-    withinPeriod(detail.executedAt, period),
-  );
+  const sales = sells
+    .map((sell) => {
+      const stock = stockById.get(sell.transaction.stockId);
+      if (!stock) {
+        throw new Error(
+          `Portfolio stock not found: ${sell.transaction.stockId}`,
+        );
+      }
+      return realizedSale(sell, stock);
+    })
+    .filter(
+      (sale) =>
+        withinPeriod(sale.executedAt, period) &&
+        (period.stockId == null || sale.stockId === period.stockId),
+    )
+    .sort(
+      (a, b) =>
+        a.executedAt.localeCompare(b.executedAt) ||
+        a.transactionId.localeCompare(b.transactionId),
+    );
 
   return {
-    details: filtered,
-    byStock: summarizeByStock(filtered),
-    byCurrency: summarizeByCurrency(filtered),
+    sales,
+    stockTotals: summarizeByStock(sales),
+    totalsByCurrency: summarizeByCurrency(sales),
   };
 }
 
-function realizedDetail(sell: SellSnapshot): RealizedProfitLossDetail {
+function realizedSale(sell: SellSnapshot, stock: PortfolioStock): RealizedSale {
   const { transaction, averagePurchasePrice, currency } = sell;
   const warning = realizedWarning(sell);
+  const sellCurrency = transaction.priceCurrency ?? currency;
+  const proceeds =
+    transaction.price !== null &&
+    (currency === null || sellCurrency === currency)
+      ? transaction.quantity * transaction.price
+      : null;
+  const costBasis =
+    averagePurchasePrice === null
+      ? null
+      : transaction.quantity * averagePurchasePrice;
   return {
     transactionId: transaction.id,
     stockId: transaction.stockId,
-    executedAt: transaction.executedAt,
+    stockName: stock.name,
+    ticker: stock.ticker,
+    side: "sell",
     quantity: transaction.quantity,
-    sellPrice: transaction.price,
-    averagePurchasePrice,
-    realizedProfitLoss:
-      warning === null &&
-      transaction.price !== null &&
-      averagePurchasePrice !== null
-        ? transaction.quantity * (transaction.price - averagePurchasePrice)
-        : null,
+    executedAt: transaction.executedAt,
     currency,
+    price: transaction.price,
+    priceCurrency: transaction.priceCurrency ?? null,
+    averagePurchasePrice,
+    proceeds,
+    costBasis,
+    fee: transaction.fee,
+    feeCurrency: transaction.feeCurrency ?? null,
+    realizedProfitLoss:
+      warning === null && proceeds !== null && costBasis !== null
+        ? proceeds - costBasis
+        : null,
     warning,
+    decisionId: transaction.decisionId,
   };
 }
 
@@ -470,64 +510,70 @@ function withinPeriod(
   executedAt: string,
   period: RealizedProfitLossPeriod,
 ): boolean {
-  const time = Date.parse(executedAt);
-  const from = period.from == null ? null : Date.parse(period.from);
-  const to = period.to == null ? null : Date.parse(period.to);
-  return (from === null || time >= from) && (to === null || time <= to);
+  const executedOn = japanDate(executedAt);
+  return (
+    (period.from == null || executedOn >= period.from) &&
+    (period.to == null || executedOn <= period.to)
+  );
 }
 
 function summarizeRealizedProfitLoss(
-  details: readonly RealizedProfitLossDetail[],
-): RealizedProfitLossTotal {
+  sales: readonly RealizedSale[],
+): Omit<RealizedTotals, "currency"> {
+  let proceeds = 0;
+  let costBasis = 0;
   let realizedProfitLoss = 0;
-  let calculatedCount = 0;
-  for (const detail of details) {
-    if (detail.realizedProfitLoss === null) continue;
-    realizedProfitLoss += detail.realizedProfitLoss;
-    calculatedCount += 1;
+  let computedCount = 0;
+  for (const sale of sales) {
+    if (sale.realizedProfitLoss === null) continue;
+    proceeds += sale.proceeds!;
+    costBasis += sale.costBasis!;
+    realizedProfitLoss += sale.realizedProfitLoss;
+    computedCount += 1;
   }
+  const completeness = computedCount === sales.length;
   return {
-    realizedProfitLoss:
-      calculatedCount === details.length ? realizedProfitLoss : null,
-    calculatedCount,
-    totalCount: details.length,
+    saleCount: sales.length,
+    computedCount,
+    proceeds: completeness ? proceeds : null,
+    costBasis: completeness ? costBasis : null,
+    realizedProfitLoss: completeness ? realizedProfitLoss : null,
+    completeness,
   };
 }
 
 function summarizeByStock(
-  details: readonly RealizedProfitLossDetail[],
-): StockRealizedProfitLoss[] {
-  const groups = new Map<string, RealizedProfitLossDetail[]>();
-  for (const detail of details) {
-    const key = `${detail.stockId}\u0000${detail.currency ?? ""}`;
+  sales: readonly RealizedSale[],
+): RealizedStockTotals[] {
+  const groups = new Map<string, RealizedSale[]>();
+  for (const sale of sales) {
+    const key = `${sale.stockId}\u0000${sale.currency ?? ""}`;
     const group = groups.get(key) ?? [];
-    group.push(detail);
+    group.push(sale);
     groups.set(key, group);
   }
   return [...groups.values()]
     .map((group) => ({
       stockId: group[0].stockId,
+      stockName: group[0].stockName,
+      ticker: group[0].ticker,
       currency: group[0].currency,
       ...summarizeRealizedProfitLoss(group),
     }))
     .sort(
       (a, b) =>
+        a.stockName.localeCompare(b.stockName, "ja") ||
         a.stockId.localeCompare(b.stockId) ||
-        (a.currency ?? "").localeCompare(b.currency ?? ""),
+        currencyOrder(a.currency) - currencyOrder(b.currency),
     );
 }
 
-function summarizeByCurrency(
-  details: readonly RealizedProfitLossDetail[],
-): CurrencyRealizedProfitLoss[] {
-  const groups = new Map<
-    PortfolioCurrency | null,
-    RealizedProfitLossDetail[]
-  >();
-  for (const detail of details) {
-    const group = groups.get(detail.currency) ?? [];
-    group.push(detail);
-    groups.set(detail.currency, group);
+function summarizeByCurrency(sales: readonly RealizedSale[]): RealizedTotals[] {
+  const groups = new Map<PortfolioCurrency | null, RealizedSale[]>();
+  for (const sale of sales) {
+    const group = groups.get(sale.currency) ?? [];
+    group.push(sale);
+    groups.set(sale.currency, group);
   }
   return [...groups.entries()]
     .map(([currency, group]) => ({
@@ -539,4 +585,36 @@ function summarizeByCurrency(
 
 function currencyOrder(currency: PortfolioCurrency | null): number {
   return currency === "JPY" ? 0 : currency === "USD" ? 1 : 2;
+}
+
+/**
+ * Realized profit/loss for one holding in its own currency. A currency with no
+ * sales has a known total of zero; any uncomputable sale makes it unknown.
+ */
+export function realizedProfitLossForStock(
+  result: RealizedProfitLossResult,
+  stockId: string,
+  currency: PortfolioCurrency | null,
+): number | null {
+  const groups = result.stockTotals.filter(
+    (total) => total.stockId === stockId && total.currency === currency,
+  );
+  if (groups.length === 0) return 0;
+  return groups.every((group) => group.completeness)
+    ? groups.reduce((sum, group) => sum + group.realizedProfitLoss!, 0)
+    : null;
+}
+
+/**
+ * Currency-wide realized profit/loss. A currency with no sales has a known
+ * total of zero; a currency with an uncomputable sale is unknown.
+ */
+export function realizedProfitLossForCurrency(
+  result: RealizedProfitLossResult,
+  currency: PortfolioCurrency,
+): number | null {
+  const group = result.totalsByCurrency.find(
+    (total) => total.currency === currency,
+  );
+  return group === undefined ? 0 : group.realizedProfitLoss;
 }

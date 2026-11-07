@@ -309,3 +309,71 @@ test("shows delivered Sony Financial shares and opens their existing stock page"
     }
   }
 });
+
+test("shows realized profit/loss from sells next to unrealized profit/loss", async ({
+  page,
+}) => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const stockId = `portfolio-realized-${suffix}`;
+  const stockName = `実現損益検証-${suffix}`;
+  const databasePath = path.join(process.cwd(), ".data/e2e-test.sqlite");
+  const database = new Database(databasePath);
+  try {
+    // Visit first so the app initializes the shared test database and schema.
+    await page.goto("/");
+    database.pragma("foreign_keys = ON");
+    database
+      .prepare(
+        `INSERT INTO stocks (id, ticker, name, normalized_name, market, market_code, created_at)
+         VALUES (?, ?, ?, ?, 'JP', 'JP', ?)`,
+      )
+      .run(
+        stockId,
+        `R06${suffix.slice(-4)}`,
+        stockName,
+        stockName,
+        "2099-01-01T00:00:00.000Z",
+      );
+    const insertTransaction = database.prepare(
+      `INSERT INTO transactions (id, stock_id, side, quantity, price, fee, executed_at, decision_id, created_at, price_currency)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, ?, 'JPY')`,
+    );
+    insertTransaction.run(
+      `${stockId}-buy`,
+      stockId,
+      "buy",
+      10,
+      1000,
+      "2026-01-01T00:00:00.000Z",
+      "2099-01-01T00:00:00.000Z",
+    );
+    insertTransaction.run(
+      `${stockId}-sell`,
+      stockId,
+      "sell",
+      4,
+      1500,
+      "2026-02-01T00:00:00.000Z",
+      "2099-01-01T00:00:00.000Z",
+    );
+
+    await page.goto("/portfolio");
+    await expect(
+      page.getByRole("heading", { name: "ポートフォリオ", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("実現損益（売却済み）")).toBeVisible();
+    await expect(page.getByText("+2,000円").first()).toBeVisible();
+
+    const row = page
+      .locator('section[aria-labelledby="portfolio-holdings-heading"] li')
+      .filter({ hasText: stockName });
+    await expect(row).toHaveCount(1);
+    await row.getByRole("button").click();
+    await expect(row).toContainText("実現損益");
+    await expect(row).toContainText("+2,000円");
+  } finally {
+    database.pragma("foreign_keys = ON");
+    database.prepare("DELETE FROM stocks WHERE id = ?").run(stockId);
+    database.close();
+  }
+});

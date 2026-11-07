@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   afterAll,
   beforeAll,
@@ -229,6 +230,7 @@ let routes: {
   stocks: typeof import("@/app/api/integration/v1/stocks/route");
   stock: typeof import("@/app/api/integration/v1/stocks/[id]/route");
   transactions: typeof import("@/app/api/integration/v1/transactions/route");
+  realizedPnl: typeof import("@/app/api/integration/v1/realized-pnl/route");
   notFound: typeof import("@/app/api/integration/v1/[[...path]]/route");
 };
 
@@ -245,6 +247,7 @@ beforeAll(async () => {
     stocks: await import("@/app/api/integration/v1/stocks/route"),
     stock: await import("@/app/api/integration/v1/stocks/[id]/route"),
     transactions: await import("@/app/api/integration/v1/transactions/route"),
+    realizedPnl: await import("@/app/api/integration/v1/realized-pnl/route"),
     notFound: await import("@/app/api/integration/v1/[[...path]]/route"),
   };
 });
@@ -458,6 +461,7 @@ describe("common response shape", () => {
         stockContext(STOCK_A.id),
       ),
       await routes.transactions.GET(apiRequest("/transactions")),
+      await routes.realizedPnl.GET(apiRequest("/realized-pnl")),
     ];
 
     for (const response of responses) {
@@ -625,7 +629,7 @@ describe("GET /holdings", () => {
       marketValue: { amount: 224000, currency: "JPY" },
       unrealizedProfitLoss: { amount: 24000, currency: "JPY" },
       unrealizedProfitLossRate: 12,
-      realizedProfitLoss: null,
+      realizedProfitLoss: { amount: 6000, currency: "JPY" },
     });
 
     const totals = data.totalsByCurrency as Array<Record<string, unknown>>;
@@ -637,7 +641,7 @@ describe("GET /holdings", () => {
       acquisitionAmount: { amount: 1000000, currency: "JPY" },
       unrealizedProfitLoss: { amount: 74000, currency: "JPY" },
       unrealizedProfitLossRate: (74000 / 1000000) * 100,
-      realizedProfitLoss: null,
+      realizedProfitLoss: { amount: 6000, currency: "JPY" },
       completeness: {
         marketValue: true,
         acquisitionAmount: true,
@@ -651,7 +655,7 @@ describe("GET /holdings", () => {
       acquisitionAmount: { amount: 1500, currency: "USD" },
       unrealizedProfitLoss: { amount: 150, currency: "USD" },
       unrealizedProfitLossRate: 10,
-      realizedProfitLoss: null,
+      realizedProfitLoss: { amount: 0, currency: "USD" },
       completeness: {
         marketValue: true,
         acquisitionAmount: true,
@@ -692,7 +696,7 @@ describe("GET /holdings", () => {
       marketValue: null,
       unrealizedProfitLoss: null,
       unrealizedProfitLossRate: null,
-      realizedProfitLoss: null,
+      realizedProfitLoss: { amount: 0, currency: "JPY" },
     });
 
     const totals = data.totalsByCurrency as Array<Record<string, unknown>>;
@@ -727,6 +731,299 @@ describe("GET /holdings", () => {
       quantity: 80,
       acquisitionAmount: { amount: 200000, currency: "JPY" },
       quoteError: "市場価格を取得できませんでした",
+    });
+  });
+});
+
+describe("GET /realized-pnl", () => {
+  it("returns the sale, the stock total, and the currency total with the spec field names", async () => {
+    const response = await routes.realizedPnl.GET(apiRequest("/realized-pnl"));
+    expect(response.status).toBe(200);
+    const data = await readData(response);
+
+    expect(data.sales).toEqual([
+      {
+        transactionId: TRANSACTION_A_SELL.id,
+        stockId: STOCK_A.id,
+        stockName: STOCK_A.name,
+        ticker: STOCK_A.ticker,
+        side: "sell",
+        quantity: 20,
+        executedAt: TRANSACTION_A_SELL.executedAt,
+        currency: "JPY",
+        price: { amount: 2800, currency: "JPY" },
+        averagePurchasePrice: { amount: 2500, currency: "JPY" },
+        proceeds: { amount: 56000, currency: "JPY" },
+        costBasis: { amount: 50000, currency: "JPY" },
+        fee: null,
+        realizedProfitLoss: { amount: 6000, currency: "JPY" },
+        warning: null,
+        decisionId: null,
+      },
+    ]);
+    expect(data.stockTotals).toEqual([
+      {
+        stockId: STOCK_A.id,
+        stockName: STOCK_A.name,
+        ticker: STOCK_A.ticker,
+        currency: "JPY",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: { amount: 56000, currency: "JPY" },
+        costBasis: { amount: 50000, currency: "JPY" },
+        realizedProfitLoss: { amount: 6000, currency: "JPY" },
+        completeness: true,
+      },
+    ]);
+    expect(data.totalsByCurrency).toEqual([
+      {
+        currency: "JPY",
+        saleCount: 1,
+        computedCount: 1,
+        proceeds: { amount: 56000, currency: "JPY" },
+        costBasis: { amount: 50000, currency: "JPY" },
+        realizedProfitLoss: { amount: 6000, currency: "JPY" },
+        completeness: true,
+      },
+    ]);
+    expect(data).not.toHaveProperty("total");
+  });
+
+  it("filters the output by inclusive JST dates and validates the range", async () => {
+    const included = await readData(
+      await routes.realizedPnl.GET(
+        apiRequest("/realized-pnl?from=2026-11-07&to=2026-11-07"),
+      ),
+    );
+    expect(included.sales).toHaveLength(1);
+
+    const excluded = await readData(
+      await routes.realizedPnl.GET(apiRequest("/realized-pnl?from=2026-11-08")),
+    );
+    expect(excluded.sales).toEqual([]);
+    expect(excluded.stockTotals).toEqual([]);
+    expect(excluded.totalsByCurrency).toEqual([]);
+
+    for (const pathname of [
+      "/realized-pnl?from=2026-11-08&to=2026-11-07",
+      "/realized-pnl?from=2026-13-01",
+      "/realized-pnl?to=2026-02-30",
+    ]) {
+      const response = await routes.realizedPnl.GET(apiRequest(pathname));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        error: { code: "validation_error" },
+      });
+    }
+  });
+
+  it("filters by stockId and returns 404 for an unknown stock", async () => {
+    const other = await readData(
+      await routes.realizedPnl.GET(
+        apiRequest(`/realized-pnl?stockId=${STOCK_B.id}`),
+      ),
+    );
+    expect(other.sales).toEqual([]);
+
+    const filtered = await readData(
+      await routes.realizedPnl.GET(
+        apiRequest(`/realized-pnl?stockId=${STOCK_A.id}`),
+      ),
+    );
+    expect(filtered.sales).toHaveLength(1);
+    expect(filtered.sales[0]).toMatchObject({ stockId: STOCK_A.id });
+
+    const missing = await routes.realizedPnl.GET(
+      apiRequest("/realized-pnl?stockId=missing-stock"),
+    );
+    expect(missing.status).toBe(404);
+    expect(await missing.json()).toMatchObject({
+      error: { code: "not_found" },
+    });
+  });
+
+  it("keeps JPY and USD totals separate", async () => {
+    dbModule
+      .getDb()
+      .insert(schema.transactions)
+      .values({
+        ...TRANSACTION_B_BUY,
+        id: "transaction-b-sell",
+        side: "sell",
+        quantity: 5,
+        price: 165,
+        executedAt: "2026-11-07T00:00:00.000Z",
+        createdAt: "2026-11-07T00:05:00.000Z",
+        decisionId: null,
+      })
+      .run();
+
+    const data = await readData(
+      await routes.realizedPnl.GET(apiRequest("/realized-pnl")),
+    );
+    expect(
+      (data.totalsByCurrency as Array<Record<string, unknown>>).map(
+        (total) => total.currency,
+      ),
+    ).toEqual(["JPY", "USD"]);
+    expect(data.stockTotals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          stockId: STOCK_A.id,
+          currency: "JPY",
+          realizedProfitLoss: { amount: 6000, currency: "JPY" },
+        }),
+        expect.objectContaining({
+          stockId: STOCK_B.id,
+          currency: "USD",
+          realizedProfitLoss: { amount: 75, currency: "USD" },
+        }),
+      ]),
+    );
+  });
+
+  it("returns a fully sold stock that /holdings no longer lists", async () => {
+    dbModule
+      .getDb()
+      .insert(schema.transactions)
+      .values({
+        ...TRANSACTION_C_BUY,
+        id: "transaction-c-sell-all",
+        side: "sell",
+        quantity: 100,
+        price: 8500,
+        executedAt: "2026-11-07T00:00:00.000Z",
+        createdAt: "2026-11-07T00:05:00.000Z",
+        decisionId: null,
+      })
+      .run();
+
+    const holdingsData = await readData(
+      await routes.holdings.GET(apiRequest("/holdings")),
+    );
+    expect(
+      (holdingsData.holdings as Array<Record<string, unknown>>).map(
+        (holding) => holding.stockId,
+      ),
+    ).not.toContain(STOCK_C.id);
+
+    const data = await readData(
+      await routes.realizedPnl.GET(
+        apiRequest(`/realized-pnl?stockId=${STOCK_C.id}`),
+      ),
+    );
+    expect(data.sales).toEqual([
+      expect.objectContaining({
+        stockId: STOCK_C.id,
+        quantity: 100,
+        realizedProfitLoss: { amount: 50000, currency: "JPY" },
+      }),
+    ]);
+  });
+
+  it("keeps unknown sales in the detail and makes the totals incomplete", async () => {
+    dbModule
+      .getDb()
+      .insert(schema.transactions)
+      .values({
+        ...TRANSACTION_A_SELL,
+        id: "transaction-a-sell-unknown",
+        quantity: 10,
+        price: null,
+        executedAt: "2026-11-07T14:00:00.000Z",
+        createdAt: "2026-11-07T14:05:00.000Z",
+        decisionId: null,
+      })
+      .run();
+
+    const data = await readData(
+      await routes.realizedPnl.GET(apiRequest("/realized-pnl")),
+    );
+    const sales = data.sales as Array<Record<string, unknown>>;
+    expect(sales).toHaveLength(2);
+    expect(sales[1]).toMatchObject({
+      transactionId: "transaction-a-sell-unknown",
+      price: null,
+      proceeds: null,
+      costBasis: { amount: 25000, currency: "JPY" },
+      realizedProfitLoss: null,
+      warning: "売却単価が不明なため実現損益を計算できません",
+    });
+    expect(data.stockTotals).toEqual([
+      expect.objectContaining({
+        currency: "JPY",
+        saleCount: 2,
+        computedCount: 1,
+        proceeds: null,
+        costBasis: null,
+        realizedProfitLoss: null,
+        completeness: false,
+      }),
+    ]);
+    expect(data.totalsByCurrency).toEqual([
+      expect.objectContaining({
+        currency: "JPY",
+        saleCount: 2,
+        computedCount: 1,
+        realizedProfitLoss: null,
+        completeness: false,
+      }),
+    ]);
+  });
+
+  it("requires the read token and rejects other methods", async () => {
+    for (const token of [null, "wrong-token", WRITE_TOKEN]) {
+      const response = await routes.realizedPnl.GET(
+        apiRequest("/realized-pnl", token),
+      );
+      expect(response.status).toBe(401);
+      expect(response.headers.get("www-authenticate")).toBe("Bearer");
+    }
+
+    for (const method of [
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+      "HEAD",
+    ] as const) {
+      const response = await routes.realizedPnl[method](
+        apiRequest("/realized-pnl"),
+      );
+      expect(response.status).toBe(405);
+    }
+
+    const original = process.env.RULETRADE_READ_TOKEN;
+    delete process.env.RULETRADE_READ_TOKEN;
+    try {
+      const response = await routes.realizedPnl.GET(
+        apiRequest("/realized-pnl"),
+      );
+      expect(response.status).toBe(404);
+    } finally {
+      if (original === undefined) delete process.env.RULETRADE_READ_TOKEN;
+      else process.env.RULETRADE_READ_TOKEN = original;
+    }
+  });
+
+  it("shows the same realized profit/loss on the portfolio screen and in the API", async () => {
+    const { default: PortfolioPage } = await import("@/app/portfolio/page");
+    const markup = renderToStaticMarkup(
+      await PortfolioPage({ searchParams: Promise.resolve({}) }),
+    );
+    expect(markup).toContain("実現損益（売却済み）");
+    expect(markup).toContain("+6,000円");
+
+    const data = await readData(
+      await routes.holdings.GET(apiRequest("/holdings")),
+    );
+    const toyota = (data.holdings as Array<Record<string, unknown>>).find(
+      (holding) => holding.stockId === STOCK_A.id,
+    );
+    expect(toyota?.realizedProfitLoss).toEqual({
+      amount: 6000,
+      currency: "JPY",
     });
   });
 });

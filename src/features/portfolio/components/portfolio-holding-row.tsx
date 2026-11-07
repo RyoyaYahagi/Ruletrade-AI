@@ -113,19 +113,23 @@ export function PortfolioHoldingRow({
           <span className="text-right font-mono">
             {formatPortfolioAmount(holding.acquisitionAmount, currency)}
           </span>
+          <span className="text-muted-foreground">実現損益</span>
+          <span
+            className={`text-right font-mono ${profitTone(valuation.realizedProfitLoss)}`}
+          >
+            {valuation.realizedProfitLoss === null || currency === null
+              ? "不明"
+              : signed(valuation.realizedProfitLoss, currency)}
+          </span>
           <span className="text-muted-foreground">価格時点</span>
           <span className="text-right font-mono">
             {formatPriceAt(quote?.priceAt ?? null)}
           </span>
           {valuation.quoteError && (
-            <p className="col-span-2 text-attention">
-              {valuation.quoteError}
-            </p>
+            <p className="col-span-2 text-attention">{valuation.quoteError}</p>
           )}
           {holding.warningReason && (
-            <p className="col-span-2 text-attention">
-              {holding.warningReason}
-            </p>
+            <p className="col-span-2 text-attention">{holding.warningReason}</p>
           )}
           {holding.adjustments.length > 0 && (
             <p className="col-span-2 text-muted-foreground">
