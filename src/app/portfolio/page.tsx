@@ -287,7 +287,8 @@ export default async function PortfolioPage({
         </p>
       )}
       <section
-        className="space-y-2"
+        id="holdings"
+        className="scroll-mt-6 space-y-2"
         aria-labelledby="portfolio-holdings-heading"
       >
         <h2 id="portfolio-holdings-heading" className="px-1 font-semibold">
