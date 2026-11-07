@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { X } from "lucide-react";
-import { CaptureForm } from "@/features/capture/capture-form";
+
+import { InboxCaptureForm } from "@/features/capture/inbox-capture-form";
 import { listStocksAction } from "@/features/decisions/actions";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export default async function CapturePage() {
       >
         <X aria-hidden size={22} />
       </Link>
-      <CaptureForm stocks={stocks} />
+      <InboxCaptureForm stocks={stocks} />
     </main>
   );
 }

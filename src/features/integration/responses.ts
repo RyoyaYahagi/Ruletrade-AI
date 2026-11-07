@@ -3,6 +3,7 @@ export type IntegrationErrorCode =
   | "not_found"
   | "validation_error"
   | "method_not_allowed"
+  | "idempotency_key_reused"
   | "internal_error";
 
 const errorDefinitions: Record<
@@ -18,6 +19,10 @@ const errorDefinitions: Record<
   method_not_allowed: {
     status: 405,
     message: "このメソッドは許可されていません。",
+  },
+  idempotency_key_reused: {
+    status: 409,
+    message: "同じ clientRequestId が別のリクエストで使用されています。",
   },
   internal_error: {
     status: 500,

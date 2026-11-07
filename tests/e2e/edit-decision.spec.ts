@@ -21,7 +21,7 @@ test("edits a decision without losing the trade or original content and can canc
       },
     }),
   );
-  await page.goto("/capture");
+  await page.goto("/capture/structured");
   await page.getByLabel("いま考えていること").fill("編集前の原文を残す。");
   await page.getByRole("button", { name: "内容を整理する" }).click();
   await page.getByRole("button", { name: "日付指定", exact: true }).click();
