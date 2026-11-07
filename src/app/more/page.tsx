@@ -2,6 +2,8 @@ import { ChevronRight } from "lucide-react";
 import { JsonImportPanel } from "@/features/json-import/import-panel";
 import { ImportPanel } from "@/features/csv-import/import-panel";
 import { listImportBatches } from "@/features/csv-import/service";
+import { getAppSettings } from "@/features/settings/settings";
+import { BucketSettingsForm } from "@/features/settings/settings-form";
 import { FeedbackButton } from "./feedback-button";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +13,12 @@ export default function MorePage() {
     <main className="page-shell space-y-8">
       <h1 className="page-title">その他</h1>
       <ImportPanel batches={listImportBatches()} />
+      <section className="space-y-2" aria-labelledby="bucket-settings-heading">
+        <h2 id="bucket-settings-heading" className="section-label">
+          枠の設定
+        </h2>
+        <BucketSettingsForm settings={getAppSettings()} />
+      </section>
       <section className="space-y-2" aria-labelledby="backup-heading">
         <h2 id="backup-heading" className="section-label">
           バックアップ

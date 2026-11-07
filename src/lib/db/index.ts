@@ -108,6 +108,13 @@ function initializeSchema(connection: Database.Database) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS app_settings (
+      id TEXT PRIMARY KEY,
+      satellite_cap_pct REAL,
+      satellite_warn_pct REAL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS import_batches (
       id TEXT PRIMARY KEY,
       broker TEXT NOT NULL,
@@ -148,6 +155,12 @@ function initializeSchema(connection: Database.Database) {
       PRIMARY KEY(batch_id, stock_id)
     );
   `);
+
+  connection
+    .prepare(
+      "INSERT OR IGNORE INTO app_settings (id, satellite_cap_pct, satellite_warn_pct, updated_at) VALUES ('default', NULL, NULL, ?)",
+    )
+    .run(new Date().toISOString());
 
   const decisionColumns = new Set(
     (connection.pragma("table_info(decisions)") as Array<{ name: string }>).map(

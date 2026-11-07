@@ -1,8 +1,9 @@
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { mapDecisionRow } from "@/features/decisions/decision-mapper";
 import { getDb } from "@/lib/db";
 import {
+  appSettings,
   captures,
   decisions,
   importBatches,
@@ -88,10 +89,16 @@ export async function GET() {
         .orderBy(asc(captures.createdAt), asc(captures.id))
         .all()
         .map((row) => CaptureSchema.parse(row)),
+      appSettings:
+        tx
+          .select()
+          .from(appSettings)
+          .where(eq(appSettings.id, "default"))
+          .get() ?? null,
     }));
 
     return new Response(
-      JSON.stringify({ formatVersion: 3, exportedAt, ...data }, null, 2),
+      JSON.stringify({ formatVersion: 4, exportedAt, ...data }, null, 2),
       {
         headers: {
           "Content-Type": "application/json; charset=utf-8",

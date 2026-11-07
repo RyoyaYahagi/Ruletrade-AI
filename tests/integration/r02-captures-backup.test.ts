@@ -105,7 +105,7 @@ describe("captures and origins in JSON backups", () => {
   });
 
   it("exports captures and the origins of decisions and reviews", async () => {
-    expect(backup.formatVersion).toBe(3);
+    expect(backup.formatVersion).toBe(4);
     expect(backup.decisions).toMatchObject([{ origin: "muse" }]);
     expect(backup.reviews).toMatchObject([{ origin: "muse" }]);
     expect(backup.captures).toEqual([
@@ -161,7 +161,7 @@ describe("captures and origins in JSON backups", () => {
       delete review.origin;
     expect((await send(v2)).status).toBe(200);
     const exported = await snapshot();
-    expect(exported.formatVersion).toBe(3);
+    expect(exported.formatVersion).toBe(4);
     expect(exported.captures).toEqual([]);
     expect(exported.decisions).toMatchObject([{ origin: "web" }]);
     expect(exported.reviews).toMatchObject([{ origin: "web" }]);

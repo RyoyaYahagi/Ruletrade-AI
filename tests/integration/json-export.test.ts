@@ -33,7 +33,7 @@ describe("JSON export", () => {
     );
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(await response.json()).toEqual({
-      formatVersion: 3,
+      formatVersion: 4,
       exportedAt: expect.any(String),
       stocks: [],
       decisions: [],
@@ -44,6 +44,12 @@ describe("JSON export", () => {
       importBatchStocks: [],
       transactionImportSources: [],
       importChanges: [],
+      appSettings: {
+        id: "default",
+        satelliteCapPct: null,
+        satelliteWarnPct: null,
+        updatedAt: expect.any(String),
+      },
     });
   });
 

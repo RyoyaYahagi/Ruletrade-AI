@@ -4,7 +4,8 @@ import { getTableColumns, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb } from "@/lib/db";
-import { schema } from "@/lib/db/schema";
+import { appSettings, schema } from "@/lib/db/schema";
+import { AppSettingsSchema } from "@/schemas/app-settings";
 import { CaptureSchema } from "@/schemas/capture";
 import { DecisionSchema } from "@/schemas/decision";
 import { ReviewSchema } from "@/schemas/review";
@@ -35,7 +36,12 @@ const batchSchema = z.object({
   undoneAt: timestamp.nullable(),
 });
 const backupSchema = z.object({
-  formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  formatVersion: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+  ]),
   exportedAt: timestamp,
   stocks: z.array(stockSchema),
   decisions: z.array(DecisionSchema),
@@ -71,6 +77,8 @@ const backupSchema = z.object({
       after: z.string(),
     }),
   ),
+  // Version 1-3 backups predate the bucket settings.
+  appSettings: AppSettingsSchema.nullable().optional(),
 });
 
 export class JsonImportError extends Error {}
@@ -175,7 +183,7 @@ export function importJson(value: unknown) {
   }
   // integration_requests is an idempotency log and is intentionally not backed up.
   const rows: Record<
-    Exclude<keyof typeof schema, "integrationRequests">,
+    Exclude<keyof typeof schema, "integrationRequests" | "appSettings">,
     Row[]
   > = {
     stocks: data.stocks,
@@ -285,6 +293,21 @@ export function importJson(value: unknown) {
           importedCount += 1;
         }
       }
+    }
+    // Settings are configuration rather than journal records, so a restore
+    // replaces them with the backup's values.
+    if (data.appSettings) {
+      tx.insert(appSettings)
+        .values(data.appSettings)
+        .onConflictDoUpdate({
+          target: appSettings.id,
+          set: {
+            satelliteCapPct: data.appSettings.satelliteCapPct,
+            satelliteWarnPct: data.appSettings.satelliteWarnPct,
+            updatedAt: data.appSettings.updatedAt,
+          },
+        })
+        .run();
     }
     return { importedCount, skippedCount };
   });
