@@ -51,35 +51,42 @@ export default async function HomePage() {
         <h1 className="page-title mt-0.5">今日</h1>
       </header>
 
+      {/* 面全体を塗るのは枠の警告だけ（強さの段階2）。振り返り時期などは小さなバッジ（段階1）に留め、
+          点滅や destructive の赤は使わない。売買を促す語（「利確」など）は文言に入れない */}
       {bucketWarning && (
         <section
-          className="space-y-3 rounded-2xl border border-attention/30 bg-attention-soft p-5"
+          className="space-y-3 rounded-2xl bg-attention-soft p-5"
           aria-labelledby="bucket-warning-heading"
         >
           <p className="text-xs font-semibold text-attention">枠の警告</p>
           <h2 id="bucket-warning-heading" className="font-semibold">
             サテライトの時価割合が警告線を超えています
           </h2>
-          <p className="text-sm">
-            現在{" "}
-            <span className="font-mono font-semibold">
+          <p className="flex flex-wrap items-baseline gap-x-3">
+            <span className="font-mono text-3xl font-semibold tracking-tight text-attention">
               {bucketWarning.marketValuePct.toLocaleString("ja-JP", {
                 maximumFractionDigits: 1,
               })}
               %
-            </span>{" "}
-            / 警告線{" "}
-            <span className="font-mono">
-              {bucketWarning.warnPct.toLocaleString("ja-JP", {
-                maximumFractionDigits: 1,
-              })}
-              %
+            </span>
+            <span className="text-sm text-attention">
+              警告線{" "}
+              <span className="font-mono">
+                {bucketWarning.warnPct.toLocaleString("ja-JP", {
+                  maximumFractionDigits: 1,
+                })}
+                %
+              </span>{" "}
+              · 時価ベース
             </span>
           </p>
           <p className="text-sm text-muted-foreground">
-            利確や枠の見直しを自動で行うことはありません。まずは状態を確認してください。
+            売買や枠の変更を自動で行うことはありません。
           </p>
-          <Link href="/portfolio" className="button-soft w-full">
+          <Link
+            href="/portfolio"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-card/70 px-4 font-semibold text-attention"
+          >
             ポートフォリオで確認
             <ChevronRight aria-hidden size={18} />
           </Link>

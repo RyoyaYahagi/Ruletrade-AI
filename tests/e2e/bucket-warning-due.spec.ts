@@ -7,6 +7,7 @@ const databasePath = path.join(process.cwd(), ".data/e2e-test.sqlite");
 test.afterEach(() => {
   const database = new Database(databasePath);
   try {
+    database.pragma("foreign_keys = ON");
     database
       .prepare(
         "UPDATE app_settings SET satellite_cap_pct = NULL, satellite_warn_pct = NULL WHERE id = 'default'",
@@ -70,8 +71,12 @@ test("surfaces the bucket warning on the today screen and in the due API", async
       name: "サテライトの時価割合が警告線を超えています",
     }),
   ).toBeVisible();
-  await expect(warning).toContainText("現在 100%");
-  await expect(warning).toContainText("警告線 40%");
+  await expect(warning).toContainText("100%");
+  await expect(warning).toContainText("警告線 40% · 時価ベース");
+  await expect(warning).toContainText(
+    "売買や枠の変更を自動で行うことはありません。",
+  );
+  await expect(warning).not.toContainText("利確");
   await expect(
     warning.getByRole("link", { name: /ポートフォリオで確認/ }),
   ).toBeVisible();
