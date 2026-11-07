@@ -2,10 +2,10 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import {
   listDecisionStatsAction,
-  listDueDecisionsAction,
   listRecentDecisionsAction,
   listStocksAction,
 } from "@/features/decisions/actions";
+import { listDueDecisions, listUnlinkedTransactions } from "@/features/due/due";
 import {
   decisionTypeLabel,
   decisionTypeTagClass,
@@ -13,7 +13,6 @@ import {
 } from "@/features/decisions/decision-display";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
 import { listPortfolioAction } from "@/features/portfolio/actions";
-import { listTransactionsAction } from "@/features/transactions/actions";
 import { japanDate } from "@/features/transactions/matching";
 
 export const dynamic = "force-dynamic";
@@ -30,17 +29,16 @@ function todayLabel() {
 }
 
 export default async function HomePage() {
-  const [dueItems, recentItems, stocks, portfolio, transactions, stats] =
+  const [dueItems, recentItems, stocks, portfolio, unlinked, stats] =
     await Promise.all([
-      listDueDecisionsAction(),
+      listDueDecisions(),
       listRecentDecisionsAction({ limit: 5 }),
       listStocksAction(),
       listPortfolioAction(),
-      listTransactionsAction(),
+      listUnlinkedTransactions(),
       listDecisionStatsAction(),
     ]);
   const stockById = new Map(stocks.map((stock) => [stock.id, stock]));
-  const unlinked = transactions.filter((trade) => !trade.decisionId);
   const holdings = portfolio.filter((holding) => holding.quantity > 0);
   const today = japanDate();
 

@@ -1,4 +1,5 @@
 import { DecisionSchema, DecisionTypeSchema } from "@/schemas/decision";
+import { stocks } from "@/lib/db/schema";
 
 import type { Decision } from "@/schemas/decision";
 
@@ -42,6 +43,16 @@ export function mapDecisionRow(row: DecisionRow): Decision {
     assumptions: parseStringArray(row.assumptions),
     reviewConditions: parseStringArray(row.reviewConditions),
     addConditions: parseStringArray(row.addConditions),
+  };
+}
+
+export function mapStockRow(row: typeof stocks.$inferSelect) {
+  return {
+    id: row.id,
+    ticker: row.ticker,
+    name: row.name,
+    market: row.market,
+    createdAt: row.createdAt,
   };
 }
 

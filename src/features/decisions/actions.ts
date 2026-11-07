@@ -6,7 +6,7 @@ import {
 } from "@/features/transactions/matching";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { asc, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import { decisions, reviews, stocks, transactions } from "@/lib/db/schema";
@@ -21,9 +21,14 @@ import {
   ConfirmedTransactionInputSchema,
   TransactionSchema,
 } from "@/schemas/transaction";
-import { mapDecisionRow } from "@/features/decisions/decision-mapper";
+import {
+  mapDecisionRow,
+  mapStockRow,
+} from "@/features/decisions/decision-mapper";
+import { listDueDecisions } from "@/features/due/due";
 
 import type { Decision } from "@/schemas/decision";
+import type { DueDecision } from "@/features/due/due";
 import type { Review } from "@/schemas/review";
 import type { Stock } from "@/schemas/stock";
 import type { Transaction } from "@/schemas/transaction";
@@ -261,12 +266,7 @@ export async function listDecisionStatsAction(): Promise<
   return stats;
 }
 
-export async function listDueDecisionsAction(): Promise<
-  Array<{
-    stock: Stock;
-    decision: Decision;
-  }>
-> {
+export async function listDueDecisionsAction(): Promise<DueDecision[]> {
   return listReviewsDueAction();
 }
 
@@ -311,44 +311,8 @@ export async function getStockTimelineAction(input: {
 
 export async function listReviewsDueAction(
   asOf = new Date().toISOString(),
-): Promise<
-  Array<{
-    stock: Stock;
-    decision: Decision;
-  }>
-> {
-  const cutoff = new Date(asOf).toISOString();
-  const rows = getDb()
-    .select({
-      stock: stocks,
-      decision: decisions,
-      latestReviewAt: sql<
-        string | null
-      >`(select max(created_at) from reviews where decision_id = ${decisions.id})`,
-    })
-    .from(decisions)
-    .innerJoin(stocks, eq(decisions.stockId, stocks.id))
-    .where(isNotNull(decisions.reviewAt))
-    .all();
-  return rows
-    .flatMap(({ stock, decision: row, latestReviewAt }) => {
-      const decision = DecisionSchema.parse(mapDecisionRow(row));
-      const dueDate = decision.reviewDates
-        ?.filter(
-          (date) =>
-            date <= cutoff && (!latestReviewAt || date > latestReviewAt),
-        )
-        .sort()[0];
-      return dueDate
-        ? [
-            {
-              stock: StockSchema.parse(mapStockRow(stock)),
-              decision: { ...decision, reviewAt: dueDate },
-            },
-          ]
-        : [];
-    })
-    .sort((a, b) => a.decision.reviewAt.localeCompare(b.decision.reviewAt));
+): Promise<DueDecision[]> {
+  return listDueDecisions(asOf);
 }
 
 export async function saveReviewAction(input: unknown): Promise<Review> {
@@ -433,16 +397,6 @@ function findMatchingStock(
     .from(stocks)
     .where(eq(stocks.normalizedName, normalizeName(name)))
     .get();
-}
-
-function mapStockRow(row: typeof stocks.$inferSelect) {
-  return {
-    id: row.id,
-    ticker: row.ticker,
-    name: row.name,
-    market: row.market,
-    createdAt: row.createdAt,
-  };
 }
 
 function parseStringArray(value: string): string[] {
