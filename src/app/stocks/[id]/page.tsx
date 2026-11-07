@@ -18,6 +18,7 @@ import {
 import { listPortfolioAction } from "@/features/portfolio/actions";
 import { formatPortfolioQuantity } from "@/features/portfolio/format";
 import { BucketEditor } from "@/features/stocks/bucket-editor";
+import { FundCodeEditor } from "@/features/stocks/fund-code-editor";
 import { bucketLabel } from "@/features/stocks/bucket";
 import { listStockBucketHistoryAction } from "@/features/stocks/actions";
 import type { Decision } from "@/schemas/decision";
@@ -320,6 +321,13 @@ export default async function StockPage({
           bucket={data.stock.bucket}
           history={bucketHistory}
         />
+        {data.stock.ticker === null && holding && (
+          <FundCodeEditor
+            stockId={data.stock.id}
+            fundIsin={holding.fundIsin ?? null}
+            fundAssociationCode={holding.fundAssociationCode ?? null}
+          />
+        )}
       </div>
 
       <nav aria-label="表示の切り替え" className="grid grid-cols-3 border-b">

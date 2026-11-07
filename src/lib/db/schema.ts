@@ -20,6 +20,9 @@ export const stocks = sqliteTable(
     })
       .notNull()
       .default("unclassified"),
+    // 投資信託の基準価額を投資信託協会から引くためのコード。株式では null
+    fundIsin: text("fund_isin"),
+    fundAssociationCode: text("fund_association_code"),
     createdAt: text("created_at").notNull(),
   },
   (table) => [index("stocks_ticker_idx").on(table.ticker)],

@@ -10,6 +10,7 @@ import {
   importBatchStocks,
   importBatches,
   reviews,
+  stockBucketChanges,
   stocks,
   transactions,
   transactionImportSources,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/db/schema";
 import { normalizeName, parseCsv } from "@/features/csv-import/parser";
 import type { NormalizedTransaction } from "@/features/csv-import/parser";
+import { initialBucketForImport } from "@/features/csv-import/initial-bucket";
 
 import {
   candidatesFor,
@@ -290,6 +292,8 @@ function findStock(
   }
   if (!normalizedName)
     throw new Error("銘柄名がないため、取引を銘柄に紐付けられません。");
+  const createdAt = new Date().toISOString();
+  const initial = initialBucketForImport(row);
   const stock = {
     id: randomUUID(),
     ticker,
@@ -297,9 +301,22 @@ function findStock(
     normalizedName,
     market,
     marketCode: market,
-    createdAt: new Date().toISOString(),
+    bucket: initial?.bucket ?? ("unclassified" as const),
+    createdAt,
   };
   tx.insert(stocks).values(stock).run();
+  // 区分は変更履歴に残す方針（CS-01）なので、取り込みで決めた最初の区分も履歴に記録する
+  if (initial)
+    tx.insert(stockBucketChanges)
+      .values({
+        id: randomUUID(),
+        stockId: stock.id,
+        fromBucket: "unclassified",
+        toBucket: initial.bucket,
+        reason: initial.reason,
+        changedAt: createdAt,
+      })
+      .run();
   return { stock, created: true };
 }
 

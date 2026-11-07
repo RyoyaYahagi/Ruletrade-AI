@@ -14,6 +14,8 @@ export type PortfolioStock = {
   marketCode: string | null;
   market?: string | null;
   bucket?: Bucket;
+  fundIsin?: string | null;
+  fundAssociationCode?: string | null;
 };
 
 export type PortfolioHolding = {
@@ -22,6 +24,8 @@ export type PortfolioHolding = {
   ticker: string | null;
   marketCode: string | null;
   bucket: Bucket;
+  fundIsin?: string | null;
+  fundAssociationCode?: string | null;
   quantity: number;
   averagePurchasePrice: number | null;
   acquisitionAmount: number | null;
@@ -406,6 +410,8 @@ export function calculatePortfolio(
         ticker: stock.ticker,
         marketCode: stock.marketCode,
         bucket: stock.bucket ?? "unclassified",
+        fundIsin: stock.fundIsin ?? null,
+        fundAssociationCode: stock.fundAssociationCode ?? null,
         quantity:
           Math.abs(position.quantity) <= quantityEpsilon(position.quantity)
             ? 0

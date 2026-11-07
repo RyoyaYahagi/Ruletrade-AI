@@ -2,8 +2,8 @@ import Link from "next/link";
 import { listDecisionStatsAction } from "@/features/decisions/actions";
 import { shortJapanDate } from "@/features/decisions/decision-display";
 
-import { yahooMarketPriceProvider } from "@/features/market-data/provider";
-import { toYahooSymbol } from "@/features/market-data/symbols";
+import { marketPriceProvider } from "@/features/market-data/quotes";
+import { toQuoteSymbol } from "@/features/market-data/symbols";
 import {
   listPortfolioAction,
   listRealizedProfitLossAction,
@@ -210,11 +210,11 @@ export default async function PortfolioPage({
     (holding) => holding.quantity > 0,
   );
   const symbols = currentHoldings
-    .map((holding) => toYahooSymbol(holding.ticker, holding.marketCode))
+    .map((holding) => toQuoteSymbol(holding))
     .filter((symbol): symbol is string => symbol !== null);
   let quotes;
   try {
-    quotes = await yahooMarketPriceProvider.getQuotes(symbols);
+    quotes = await marketPriceProvider.getQuotes(symbols);
   } catch {
     quotes = new Map();
   }

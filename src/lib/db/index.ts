@@ -38,6 +38,8 @@ function initializeSchema(connection: Database.Database) {
       market TEXT,
       market_code TEXT,
       bucket TEXT NOT NULL DEFAULT 'unclassified',
+      fund_isin TEXT,
+      fund_association_code TEXT,
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS stocks_ticker_idx ON stocks(ticker);
@@ -194,7 +196,9 @@ function initializeSchema(connection: Database.Database) {
     points_json: "TEXT",
   })) {
     if (!decisionColumns.has(name)) {
-      connection.exec(`ALTER TABLE decisions ADD COLUMN ${name} ${declaration}`);
+      connection.exec(
+        `ALTER TABLE decisions ADD COLUMN ${name} ${declaration}`,
+      );
     }
   }
   if (!decisionColumns.has("origin")) {
@@ -239,6 +243,10 @@ function initializeSchema(connection: Database.Database) {
     connection.exec(
       "ALTER TABLE stocks ADD COLUMN bucket TEXT NOT NULL DEFAULT 'unclassified'",
     );
+  if (!stockColumns.has("fund_isin"))
+    connection.exec("ALTER TABLE stocks ADD COLUMN fund_isin TEXT");
+  if (!stockColumns.has("fund_association_code"))
+    connection.exec("ALTER TABLE stocks ADD COLUMN fund_association_code TEXT");
   const existingColumns = new Set(
     (
       connection.pragma("table_info(transactions)") as Array<{ name: string }>

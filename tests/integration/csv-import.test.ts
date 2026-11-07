@@ -75,6 +75,72 @@ describe("CSV import database service", () => {
     ).toBe(0);
   });
 
+  it("imports investment funds as ticker-less stocks per currency and dedupes a second run", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const bytes = new Uint8Array(
+      await readFile("tests/fixtures/csv-import/rakuten-investment-fund.csv"),
+    );
+    const preview = await service.previewCsv(bytes);
+    expect(preview.counts).toMatchObject({ new: 4, duplicate: 0 });
+    const result = await service.importCsv(
+      bytes,
+      "rakuten-investment-fund.csv",
+      preview.digest,
+    );
+    expect(result.importedCount).toBe(4);
+    const schema = await import("@/lib/db/schema");
+    const stockRows = dbModule.getDb().select().from(schema.stocks).all();
+    expect(
+      stockRows
+        .map(({ name, ticker, marketCode }) => ({ name, ticker, marketCode }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ja")),
+    ).toEqual([
+      { name: "架空インデックスファンド", ticker: null, marketCode: "JP" },
+      { name: "架空マネーファンド", ticker: null, marketCode: "JP" },
+      { name: "架空米ドルMMF", ticker: null, marketCode: "US" },
+    ]);
+    expect(stockRows.every(({ bucket }) => bucket === "core")).toBe(true);
+    const history = dbModule
+      .getDb()
+      .select()
+      .from(schema.stockBucketChanges)
+      .all();
+    expect(history).toHaveLength(3);
+    expect(history[0]).toMatchObject({
+      fromBucket: "unclassified",
+      toBucket: "core",
+      reason: "取り込み時に自動で設定（投資信託）",
+    });
+    expect((await service.previewCsv(bytes)).counts).toMatchObject({
+      new: 0,
+      duplicate: 4,
+    });
+  });
+
+  it("starts imported ETFs as core and other stocks as unclassified", async () => {
+    const bytes = new TextEncoder().encode(
+      syntheticCsv([
+        fakeTrade,
+        "2026/09/01,2026/09/03,1321,架空225連動型上場投信,東証,特定,現物,買付,1,40000,0,40000",
+      ]),
+    );
+    const preview = await service.previewCsv(bytes);
+    await service.importCsv(bytes, "etf.csv", preview.digest);
+    const schema = await import("@/lib/db/schema");
+    const buckets = Object.fromEntries(
+      dbModule
+        .getDb()
+        .select()
+        .from(schema.stocks)
+        .all()
+        .map(({ name, bucket }) => [name, bucket]),
+    );
+    expect(buckets).toEqual({
+      架空テスト株式会社: "unclassified",
+      架空225連動型上場投信: "core",
+    });
+  });
+
   it("undoes only the selected batch and preserves stocks referenced by manual data", async () => {
     const csv = syntheticCsv([distinctTrade]);
     const { batchId } = await service.importCsv(
