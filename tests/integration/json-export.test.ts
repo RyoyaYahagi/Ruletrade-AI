@@ -45,6 +45,12 @@ describe("JSON export", () => {
       importBatchStocks: [],
       transactionImportSources: [],
       importChanges: [],
+      appSettings: {
+        id: "default",
+        satelliteCapPct: null,
+        satelliteWarnPct: null,
+        updatedAt: expect.any(String),
+      },
     });
   });
 
