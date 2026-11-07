@@ -411,7 +411,7 @@ type ValuedHolding = Holding & {
 - `adjustments` は株式分割・スピンオフの適用ラベル。
 - `quote.price` は取得できたときだけ存在し、`amount` は正の数、`currency` は `"JPY"` か `"USD"`。
 - `quoteError` は取得できなかった理由。正常時は `null`。
-- `realizedProfitLoss` はその銘柄の保有通貨での実現損益合計（§4.8 の `stockTotals` と同じ値。1 件でも計算できない売却があれば `null`）。R-06 まで常に `null`。
+- `realizedProfitLoss` はその銘柄の保有通貨での実現損益合計（§4.8 の `stockTotals` と同じ値。1 件でも計算できない売却があれば `null`）。売却がない銘柄は 0。
 - `quantity` は 0 でも `hasWarning` が true なら返ることがある（`calculatePortfolio` の仕様）。
 
 ### 3.8 列挙値の一覧
@@ -541,7 +541,7 @@ type CurrencyTotals = {
 - 一部の銘柄で株価や取得額が不明な場合、その通貨の該当する合計は `null` になり、`completeness` の該当フラグが `false` になる。一部だけの合計を返さない。
 - `completeness.allocation` は、評価額が全銘柄分そろい、合計が 0 より大きいときだけ `true`。
 - その通貨の保有が 1 件もない場合、`marketValue` / `acquisitionAmount` / `unrealizedProfitLoss` は 0 の `Money` になり、`completeness.allocation` は `false` になる（`summarizeValuation` の挙動）。
-- `realizedProfitLoss` は R-06 まで `null`。R-06 で、各銘柄はその銘柄の実現損益合計、通貨別合計は通貨ごとの実現損益を入れる。
+- `realizedProfitLoss` は、各銘柄はその銘柄の実現損益合計、通貨別合計は通貨ごとの実現損益を入れる。売却がない場合は 0、1 件でも計算できない売却があれば `null`。
 
 参考株価の扱い:
 

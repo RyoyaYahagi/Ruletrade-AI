@@ -4,7 +4,13 @@ import { normalizeName } from "@/features/csv-import/common";
 import { getDb } from "@/lib/db";
 import { stocks, transactions } from "@/lib/db/schema";
 import { TransactionSchema } from "@/schemas/transaction";
-import { calculatePortfolio, type PortfolioHolding } from "./portfolio";
+import {
+  calculatePortfolio,
+  calculateRealizedProfitLoss,
+  type PortfolioHolding,
+  type RealizedProfitLossPeriod,
+  type RealizedProfitLossResult,
+} from "./portfolio";
 import { SONY_FINANCIAL_STOCK } from "./corporate-actions";
 
 export async function listPortfolioAction(): Promise<PortfolioHolding[]> {
@@ -48,5 +54,32 @@ export async function listPortfolioAction(): Promise<PortfolioHolding[]> {
         .run();
     }
     return holdings;
+  });
+}
+
+export async function listRealizedProfitLossAction(
+  period: RealizedProfitLossPeriod = {},
+): Promise<RealizedProfitLossResult> {
+  const db = getDb();
+  return db.transaction((tx) => {
+    const stockRows = tx
+      .select({
+        id: stocks.id,
+        name: stocks.name,
+        ticker: stocks.ticker,
+        marketCode: stocks.marketCode,
+        market: stocks.market,
+      })
+      .from(stocks)
+      .all();
+    return calculateRealizedProfitLoss(
+      tx
+        .select()
+        .from(transactions)
+        .all()
+        .map((row) => TransactionSchema.parse(row)),
+      stockRows,
+      period,
+    );
   });
 }

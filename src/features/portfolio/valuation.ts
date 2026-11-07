@@ -11,6 +11,7 @@ export type ValuedHolding = {
   marketValue: number | null;
   unrealizedProfitLoss: number | null;
   unrealizedProfitLossRate: number | null;
+  realizedProfitLoss: number | null;
 };
 
 export type ValuationSummary = {
@@ -38,6 +39,7 @@ export type ValuationSummaries = Record<PortfolioCurrency, ValuationSummary>;
 export function calculateValuation(
   holdings: readonly PortfolioHolding[],
   quotes: ReadonlyMap<string, MarketQuote>,
+  realizedByStock: ReadonlyMap<string, number | null> = new Map(),
 ): ValuedHolding[] {
   return holdings.map((holding) => {
     const symbol = toYahooSymbol(holding.ticker, holding.marketCode);
@@ -74,6 +76,9 @@ export function calculateValuation(
         acquisitionAmount > 0
           ? (unrealizedProfitLoss / acquisitionAmount) * 100
           : null,
+      realizedProfitLoss: realizedByStock.has(holding.stockId)
+        ? (realizedByStock.get(holding.stockId) ?? null)
+        : 0,
     };
   });
 }

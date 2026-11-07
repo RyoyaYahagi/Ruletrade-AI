@@ -3,6 +3,9 @@ import type { DueDecision, DueTransaction } from "@/features/due/due";
 import type {
   PortfolioHolding,
   PortfolioStock,
+  RealizedSale,
+  RealizedStockTotals,
+  RealizedTotals,
 } from "@/features/portfolio/portfolio";
 import type {
   ValuedHolding,
@@ -136,6 +139,41 @@ export type IntegrationCurrencyTotals = {
     profitLoss: boolean;
     allocation: boolean;
   };
+};
+
+export type IntegrationRealizedSale = {
+  transactionId: string;
+  stockId: string;
+  stockName: string;
+  ticker: string | null;
+  side: "sell";
+  quantity: number;
+  executedAt: string;
+  currency: "JPY" | "USD" | null;
+  price: Money | null;
+  averagePurchasePrice: Money | null;
+  proceeds: Money | null;
+  costBasis: Money | null;
+  fee: Money | null;
+  realizedProfitLoss: Money | null;
+  warning: string | null;
+  decisionId: string | null;
+};
+
+export type IntegrationRealizedTotals = {
+  currency: "JPY" | "USD" | null;
+  saleCount: number;
+  computedCount: number;
+  proceeds: Money | null;
+  costBasis: Money | null;
+  realizedProfitLoss: Money | null;
+  completeness: boolean;
+};
+
+export type IntegrationRealizedStockTotals = IntegrationRealizedTotals & {
+  stockId: string;
+  stockName: string;
+  ticker: string | null;
 };
 
 export type IntegrationTimelineItem =
@@ -310,13 +348,16 @@ export function toValuedHolding(
       valued.holding.currency,
     ),
     unrealizedProfitLossRate: valued.unrealizedProfitLossRate,
-    // Filled by R-06; the response shape is fixed now.
-    realizedProfitLoss: null,
+    realizedProfitLoss: toMoney(
+      valued.realizedProfitLoss,
+      valued.holding.currency,
+    ),
   };
 }
 
 export function toCurrencyTotals(
   summary: ValuationSummary,
+  realizedProfitLoss: number | null,
 ): IntegrationCurrencyTotals {
   return {
     currency: summary.currency,
@@ -327,9 +368,54 @@ export function toCurrencyTotals(
       summary.currency,
     ),
     unrealizedProfitLossRate: summary.unrealizedProfitLossRate,
-    // Filled by R-06; the response shape is fixed now.
-    realizedProfitLoss: null,
+    realizedProfitLoss: toMoney(realizedProfitLoss, summary.currency),
     completeness: summary.completeness,
+  };
+}
+
+export function toRealizedSale(sale: RealizedSale): IntegrationRealizedSale {
+  return {
+    transactionId: sale.transactionId,
+    stockId: sale.stockId,
+    stockName: sale.stockName,
+    ticker: sale.ticker,
+    side: sale.side,
+    quantity: sale.quantity,
+    executedAt: sale.executedAt,
+    currency: sale.currency,
+    price: toMoney(sale.price, sale.priceCurrency ?? sale.currency),
+    averagePurchasePrice: toMoney(sale.averagePurchasePrice, sale.currency),
+    proceeds: toMoney(sale.proceeds, sale.priceCurrency ?? sale.currency),
+    costBasis: toMoney(sale.costBasis, sale.currency),
+    fee: toMoney(sale.fee, sale.feeCurrency),
+    realizedProfitLoss: toMoney(sale.realizedProfitLoss, sale.currency),
+    warning: sale.warning,
+    decisionId: sale.decisionId,
+  };
+}
+
+export function toRealizedTotals(
+  totals: RealizedTotals,
+): IntegrationRealizedTotals {
+  return {
+    currency: totals.currency,
+    saleCount: totals.saleCount,
+    computedCount: totals.computedCount,
+    proceeds: toMoney(totals.proceeds, totals.currency),
+    costBasis: toMoney(totals.costBasis, totals.currency),
+    realizedProfitLoss: toMoney(totals.realizedProfitLoss, totals.currency),
+    completeness: totals.completeness,
+  };
+}
+
+export function toRealizedStockTotals(
+  totals: RealizedStockTotals,
+): IntegrationRealizedStockTotals {
+  return {
+    ...toRealizedTotals(totals),
+    stockId: totals.stockId,
+    stockName: totals.stockName,
+    ticker: totals.ticker,
   };
 }
 
