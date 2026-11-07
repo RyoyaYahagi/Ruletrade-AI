@@ -2,11 +2,11 @@
 
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import { captures, stocks } from "@/lib/db/schema";
-import { CaptureInputSchema } from "@/schemas/capture";
+import { CaptureInputSchema, CaptureSchema, type Capture } from "@/schemas/capture";
 
 export type SaveCaptureResult =
   | { ok: true; captureId: string; createdAt: string }
@@ -63,4 +63,23 @@ export async function saveCaptureAction(
       message: "保存できませんでした。入力内容を確認してもう一度お試しください。",
     };
   }
+}
+
+export type PendingCapture = {
+  capture: Capture;
+  stockName: string | null;
+};
+
+export async function listPendingCapturesAction(): Promise<PendingCapture[]> {
+  return getDb()
+    .select({ capture: captures, stockName: stocks.name })
+    .from(captures)
+    .leftJoin(stocks, eq(captures.stockId, stocks.id))
+    .where(eq(captures.status, "pending"))
+    .orderBy(desc(captures.createdAt), desc(captures.id))
+    .all()
+    .map((row) => ({
+      capture: CaptureSchema.parse(row.capture),
+      stockName: row.stockName,
+    }));
 }

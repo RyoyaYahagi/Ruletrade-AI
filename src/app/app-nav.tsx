@@ -61,7 +61,7 @@ export function AppNav() {
               <Link
                 key={href}
                 href={href}
-                className="flex flex-col items-center gap-1 text-[11px] font-semibold"
+                className="pressable flex flex-col items-center gap-1 text-[11px] font-semibold"
               >
                 <span className="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_6px_16px_rgb(30_106_75/0.35)]">
                   <Icon aria-hidden size={26} strokeWidth={2.2} />
@@ -73,8 +73,13 @@ export function AppNav() {
                 key={href}
                 href={href}
                 aria-current={isCurrent(pathname, href) ? "page" : undefined}
-                className="flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-primary"
+                className="group pressable relative flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-primary"
               >
+                {/* 現在地を色だけでなく形でも示す */}
+                <span
+                  aria-hidden
+                  className="absolute -top-2 h-1 w-8 scale-x-0 rounded-b-full bg-primary transition-transform duration-300 ease-out group-aria-[current=page]:scale-x-100"
+                />
                 <Icon aria-hidden size={22} strokeWidth={1.9} />
                 {label}
               </Link>
