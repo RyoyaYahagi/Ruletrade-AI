@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { OriginSchema } from "@/schemas/origin";
+
 export const DecisionComparisonSchema = z.object({
   summary: z.string().trim().min(1),
   differences: z.array(z.string().trim().min(1)),
@@ -14,6 +16,8 @@ export const ReviewSchema = z.object({
   differences: z.array(z.string()),
   reflection: z.string().trim().min(1),
   createdAt: z.string().datetime(),
+  // Records created before R-02 have no stored origin and are web records.
+  origin: OriginSchema.default("web"),
 });
 
 export type DecisionComparison = z.infer<typeof DecisionComparisonSchema>;

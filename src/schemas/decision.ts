@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { OriginSchema } from "@/schemas/origin";
 import { TransactionSideSchema } from "@/schemas/transaction";
 
 export const DecisionTypeSchema = z.enum([
@@ -56,6 +57,8 @@ const DecisionSnapshotSchema = z.object({
   reviewDates: z.array(z.string().datetime()).optional(),
   decidedAt: z.iso.date().nullable().optional(),
   createdAt: z.string().datetime(),
+  // Records created before R-02 have no stored origin and are web records.
+  origin: OriginSchema.default("web"),
 });
 
 export const DecisionSchema = DecisionSnapshotSchema.extend({

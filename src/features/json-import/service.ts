@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { getDb } from "@/lib/db";
 import { schema } from "@/lib/db/schema";
+import { CaptureSchema } from "@/schemas/capture";
 import { DecisionSchema } from "@/schemas/decision";
 import { ReviewSchema } from "@/schemas/review";
 import { StockSchema } from "@/schemas/stock";
@@ -34,12 +35,14 @@ const batchSchema = z.object({
   undoneAt: timestamp.nullable(),
 });
 const backupSchema = z.object({
-  formatVersion: z.union([z.literal(1), z.literal(2)]),
+  formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   exportedAt: timestamp,
   stocks: z.array(stockSchema),
   decisions: z.array(DecisionSchema),
   transactions: z.array(TransactionSchema),
   reviews: z.array(ReviewSchema),
+  // Version 1 and 2 backups predate the inbox and have no captures.
+  captures: z.array(CaptureSchema).default([]),
   importBatches: z.array(batchSchema),
   importBatchStocks: z.array(
     z.object({
@@ -105,6 +108,14 @@ export function importJson(value: unknown) {
     if (row.decisionId != null)
       requireReference(decisionIds.get(row.decisionId) === row.stockId);
   }
+  for (const row of data.captures) {
+    if (row.stockId != null) requireReference(stockIds.has(row.stockId));
+    if (row.decisionId != null) {
+      requireReference(decisionIds.has(row.decisionId));
+      if (row.stockId != null)
+        requireReference(decisionIds.get(row.decisionId) === row.stockId);
+    }
+  }
   for (const row of data.transactions)
     if (row.importBatchId != null)
       requireReference(batchIds.has(row.importBatchId));
@@ -162,7 +173,11 @@ export function importJson(value: unknown) {
       );
     }
   }
-  const rows: Record<keyof typeof schema, Row[]> = {
+  // integration_requests is an idempotency log and is intentionally not backed up.
+  const rows: Record<
+    Exclude<keyof typeof schema, "integrationRequests">,
+    Row[]
+  > = {
     stocks: data.stocks,
     importBatches: data.importBatches,
     decisions: data.decisions.map((row) => ({
@@ -188,6 +203,7 @@ export function importJson(value: unknown) {
       ...row,
       differences: JSON.stringify(row.differences),
     })),
+    captures: data.captures,
     importBatchStocks: data.importBatchStocks,
     transactionImportSources: data.transactionImportSources,
     importChanges: data.importChanges,
@@ -202,6 +218,7 @@ export function importJson(value: unknown) {
       "decisions",
       "transactions",
       "reviews",
+      "captures",
       "importBatchStocks",
       "transactionImportSources",
       "importChanges",

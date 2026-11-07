@@ -163,6 +163,7 @@ export async function saveDecisionAction(input: unknown): Promise<{
         reviewDates: JSON.stringify(reviewDates),
         decidedAt,
         createdAt: now,
+        origin: "web",
       })
       .run();
 
@@ -379,10 +380,11 @@ export async function saveReviewAction(input: unknown): Promise<Review> {
         id,
         differences: JSON.stringify(parsed.differences),
         createdAt,
+        origin: "web",
       })
       .run();
   });
-  return ReviewSchema.parse({ ...parsed, id, createdAt });
+  return ReviewSchema.parse({ ...parsed, id, createdAt, origin: "web" });
 }
 
 export async function listReviewsForStockAction(input: {
