@@ -411,7 +411,7 @@ type ValuedHolding = Holding & {
 - `adjustments` は株式分割・スピンオフの適用ラベル。
 - `quote.price` は取得できたときだけ存在し、`amount` は正の数、`currency` は `"JPY"` か `"USD"`。
 - `quoteError` は取得できなかった理由。正常時は `null`。
-- `realizedProfitLoss` はその銘柄の実現損益合計。R-06 まで常に `null`。
+- `realizedProfitLoss` はその銘柄の保有通貨での実現損益合計（§4.8 の `stockTotals` と同じ値。1 件でも計算できない売却があれば `null`）。R-06 まで常に `null`。
 - `quantity` は 0 でも `hasWarning` が true なら返ることがある（`calculatePortfolio` の仕様）。
 
 ### 3.8 列挙値の一覧
@@ -1215,20 +1215,26 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 - 並び順: `executedAt` の昇順、同じなら `id` の昇順（損益の確定順）。
 - `totalsByCurrency` は、売却が 1 件以上ある通貨だけを返す。通貨を跨いだ合計は返さない。
 
-計算ルール:
+計算ルール（`calculatePortfolio` の既存ルールに揃える）:
 
-> R-06 着手時に `calculatePortfolio` の実装（平均取得単価法、手数料の扱い、株式分割の適用日）に揃えて確定し、この文書を更新する。R-01 ではレスポンスの形だけを固定し、計算結果の値を断定しない。
-
-- 現時点の `calculatePortfolio` は、買いの平均取得単価に `price` だけを使い、`fee` を取得額に含めていない（`src/features/portfolio/portfolio.ts`）。R-06 はこの扱いを確認したうえで、手数料を実現損益にどう反映するかを決める。
-- 株式分割・スピンオフは `src/features/portfolio/corporate-actions.ts` の適用日ルールで売買の再生に織り込む。
+- 売買は `calculatePortfolio` と同じ再生処理（イベント順、株式分割・スピンオフの適用日ルール）で全履歴を再生する。平均取得単価は移動平均（買いで加重平均し、売りでは変えない。数量 0 で平均単価と通貨を不明に戻す）。
+- 売却 1 件の実現損益 = 売却数量 ×（売却単価 − 売却直前の平均取得単価）。
+- 手数料は売り・買いとも含めない（手数料控除前）。既存の取得額が手数料を含めないため（`src/features/portfolio/portfolio.ts`）。`fee` は参考として返す。
+- 次の場合、その売却の `realizedProfitLoss` は `null` にし、`warning` に理由を入れる。明細からは除外しない。
+  - 売却価格が不明
+  - 売却直前の平均取得単価または保有通貨が不明
+  - 売却の `priceCurrency` が明示されていて保有通貨と違う（未設定なら保有通貨とみなす）
+  - 保有数量を超える売却（既存の許容誤差を使う）。文言は既存の「売買履歴上、保有数量を超える売却があります」を踏襲する
+- `from` / `to` は出力（明細と合計）だけを絞る。計算は常に全履歴で行う。合計は絞り込み後の売却から算出する。
 - 円とドルの換算・合算はしない。
 
 レスポンス `data`:
 
-| フィールド         | 型                 | 意味                           |
-| ------------------ | ------------------ | ------------------------------ |
-| `sales`            | `RealizedSale[]`   | 売却レコード単位の実現損益     |
-| `totalsByCurrency` | `RealizedTotals[]` | 通貨別合計。売却がある通貨だけ |
+| フィールド         | 型                      | 意味                           |
+| ------------------ | ----------------------- | ------------------------------ |
+| `sales`            | `RealizedSale[]`        | 売却レコード単位の実現損益     |
+| `stockTotals`      | `RealizedStockTotals[]` | 銘柄 × 通貨ごとの合計          |
+| `totalsByCurrency` | `RealizedTotals[]`      | 通貨別合計。売却がある通貨だけ |
 
 ```ts
 type RealizedSale = {
@@ -1240,28 +1246,42 @@ type RealizedSale = {
   quantity: number;
   executedAt: string;
   currency: "JPY" | "USD" | null;
+  price: Money | null;
+  averagePurchasePrice: Money | null;
   proceeds: Money | null;
   costBasis: Money | null;
   fee: Money | null;
   realizedProfitLoss: Money | null;
+  warning: string | null;
   decisionId: string | null;
 };
 
 type RealizedTotals = {
   currency: "JPY" | "USD";
   saleCount: number;
+  computedCount: number;
   proceeds: Money | null;
   costBasis: Money | null;
   realizedProfitLoss: Money | null;
   completeness: boolean;
 };
+
+type RealizedStockTotals = RealizedTotals & {
+  stockId: string;
+  stockName: string;
+  ticker: string | null;
+};
 ```
 
 - `proceeds`: 売却代金（`price × quantity`）。価格不明なら `null`。
 - `costBasis`: 売却時点の平均取得単価 × 数量。取得単価不明なら `null`。
-- `fee`: 売買の手数料。未入力なら `null`。
-- `realizedProfitLoss`: `proceeds - costBasis` を基本とし、手数料の扱いは R-06 で確定する。不明なら `null`。
-- `completeness`: その通貨の全売却で `realizedProfitLoss` が `null` でないときだけ `true`。
+- `price` / `averagePurchasePrice`: 売却単価と、売却直前の平均取得単価（株式分割の調整後）。
+- `fee`: 売買の手数料（参考）。実現損益には含めない。未入力なら `null`。
+- `realizedProfitLoss`: `proceeds - costBasis`（手数料控除前）。不明なら `null`。
+- `warning`: 実現損益を計算できない理由。計算できた売却では `null`。
+- `currency` が `null` の売却（保有通貨が不明）は、`stockTotals` / `totalsByCurrency` のどの合計にも入らず、明細だけに出る。
+- `saleCount` は合計の対象になった売却件数、`computedCount` はそのうち `realizedProfitLoss` が `null` でない件数。
+- `completeness`: `saleCount === computedCount` のときだけ `true`。`false` のとき、`proceeds` / `costBasis` / `realizedProfitLoss` の合計は `null` にする（一部だけの合計を完全に見せない）。
 - 全売却済みの銘柄は `GET /holdings` に出ないため、実現損益はこの専用エンドポイントで読む。
 
 エラー:
@@ -1280,7 +1300,7 @@ GET /api/integration/v1/realized-pnl?from=2026-11-01&to=2026-11-30 HTTP/1.1
 Authorization: Bearer <RULETRADE_READ_TOKEN>
 ```
 
-レスポンス例（手数料が未入力の売却。計算ルールは R-06 で確定する）:
+レスポンス例（手数料が未入力の売却）:
 
 ```json
 {
@@ -1296,17 +1316,35 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
         "quantity": 50,
         "executedAt": "2026-11-06T12:00:00.000Z",
         "currency": "JPY",
+        "price": { "amount": 2800, "currency": "JPY" },
+        "averagePurchasePrice": { "amount": 2500, "currency": "JPY" },
         "proceeds": { "amount": 140000, "currency": "JPY" },
         "costBasis": { "amount": 125000, "currency": "JPY" },
         "fee": null,
         "realizedProfitLoss": { "amount": 15000, "currency": "JPY" },
+        "warning": null,
         "decisionId": null
+      }
+    ],
+    "stockTotals": [
+      {
+        "stockId": "3f0c9a52-7d1e-4b6a-9c2f-1a2b3c4d5e6f",
+        "stockName": "キオクシア",
+        "ticker": "285A",
+        "currency": "JPY",
+        "saleCount": 1,
+        "computedCount": 1,
+        "proceeds": { "amount": 140000, "currency": "JPY" },
+        "costBasis": { "amount": 125000, "currency": "JPY" },
+        "realizedProfitLoss": { "amount": 15000, "currency": "JPY" },
+        "completeness": true
       }
     ],
     "totalsByCurrency": [
       {
         "currency": "JPY",
         "saleCount": 1,
+        "computedCount": 1,
         "proceeds": { "amount": 140000, "currency": "JPY" },
         "costBasis": { "amount": 125000, "currency": "JPY" },
         "realizedProfitLoss": { "amount": 15000, "currency": "JPY" },
@@ -1966,5 +2004,5 @@ Content-Type: application/json; charset=utf-8
 
 なし。
 
-- 実現損益の計算ルール（手数料の扱い、平均取得単価との整合）は未決ではなく、R-06 の着手時に `calculatePortfolio` を確認して確定し、この文書の §4.8 を更新する。
+- 実現損益の計算ルールは R-06 の調査で `calculatePortfolio` から確定し、§4.8 に反映済み。
 - 上記以外で、R-02〜R-08 の実装を止める未決事項はない。
