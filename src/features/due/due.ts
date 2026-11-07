@@ -19,7 +19,6 @@ export type DueDecision = {
   decision: Decision;
 };
 
-/** 振り返り期限が到来し、まだ振り返っていない判断。 */
 export async function listDueDecisions(
   asOf = new Date().toISOString(),
 ): Promise<DueDecision[]> {
@@ -57,7 +56,6 @@ export async function listDueDecisions(
     .sort((a, b) => a.decision.reviewAt.localeCompare(b.decision.reviewAt));
 }
 
-/** 判断が紐付いていない売買。 */
 export async function listUnlinkedTransactions(): Promise<Transaction[]> {
   return getDb()
     .select()

@@ -1,5 +1,5 @@
 import { DecisionSchema, DecisionTypeSchema } from "@/schemas/decision";
-import { stocks } from "@/lib/db/schema";
+import type { stocks } from "@/lib/db/schema";
 
 import type { Decision } from "@/schemas/decision";
 
