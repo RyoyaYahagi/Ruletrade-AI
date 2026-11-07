@@ -75,6 +75,36 @@ describe("CSV import database service", () => {
     ).toBe(0);
   });
 
+  it("imports investment funds as ticker-less stocks per currency and dedupes a second run", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const bytes = new Uint8Array(
+      await readFile("tests/fixtures/csv-import/rakuten-investment-fund.csv"),
+    );
+    const preview = await service.previewCsv(bytes);
+    expect(preview.counts).toMatchObject({ new: 4, duplicate: 0 });
+    const result = await service.importCsv(
+      bytes,
+      "rakuten-investment-fund.csv",
+      preview.digest,
+    );
+    expect(result.importedCount).toBe(4);
+    const schema = await import("@/lib/db/schema");
+    const stockRows = dbModule.getDb().select().from(schema.stocks).all();
+    expect(
+      stockRows
+        .map(({ name, ticker, marketCode }) => ({ name, ticker, marketCode }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ja")),
+    ).toEqual([
+      { name: "架空インデックスファンド", ticker: null, marketCode: "JP" },
+      { name: "架空マネーファンド", ticker: null, marketCode: "JP" },
+      { name: "架空米ドルMMF", ticker: null, marketCode: "US" },
+    ]);
+    expect((await service.previewCsv(bytes)).counts).toMatchObject({
+      new: 0,
+      duplicate: 4,
+    });
+  });
+
   it("undoes only the selected batch and preserves stocks referenced by manual data", async () => {
     const csv = syntheticCsv([distinctTrade]);
     const { batchId } = await service.importCsv(

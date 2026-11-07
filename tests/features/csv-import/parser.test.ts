@@ -4,7 +4,6 @@ import {
   CsvFormatError,
   normalizeName,
   parseCsv,
-  UnsupportedCsvFormatError,
 } from "@/features/csv-import/parser";
 
 const fixture = async (name: string) =>
@@ -42,11 +41,71 @@ describe("CSV import parser", () => {
     expect(result.transactions[1].settlementCurrency).toBe("USD");
   });
 
-  it("identifies investment-fund statements and gives an explicit unsupported error", async () => {
+  it("parses Rakuten investment-fund trades with per-unit prices", async () => {
     expect(() => parseCsv(new Uint8Array(Buffer.from("")))).toThrow();
-    await expect(async () =>
-      parseCsv(await fixture("rakuten-investment-fund.csv")),
-    ).rejects.toBeInstanceOf(UnsupportedCsvFormatError);
+    const result = parseCsv(await fixture("rakuten-investment-fund.csv"));
+    expect(result.format).toBe("rakuten-investment-fund");
+    expect(result.transactions).toHaveLength(4);
+    const [buy, sell, reinvest, usd] = result.transactions;
+    expect(buy).toMatchObject({
+      sourceBroker: "rakuten",
+      marketCode: "JP",
+      ticker: null,
+      stockName: "架空インデックスファンド",
+      side: "buy",
+      quantity: 15482,
+      priceCurrency: "JPY",
+      settlementCurrency: "JPY",
+      settlementAmount: 50000,
+      exchangeRate: null,
+      accountType: "NISA つみたて投資枠",
+      sourceTradeType: "買付",
+    });
+    // 基準価額は1万口あたりの値なので1口あたりに直す
+    expect(buy.price).toBeCloseTo(3.2297);
+    expect(sell).toMatchObject({ side: "sell", quantity: 5000, price: 3 });
+    expect(reinvest).toMatchObject({
+      side: "buy",
+      price: 1,
+      fee: 16,
+      sourceTradeType: "再投資",
+    });
+    expect(usd).toMatchObject({
+      marketCode: "US",
+      quantity: 38600,
+      price: 0.01,
+      priceCurrency: "USD",
+      settlementCurrency: "USD",
+      settlementAmount: 386,
+      exchangeRate: 154.34,
+    });
+    expect(result.excluded).toEqual([
+      expect.objectContaining({
+        stockName: "架空米ドルMMF",
+        reason: "数量が0口のため対象外です。",
+      }),
+    ]);
+    // 数量×単価が受渡金額と一致する単位がない行は推測せず読み取れない行にする
+    expect(result.unknown).toEqual([
+      expect.objectContaining({ stockName: "架空バランスファンド" }),
+    ]);
+  });
+
+  it("rejects an investment-fund row whose price unit is ambiguous", () => {
+    const bytes = new TextEncoder().encode(
+      "約定日,受渡日,ファンド名,分配金,口座,取引,買付方法,数量［口］,単価,経費,為替レート,受付金額[現地通貨],受渡金額/(ポイント利用)[円],決済通貨\n" +
+        '"2025/5/12","2025/5/13","架空米ドルMMF","累積投資","特定","買付","","1","0.01","0.00","154.34","0.01","1","米ドル"\n' +
+        '"2025/5/12","2025/5/13","架空ファンド","累積投資","特定","分配金","","1","1","0","-","-","1","円"\n',
+    );
+    const result = parseCsv(bytes);
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].price).toBe(0.01);
+    expect(result.unknown).toEqual([
+      expect.objectContaining({
+        sourceTradeType: "分配金",
+        reason: "対応する投資信託の取引区分ではありません。",
+      }),
+    ]);
   });
 
   it("finds SBI's real header after preamble and normalizes IPO offers as buys", async () => {

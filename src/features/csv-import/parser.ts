@@ -2,6 +2,7 @@ import { headerIndex, parseCsvRecords } from "./common";
 import { parseMonex } from "./adapters/monex";
 import { parseNomura } from "./adapters/nomura";
 import { parseRakuten } from "./adapters/rakuten";
+import { parseRakutenFund } from "./adapters/rakuten-fund";
 import { parseSbi } from "./adapters/sbi";
 import type { CsvFormat, ParsedCsv } from "./types";
 
@@ -9,17 +10,6 @@ export class CsvFormatError extends Error {
   constructor(message = "CSV形式を判定できませんでした。") {
     super(message);
     this.name = "CsvFormatError";
-  }
-}
-
-export class UnsupportedCsvFormatError extends Error {
-  readonly format: "rakuten-investment-fund";
-  constructor() {
-    super(
-      "このCSVは投資信託の取引履歴です。Ruletradeでは現在、投資信託はインポート対象外です。",
-    );
-    this.name = "UnsupportedCsvFormatError";
-    this.format = "rakuten-investment-fund";
   }
 }
 
@@ -128,45 +118,49 @@ export function parseCsv(bytes: Uint8Array): ParsedCsv {
   const records = parseCsvRecords(decoded.rawCsv.replace(/^\uFEFF/, ""));
   const rows = records.map(({ cells }) => cells);
   const { format, header } = detect(rows);
-  if (format === "rakuten-investment-fund")
-    throw new UnsupportedCsvFormatError();
+  const sourceLines = records.map(({ sourceRowNumber }) => sourceRowNumber);
   const parsed =
-    format === "rakuten-jp" || format === "rakuten-us"
+    format === "rakuten-investment-fund"
       ? {
-          ...parseRakuten(
-            rows,
-            header,
-            format,
-            records.map(({ sourceRowNumber }) => sourceRowNumber),
-          ),
+          ...parseRakutenFund(rows, header, sourceLines),
           broker: "rakuten" as const,
         }
-      : format === "sbi-jp"
+      : format === "rakuten-jp" || format === "rakuten-us"
         ? {
-            ...parseSbi(
+            ...parseRakuten(
               rows,
               header,
+              format,
               records.map(({ sourceRowNumber }) => sourceRowNumber),
             ),
-            broker: "sbi" as const,
+            broker: "rakuten" as const,
           }
-        : format === "monex-jp"
+        : format === "sbi-jp"
           ? {
-              ...parseMonex(
+              ...parseSbi(
                 rows,
                 header,
                 records.map(({ sourceRowNumber }) => sourceRowNumber),
               ),
-              broker: "monex" as const,
+              broker: "sbi" as const,
             }
-          : {
-              ...parseNomura(
-                rows,
-                header,
-                records.map(({ sourceRowNumber }) => sourceRowNumber),
-              ),
-              broker: "nomura" as const,
-            };
+          : format === "monex-jp"
+            ? {
+                ...parseMonex(
+                  rows,
+                  header,
+                  records.map(({ sourceRowNumber }) => sourceRowNumber),
+                ),
+                broker: "monex" as const,
+              }
+            : {
+                ...parseNomura(
+                  rows,
+                  header,
+                  records.map(({ sourceRowNumber }) => sourceRowNumber),
+                ),
+                broker: "nomura" as const,
+              };
   return { ...decoded, format, ...parsed };
 }
 

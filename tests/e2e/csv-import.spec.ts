@@ -59,7 +59,9 @@ for (const width of [1280, 320]) {
   });
 }
 
-test("investment fund CSV gives a clear explanation", async ({ page }) => {
+test("investment fund CSV can be previewed like stock CSVs", async ({
+  page,
+}) => {
   await page.goto("/more");
   await page
     .getByLabel("CSVを選択")
@@ -70,10 +72,10 @@ test("investment fund CSV gives a clear explanation", async ({ page }) => {
       ),
     );
   await expect(
-    page.getByRole("region", { name: "取引履歴を読み込む" }).getByRole("alert"),
-  ).toContainText("投資信託");
-  await expect(
     page.getByRole("button", { name: /件をインポート/ }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("region", { name: "取引履歴を読み込む" }).getByRole("alert"),
   ).toHaveCount(0);
 });
 
@@ -88,7 +90,9 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
       type: "buy",
       stock: { ticker, name: stockName, market: "JP" },
       summary: "CSV照合の確認用記録",
-      points: [{ kind: "other", text: "CSV照合の確認用記録", source: "raw_input" }],
+      points: [
+        { kind: "other", text: "CSV照合の確認用記録", source: "raw_input" },
+      ],
       transaction: {
         side: "buy",
         quantity: 10,
