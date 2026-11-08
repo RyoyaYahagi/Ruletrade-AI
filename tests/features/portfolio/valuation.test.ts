@@ -4,6 +4,7 @@ import type { PortfolioHolding } from "@/features/portfolio/portfolio";
 import {
   calculateValuation,
   summarizeValuation,
+  totalInJpy,
 } from "@/features/portfolio/valuation";
 
 function holding(overrides: Partial<PortfolioHolding> = {}): PortfolioHolding {
@@ -239,5 +240,60 @@ describe("portfolio valuation", () => {
     expect(summaries.USD.composition).toEqual([
       { stockId: "usd", stockName: "Example", marketValue: 20, percent: 100 },
     ]);
+  });
+});
+
+describe("totalInJpy", () => {
+  const jp = holding({ stockId: "jp", ticker: "7203", acquisitionAmount: 200 });
+  const us = holding({
+    stockId: "us",
+    ticker: "AAPL",
+    marketCode: "US",
+    currency: "USD",
+    quantity: 1,
+    averagePurchasePrice: 10,
+    acquisitionAmount: 10,
+  });
+  const quotes = new Map([
+    ["7203.T", quote("7203.T", 150)],
+    ["AAPL", quote("AAPL", 12, "USD")],
+  ]);
+
+  it("converts USD holdings with one current rate and adds them to JPY", () => {
+    const summaries = summarizeValuation(calculateValuation([jp, us], quotes));
+
+    expect(totalInJpy(summaries, 150)).toEqual({
+      marketValueJpy: 300 + 12 * 150,
+      acquisitionAmountJpy: 200 + 10 * 150,
+      unrealizedProfitLossJpy: 100 + 2 * 150,
+      unrealizedProfitLossRate: (400 / 1700) * 100,
+    });
+  });
+
+  it("does not need a rate when nothing is held in USD", () => {
+    const summaries = summarizeValuation(calculateValuation([jp], quotes));
+
+    expect(totalInJpy(summaries, null).marketValueJpy).toBe(300);
+  });
+
+  it("returns no total when USD is held but the rate is missing", () => {
+    const summaries = summarizeValuation(calculateValuation([jp, us], quotes));
+
+    expect(totalInJpy(summaries, null)).toEqual({
+      marketValueJpy: null,
+      acquisitionAmountJpy: null,
+      unrealizedProfitLossJpy: null,
+      unrealizedProfitLossRate: null,
+    });
+  });
+
+  it("returns no market total when a USD price is missing", () => {
+    const summaries = summarizeValuation(
+      calculateValuation([jp, us], new Map([["7203.T", quote("7203.T", 150)]])),
+    );
+
+    const total = totalInJpy(summaries, 150);
+    expect(total.marketValueJpy).toBeNull();
+    expect(total.acquisitionAmountJpy).toBe(200 + 10 * 150);
   });
 });

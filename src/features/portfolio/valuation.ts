@@ -165,3 +165,52 @@ export function summarizeValuation(
 
   return totals;
 }
+
+export type JpyTotal = {
+  marketValueJpy: number | null;
+  acquisitionAmountJpy: number | null;
+  unrealizedProfitLossJpy: number | null;
+  unrealizedProfitLossRate: number | null;
+};
+
+/**
+ * 円と米ドルの集計を、ひとつの現在の為替レートで円に換算して合算する。
+ * 取得額も買付時ではなく現在のレートで換算するため、含み損益に為替の損益は含まれない
+ * （買付時のレートは取引記録に揃っていないので、推測で混ぜない）。
+ * 米ドルの保有があるのにレートが無いときは、合計を出さずに null を返す。
+ */
+export function totalInJpy(
+  summaries: ValuationSummaries,
+  usdJpyRate: number | null,
+): JpyTotal {
+  const usd = summaries.USD;
+  const hasUsd =
+    usd.acquisitionAmount !== 0 ||
+    (usd.marketValue !== null && usd.marketValue !== 0) ||
+    !usd.completeness.marketValue;
+  const rate = hasUsd ? usdJpyRate : 0;
+  const combine = (jpy: number | null, usdValue: number | null) =>
+    rate === null || jpy === null || (hasUsd && usdValue === null)
+      ? null
+      : jpy + (usdValue ?? 0) * rate;
+  const marketValueJpy = combine(summaries.JPY.marketValue, usd.marketValue);
+  const acquisitionAmountJpy = combine(
+    summaries.JPY.acquisitionAmount,
+    usd.acquisitionAmount,
+  );
+  const unrealizedProfitLossJpy = combine(
+    summaries.JPY.unrealizedProfitLoss,
+    usd.unrealizedProfitLoss,
+  );
+  return {
+    marketValueJpy,
+    acquisitionAmountJpy,
+    unrealizedProfitLossJpy,
+    unrealizedProfitLossRate:
+      unrealizedProfitLossJpy !== null &&
+      acquisitionAmountJpy !== null &&
+      acquisitionAmountJpy > 0
+        ? (unrealizedProfitLossJpy / acquisitionAmountJpy) * 100
+        : null,
+  };
+}

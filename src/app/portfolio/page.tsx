@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listDecisionStatsAction } from "@/features/decisions/actions";
 import { shortJapanDate } from "@/features/decisions/decision-display";
 
+import type { ExchangeRate } from "@/features/market-data/exchange-rate";
 import { marketPriceProvider } from "@/features/market-data/quotes";
 import { toQuoteSymbol } from "@/features/market-data/symbols";
 import {
@@ -21,6 +22,8 @@ import {
 import {
   calculateValuation,
   summarizeValuation,
+  totalInJpy,
+  type JpyTotal,
   type ValuedHolding,
 } from "@/features/portfolio/valuation";
 import type { PortfolioHolding } from "@/features/portfolio/portfolio";
@@ -48,6 +51,97 @@ function sortValuations(a: ValuedHolding, b: ValuedHolding): number {
     return b.marketValue - a.marketValue;
   }
   return a.holding.stockName.localeCompare(b.holding.stockName, "ja");
+}
+
+function signedYen(value: number): string {
+  return `${value > 0 ? "+" : value < 0 ? "-" : ""}${formatPortfolioAmount(Math.abs(value), "JPY")}`;
+}
+
+function JpyTotalPanel({
+  total,
+  rate,
+  rateRequired,
+  unknownCurrencyHoldings,
+}: {
+  total: JpyTotal;
+  rate: ExchangeRate | null;
+  rateRequired: boolean;
+  unknownCurrencyHoldings: number;
+}) {
+  const profit = total.unrealizedProfitLossJpy;
+  const rateValue = total.unrealizedProfitLossRate;
+  return (
+    <section
+      className="surface space-y-3 p-5"
+      aria-labelledby="portfolio-total-heading"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="portfolio-total-heading" className="font-semibold">
+          全体（円換算）
+        </h2>
+        <span className="chip">国内株式＋米国株式</span>
+      </div>
+      <dl className="space-y-3">
+        <div>
+          <dt className="text-xs text-muted-foreground">時価評価額（参考）</dt>
+          <dd className="mt-1 font-mono text-3xl tracking-tight">
+            {total.marketValueJpy === null
+              ? "算出できません"
+              : formatPortfolioAmount(total.marketValueJpy, "JPY")}
+          </dd>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <dt className="text-xs text-muted-foreground">含み損益</dt>
+            <dd
+              className={`mt-1 font-mono text-[15px] ${
+                profit === null || profit === 0
+                  ? "text-muted-foreground"
+                  : profit > 0
+                    ? "text-primary"
+                    : "text-destructive"
+              }`}
+            >
+              {profit === null ? "不明" : signedYen(profit)}{" "}
+              <span className="text-xs">
+                (
+                {rateValue === null
+                  ? "不明"
+                  : `${rateValue > 0 ? "+" : rateValue < 0 ? "-" : ""}${Math.abs(rateValue).toLocaleString("ja-JP", { maximumFractionDigits: 2 })}%`}
+                )
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">参考取得額</dt>
+            <dd className="mt-1 font-mono text-[15px]">
+              {total.acquisitionAmountJpy === null
+                ? "不明"
+                : formatPortfolioAmount(total.acquisitionAmountJpy, "JPY")}
+            </dd>
+          </div>
+        </div>
+      </dl>
+      {rateRequired && rate === null && (
+        <p className="text-xs text-muted-foreground">
+          換算レートを取得できないため、米国株式を含む合計は出していません。古いレートは使いません。
+        </p>
+      )}
+      {unknownCurrencyHoldings > 0 && (
+        <p className="text-xs text-muted-foreground">
+          通貨が不明な保有が{unknownCurrencyHoldings}
+          件あるため、合計を出していません。
+        </p>
+      )}
+      {rateRequired && rate !== null && (
+        <p className="text-xs leading-5 text-muted-foreground">
+          米ドル建ては 1 USD ={" "}
+          {rate.rate.toLocaleString("ja-JP", { maximumFractionDigits: 2 })}
+          円で換算しています。取得額も同じ現在のレートで換算するため、含み損益に為替の損益は含みません。
+        </p>
+      )}
+    </section>
+  );
 }
 
 function Summary({
@@ -209,7 +303,9 @@ export default async function PortfolioPage({
   const currentHoldings = marketHoldings.filter(
     (holding) => holding.quantity > 0,
   );
-  const symbols = currentHoldings
+  // 円換算の合計は国内・米国の両方の保有を使うため、タブに関係なく全保有の価格を引く
+  const heldHoldings = holdings.filter((holding) => holding.quantity > 0);
+  const symbols = heldHoldings
     .map((holding) => toQuoteSymbol(holding))
     .filter((symbol): symbol is string => symbol !== null);
   let quotes;
@@ -219,16 +315,35 @@ export default async function PortfolioPage({
     quotes = new Map();
   }
   const realizedByStock = new Map(
-    marketHoldings.map((holding) => [
+    holdings.map((holding) => [
       holding.stockId,
       realizedProfitLossForStock(realized, holding.stockId, holding.currency),
     ]),
   );
-  const valuedHoldings = calculateValuation(
-    marketHoldings,
+  const allValuedHoldings = calculateValuation(
+    holdings,
     quotes,
     realizedByStock,
   );
+  const valuedHoldings = allValuedHoldings.filter(
+    ({ holding }) => marketFor(holding) === market,
+  );
+  const unknownCurrencyHoldings = heldHoldings.filter(
+    (holding) => holding.currency === null,
+  ).length;
+  // 通貨が不明な保有があると円に換算できないため、一部だけの合計は出さない
+  const jpyTotal: JpyTotal =
+    unknownCurrencyHoldings > 0
+      ? {
+          marketValueJpy: null,
+          acquisitionAmountJpy: null,
+          unrealizedProfitLossJpy: null,
+          unrealizedProfitLossRate: null,
+        }
+      : totalInJpy(
+          summarizeValuation(allValuedHoldings),
+          bucketSummary.exchangeRate?.rate ?? null,
+        );
   const summary =
     summarizeValuation(valuedHoldings)[market === "jp" ? "JPY" : "USD"];
   const currency = market === "jp" ? "JPY" : "USD";
@@ -271,6 +386,12 @@ export default async function PortfolioPage({
     <main className="page-shell space-y-6">
       <div className="space-y-4">
         <h1 className="page-title">ポートフォリオ</h1>
+        <JpyTotalPanel
+          total={jpyTotal}
+          rate={bucketSummary.exchangeRate}
+          rateRequired={usCount > 0}
+          unknownCurrencyHoldings={unknownCurrencyHoldings}
+        />
         <BucketAllocationPanel summary={bucketSummary} settings={settings} />
         <MarketTabs market={market} jpCount={jpCount} usCount={usCount} />
       </div>

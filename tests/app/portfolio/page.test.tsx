@@ -167,6 +167,36 @@ describe("portfolio page valuation UI", () => {
     };
   });
 
+  it("totals domestic and US holdings in yen with the current rate", async () => {
+    mocks.bucketSummary = bucketSummary({
+      exchangeRate: {
+        rate: 150,
+        priceAt: "2026-11-08T05:21:16.000Z",
+        sourceName: "Delayed Quote",
+      },
+    });
+
+    const markup = await render();
+
+    // JP 2 x 1,200 = 2,400 (cost 2,000); US 2 x 150 USD = 300 USD (cost 200 USD) at 150 JPY.
+    expect(markup).toContain("全体（円換算）");
+    expect(markup).toContain("47,400円");
+    expect(markup).toContain("32,000円");
+    expect(markup).toContain("+15,400円");
+    expect(markup).toContain("+48.13%");
+    expect(markup).toContain("含み損益に為替の損益は含みません");
+  });
+
+  it("does not total US holdings without an exchange rate", async () => {
+    const markup = await render();
+
+    expect(markup).toContain("全体（円換算）");
+    expect(markup).toContain("算出できません");
+    expect(markup).toContain(
+      "換算レートを取得できないため、米国株式を含む合計は出していません。古いレートは使いません。",
+    );
+  });
+
   it("defaults to domestic stocks and shows compact rows and selected-market totals", async () => {
     const markup = await render();
 
