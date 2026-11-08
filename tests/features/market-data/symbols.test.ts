@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseConstantNavSymbol,
   parseFundSymbol,
   toFundSymbol,
   toQuoteSymbol,
@@ -54,5 +55,41 @@ describe("fund symbols", () => {
     ).toBe("7203.T");
     expect(toFundSymbol("JP90C000GKC6", "short")).toBeNull();
     expect(parseFundSymbol("7203.T")).toBeNull();
+  });
+});
+
+describe("constant NAV funds", () => {
+  it("prices the USD MMF at its fixed 0.01 USD per unit", () => {
+    const symbol = toQuoteSymbol({
+      ticker: null,
+      marketCode: "US",
+      stockName:
+        "ノーザン・トラスト・米ドル・リクイディティ・ファンド(楽天・米ドルMMF)",
+    });
+    expect(symbol).toBe("CONSTANT:USD:0.01");
+    expect(parseConstantNavSymbol(symbol!)).toEqual({
+      price: 0.01,
+      currency: "USD",
+    });
+  });
+
+  it("prefers registered fund codes and ignores unknown funds", () => {
+    expect(
+      toQuoteSymbol({
+        ticker: null,
+        marketCode: "JP",
+        stockName: "楽天・マネーファンド",
+        fundIsin: "JP90C000GKC6",
+        fundAssociationCode: "03311187",
+      }),
+    ).toBe("FUND:JP90C000GKC6:03311187");
+    expect(
+      toQuoteSymbol({
+        ticker: null,
+        marketCode: "JP",
+        stockName: "未知のファンド",
+      }),
+    ).toBeNull();
+    expect(parseConstantNavSymbol("CONSTANT:USD:5")).toBeNull();
   });
 });

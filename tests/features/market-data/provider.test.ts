@@ -118,9 +118,12 @@ describe("yahooMarketPriceProvider", () => {
     quote.mockResolvedValue(new Map());
 
     await yahooMarketPriceProvider.getQuotes(["UNAVAILABLE_TEST"]);
+    // The first load also re-queries the missing symbol on its own (alias check).
+    const callsAfterFirstLoad = quote.mock.calls.length;
     await yahooMarketPriceProvider.getQuotes(["UNAVAILABLE_TEST"]);
 
-    expect(quote).toHaveBeenCalledTimes(1);
+    expect(callsAfterFirstLoad).toBe(2);
+    expect(quote).toHaveBeenCalledTimes(callsAfterFirstLoad);
   });
 
   it("shares an in-flight request between concurrent calls", async () => {
@@ -180,5 +183,33 @@ describe("yahooMarketPriceProvider", () => {
       new Map(),
     );
     expect(quote).not.toHaveBeenCalled();
+  });
+
+  it("re-queries a symbol that Yahoo returns under an alias", async () => {
+    quote.mockImplementation(async (symbols: unknown) =>
+      Array.isArray(symbols)
+        ? new Map([
+            [
+              "USDJPY=X",
+              yahooQuote("USDJPY=X", {
+                currency: "JPY",
+                regularMarketPrice: 158.4,
+              }),
+            ],
+          ])
+        : yahooQuote("USDJPY=X", {
+            currency: "JPY",
+            regularMarketPrice: 158.4,
+          }),
+    );
+
+    const result = await yahooMarketPriceProvider.getQuotes(["JPY=X"]);
+
+    expect(quote).toHaveBeenCalledWith("JPY=X");
+    expect(result.get("JPY=X")).toMatchObject({
+      symbol: "JPY=X",
+      price: 158.4,
+      currency: "JPY",
+    });
   });
 });

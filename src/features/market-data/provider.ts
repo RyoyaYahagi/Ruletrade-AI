@@ -73,25 +73,31 @@ async function fetchQuotes(
   const quotes = new Map<string, MarketQuote>();
   if (symbols.length === 0) return quotes;
 
+  let unresolved: readonly string[] = symbols;
   try {
     const response = await yahooFinance.quote([...symbols], { return: "map" });
     for (const symbol of symbols) {
       const quote = toMarketQuote(symbol, response.get(symbol));
       if (quote) quotes.set(symbol, quote);
     }
+    // Yahoo は問い合わせた記号を別名の記号で返すことがある（JPY=X を USDJPY=X で返すなど）。
+    // その場合 map のキーで引けないため、引けなかった記号だけを1件ずつ問い合わせ直す。
+    unresolved = symbols.filter((symbol) => !quotes.has(symbol));
   } catch {
-    const individualQuotes = await Promise.all(
-      symbols.map(async (symbol) => {
-        try {
-          return toMarketQuote(symbol, await yahooFinance.quote(symbol));
-        } catch {
-          return null;
-        }
-      }),
-    );
-    for (const quote of individualQuotes) {
-      if (quote) quotes.set(quote.symbol, quote);
-    }
+    // 一括の問い合わせが失敗したときは、全件を1件ずつ問い合わせる
+  }
+
+  const individualQuotes = await Promise.all(
+    unresolved.map(async (symbol) => {
+      try {
+        return toMarketQuote(symbol, await yahooFinance.quote(symbol));
+      } catch {
+        return null;
+      }
+    }),
+  );
+  for (const quote of individualQuotes) {
+    if (quote) quotes.set(quote.symbol, quote);
   }
 
   return quotes;
