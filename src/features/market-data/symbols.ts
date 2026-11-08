@@ -50,15 +50,53 @@ export function parseFundSymbol(
     : null;
 }
 
-/** 価格を引くときの銘柄の識別子。投資信託のコードがあればそちらを優先する */
+/**
+ * 価格を引くときの銘柄の識別子。投資信託のコードがあればそちらを優先し、
+ * 基準価額が固定の投資信託は固定の単価を表す識別子を返す
+ */
 export function toQuoteSymbol(holding: {
   ticker: string | null;
   marketCode: string | null;
+  stockName?: string | null;
   fundIsin?: string | null;
   fundAssociationCode?: string | null;
 }): string | null {
   return (
     toFundSymbol(holding.fundIsin, holding.fundAssociationCode) ??
-    toYahooSymbol(holding.ticker, holding.marketCode)
+    toYahooSymbol(holding.ticker, holding.marketCode) ??
+    (holding.ticker === null && holding.stockName
+      ? toConstantNavSymbol(holding.stockName)
+      : null)
   );
+}
+
+// 基準価額が仕組みとして固定されている投資信託。分配金は口数の追加で払われ、1口あたりの価格は動かない。
+// 外国籍の米ドル MMF は投資信託協会のデータに無く、価格を引く先が無いため、取引記録と同じ固定の単価で評価する。
+// 楽天の取引履歴でも、この2本の単価は常に下の値で記録されている。
+const CONSTANT_NAV_FUNDS = new Map<
+  string,
+  { price: number; currency: "JPY" | "USD" }
+>([
+  [
+    "ノーザン・トラスト・米ドル・リクイディティ・ファンド(楽天・米ドルMMF)",
+    { price: 0.01, currency: "USD" },
+  ],
+  ["楽天・マネーファンド", { price: 1, currency: "JPY" }],
+]);
+const CONSTANT_NAV_PREFIX = "CONSTANT:";
+
+export function toConstantNavSymbol(stockName: string): string | null {
+  const fund = CONSTANT_NAV_FUNDS.get(stockName.normalize("NFKC").trim());
+  return fund ? `${CONSTANT_NAV_PREFIX}${fund.currency}:${fund.price}` : null;
+}
+
+export function parseConstantNavSymbol(
+  symbol: string,
+): { price: number; currency: "JPY" | "USD" } | null {
+  if (!symbol.startsWith(CONSTANT_NAV_PREFIX)) return null;
+  const [currency, price] = symbol.slice(CONSTANT_NAV_PREFIX.length).split(":");
+  const known = [...CONSTANT_NAV_FUNDS.values()].find(
+    (fund) => fund.currency === currency && String(fund.price) === price,
+  );
+  return known ?? null;
 }
