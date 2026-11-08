@@ -25,9 +25,8 @@ export default async function MorePage() {
         <BucketSettingsForm
           settings={getAppSettings()}
           current={{
-            totalInvestedJpy: summary.totalInvestedJpy,
-            satelliteInvestedJpy: summary.satelliteInvestedJpy,
-            satelliteInvestedPct: summary.satelliteInvestedPct,
+            totalMarketValueJpy: summary.totalMarketValueJpy,
+            satelliteMarketValueJpy: summary.satelliteMarketValueJpy,
             satelliteMarketValuePct: summary.satelliteMarketValuePct,
             coreRegistered: summary.coreRegistered,
           }}
@@ -50,7 +49,11 @@ export default async function MorePage() {
                 判断記録や売買履歴をまとめて保存します
               </span>
             </span>
-            <ChevronRight aria-hidden size={18} className="text-muted-foreground" />
+            <ChevronRight
+              aria-hidden
+              size={18}
+              className="text-muted-foreground"
+            />
           </a>
           <div className="px-5 py-4">
             <JsonImportPanel />
@@ -64,7 +67,8 @@ export default async function MorePage() {
         <FeedbackButton />
       </section>
       <p className="px-1 text-xs leading-6 text-muted-foreground">
-        Ruletrade は自分の投資判断を記録して振り返るためのジャーナルです。投資助言・売買の推奨・注文の執行は行いません。
+        Ruletrade
+        は自分の投資判断を記録して振り返るためのジャーナルです。投資助言・売買の推奨・注文の執行は行いません。
       </p>
     </main>
   );

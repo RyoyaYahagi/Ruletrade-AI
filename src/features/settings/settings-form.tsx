@@ -14,9 +14,8 @@ import type { AppSettings } from "@/schemas/app-settings";
 /** フォームのその場の予測に使う、いまの集計値。算出できないときの値は null */
 export type BucketSettingsCurrent = Pick<
   BucketSummary,
-  | "totalInvestedJpy"
-  | "satelliteInvestedJpy"
-  | "satelliteInvestedPct"
+  | "totalMarketValueJpy"
+  | "satelliteMarketValueJpy"
   | "satelliteMarketValuePct"
   | "coreRegistered"
 >;
@@ -68,10 +67,10 @@ function CapPreview({
       </p>
     );
   const cap = satelliteRemainingJpy(current, value);
-  if (cap === null || current.satelliteInvestedPct === null)
+  if (cap === null || current.satelliteMarketValuePct === null)
     return (
       <p className="text-xs text-muted-foreground">
-        いまの投入額割合を算出できないため、残り枠は出せません。
+        いまの評価額割合を算出できないため、残り枠は出せません。
       </p>
     );
   return cap.remainingJpy >= 0 ? (
@@ -80,12 +79,12 @@ function CapPreview({
       <span className="font-mono font-semibold text-foreground">
         {formatYen(cap.remainingJpy)}
       </span>
-      （いま {formatPercent(current.satelliteInvestedPct)}）
+      （いま {formatPercent(current.satelliteMarketValuePct)}）
     </p>
   ) : (
     <p className="text-xs text-attention">
       この上限を {formatYen(-cap.remainingJpy)} 超えた状態になります（いま{" "}
-      {formatPercent(current.satelliteInvestedPct)}）
+      {formatPercent(current.satelliteMarketValuePct)}）
     </p>
   );
 }
@@ -109,18 +108,18 @@ function WarnPreview({
   if (marketPct === null)
     return (
       <p className="text-xs text-muted-foreground">
-        いまの時価割合を算出できません。
+        いまの割合を算出できません。
       </p>
     );
   // 判定は evaluateBucketWarning と同じく「警告線より大きい」ときだけ超過とする
   return marketPct > value ? (
     <p className="text-xs text-attention">
-      いまの時価割合 {formatPercent(marketPct)}{" "}
+      いまの割合 {formatPercent(marketPct)}{" "}
       はこの線を超えています。保存すると今日画面に警告が出ます。
     </p>
   ) : (
     <p className="text-xs text-muted-foreground">
-      いまの時価割合 {formatPercent(marketPct)} はこの線以下です。
+      いまの割合 {formatPercent(marketPct)} はこの線以下です。
     </p>
   );
 }
@@ -182,13 +181,7 @@ export function BucketSettingsForm({
         <h3 className="font-semibold">コア／サテライトの枠</h3>
         <div className="flex flex-wrap gap-2">
           <span className="chip">
-            いまの投入額割合{" "}
-            {current.satelliteInvestedPct === null
-              ? "—"
-              : formatPercent(current.satelliteInvestedPct)}
-          </span>
-          <span className="chip">
-            いまの時価割合{" "}
+            いまのサテライト割合{" "}
             {current.satelliteMarketValuePct === null
               ? "—"
               : formatPercent(current.satelliteMarketValuePct)}
@@ -206,7 +199,7 @@ export function BucketSettingsForm({
           サテライトの上限
         </label>
         <p id="satellite-cap-basis" className="text-xs text-muted-foreground">
-          投入額（買付金額の合計）に対する割合
+          評価額（時価の合計）に対する割合
         </p>
         <div className="flex items-center gap-2">
           <input
@@ -233,7 +226,7 @@ export function BucketSettingsForm({
           警告線
         </label>
         <p id="satellite-warn-basis" className="text-xs text-muted-foreground">
-          時価（評価額の合計）に対する割合
+          評価額（時価の合計）に対する割合。上限より手前で知らせたいときに使います
         </p>
         <div className="flex items-center gap-2">
           <input
@@ -256,7 +249,7 @@ export function BucketSettingsForm({
       </div>
 
       <p className="text-xs leading-5 text-muted-foreground">
-        上限と警告線は計算の元が違うため、同じ数値でも判定が変わることがあります。
+        上限も警告線も、評価額の合計に対するサテライトの割合で判定します。
       </p>
 
       <div className="space-y-1 text-center">

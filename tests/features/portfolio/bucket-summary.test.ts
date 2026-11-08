@@ -303,8 +303,8 @@ describe("buildBucketSummary", () => {
 
 describe("satelliteRemainingJpy", () => {
   const base = {
-    totalInvestedJpy: 100000,
-    satelliteInvestedJpy: 60000,
+    totalMarketValueJpy: 100000,
+    satelliteMarketValueJpy: 60000,
     coreRegistered: true,
   };
 
@@ -319,13 +319,13 @@ describe("satelliteRemainingJpy", () => {
     });
   });
 
-  it("returns null without a cap, without core or without invested totals", () => {
+  it("returns null without a cap, without core or without market totals", () => {
     expect(satelliteRemainingJpy(base, null)).toBeNull();
     expect(
       satelliteRemainingJpy({ ...base, coreRegistered: false }, 70),
     ).toBeNull();
     expect(
-      satelliteRemainingJpy({ ...base, totalInvestedJpy: null }, 70),
+      satelliteRemainingJpy({ ...base, totalMarketValueJpy: null }, 70),
     ).toBeNull();
   });
 });
