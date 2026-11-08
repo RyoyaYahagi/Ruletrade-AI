@@ -70,11 +70,11 @@ function Bar({
   summary: BucketSummary;
   capPct: number | null;
 }) {
-  const total = summary.totalInvestedJpy;
+  const total = summary.totalMarketValueJpy;
   if (total === null || total <= 0) return <EmptyBar />;
   const segments = BAR_ORDER.map((bucket) => ({
     bucket,
-    value: summary.buckets[bucket].investedJpy ?? 0,
+    value: summary.buckets[bucket].marketValueJpy ?? 0,
   }));
 
   return (
@@ -95,7 +95,7 @@ function Bar({
         <div
           className="flex h-3 overflow-hidden rounded-full bg-secondary"
           role="img"
-          aria-label={`投入額ベースの内訳: ${segments
+          aria-label={`評価額ベースの内訳: ${segments
             .map(
               ({ bucket, value }) =>
                 `${BUCKET_LABELS[bucket]} ${formatPercent((value / total) * 100)}`,
@@ -146,17 +146,17 @@ export function BucketAllocationPanel({
   settings: AppSettings;
 }) {
   const warning = evaluateBucketWarning(summary, settings.satelliteWarnPct);
-  const totalInvested = summary.totalInvestedJpy;
-  const satellitePct = summary.satelliteInvestedPct;
+  const totalMarketValue = summary.totalMarketValueJpy;
+  const satellitePct = summary.satelliteMarketValuePct;
   const capPct = settings.satelliteCapPct;
-  const canShowInvested =
-    summary.investedComplete &&
+  const canShowRatio =
+    summary.marketValueComplete &&
     !summary.rateUnavailable &&
-    totalInvested !== null &&
+    totalMarketValue !== null &&
     satellitePct !== null;
   // コアが未登録なら上限が設定されていても残り枠は出さない（設計案 判断 2-3 の A）
   const capApplies = capPct !== null && summary.coreRegistered;
-  const cap = canShowInvested ? satelliteRemainingJpy(summary, capPct) : null;
+  const cap = canShowRatio ? satelliteRemainingJpy(summary, capPct) : null;
   const capAmount = cap?.capAmountJpy ?? null;
   const remaining = cap?.remainingJpy ?? null;
   const substituted = summary.substitutedStockNames.length > 0;
@@ -170,7 +170,7 @@ export function BucketAllocationPanel({
         <h2 id="bucket-allocation-heading" className="font-semibold">
           コア／サテライト
         </h2>
-        <span className="chip">参考値・投入額ベース</span>
+        <span className="chip">参考値・評価額ベース</span>
       </div>
 
       <div>
@@ -185,6 +185,7 @@ export function BucketAllocationPanel({
             <p className="mt-1 text-sm text-muted-foreground">
               上限 {formatPercent(capPct!)}（{formatYen(capAmount!)}）まで ·
               現在 {formatPercent(satellitePct!)}
+              {substituted ? "＊" : ""}
             </p>
           </>
         ) : remaining !== null ? (
@@ -196,13 +197,15 @@ export function BucketAllocationPanel({
             <p className="mt-1 text-sm text-muted-foreground">
               上限 {formatPercent(capPct!)}（{formatYen(capAmount!)}
               ）に対して現在 {formatPercent(satellitePct!)}
+              {substituted ? "＊" : ""}
             </p>
           </>
-        ) : canShowInvested ? (
+        ) : canShowRatio ? (
           <>
             <p className="text-xs text-muted-foreground">サテライト割合</p>
             <p className="mt-0.5 font-mono text-4xl tracking-tight">
               {formatPercent(satellitePct)}
+              {substituted ? "＊" : ""}
             </p>
           </>
         ) : (
@@ -217,25 +220,23 @@ export function BucketAllocationPanel({
         )}
       </div>
 
-      {!summary.investedComplete ? (
-        <Notice>
-          <p>
-            一部の買付金額が不明なため、投入額ベースの割合を表示できません。
-          </p>
-        </Notice>
-      ) : summary.rateUnavailable ? (
+      {summary.rateUnavailable ? (
         <Notice>
           <p>
             USD建ての銘柄があり、換算レートを取得できなかったため、円換算の割合と残り枠を出していません。古いレートは使いません。
           </p>
         </Notice>
-      ) : totalInvested === 0 ? (
+      ) : !summary.marketValueComplete ? (
         <Notice>
-          <p>まだ投入額がありません。</p>
+          <p>一部の銘柄の評価額が不明なため、割合と残り枠を出していません。</p>
         </Notice>
-      ) : !canShowInvested ? (
+      ) : totalMarketValue === 0 ? (
         <Notice>
-          <p>投入額ベースの割合を算出できません。</p>
+          <p>まだ保有がありません。</p>
+        </Notice>
+      ) : !canShowRatio ? (
+        <Notice>
+          <p>評価額ベースの割合を算出できません。</p>
         </Notice>
       ) : !summary.coreRegistered ? (
         <Notice>
@@ -261,7 +262,7 @@ export function BucketAllocationPanel({
         </p>
       ) : null}
 
-      {canShowInvested ? (
+      {canShowRatio ? (
         <div className="space-y-1">
           <Bar summary={summary} capPct={capApplies ? capPct : null} />
           {summary.includesUnclassified && (
@@ -287,27 +288,17 @@ export function BucketAllocationPanel({
                 {substituted ? "＊" : ""} / {formatPercent(warning.warnPct)}
               </span>
             </p>
-            <p className="text-xs text-attention">
-              時価ベースのサテライト割合です。上限の判定には使いません。
-            </p>
           </div>
         ) : (
           <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
-            <span className="text-muted-foreground">時価ベース</span>
-            {summary.satelliteMarketValuePct === null ||
-            summary.rateUnavailable ? (
-              <span className="text-muted-foreground">算出できません</span>
+            <span className="text-muted-foreground">警告線</span>
+            {satellitePct === null || summary.rateUnavailable ? (
+              <span className="text-muted-foreground">判定できません</span>
             ) : (
               <span className="font-mono">
-                {formatPercent(summary.satelliteMarketValuePct)}
-                {substituted ? "＊" : ""}
-                <span className="text-muted-foreground">
-                  {" "}
-                  /{" "}
-                  {settings.satelliteWarnPct === null
-                    ? "警告線 未設定"
-                    : `警告線 ${formatPercent(settings.satelliteWarnPct)}`}
-                </span>
+                {settings.satelliteWarnPct === null
+                  ? "未設定"
+                  : `${formatPercent(settings.satelliteWarnPct)} 以下`}
               </span>
             )}
           </p>
@@ -317,11 +308,6 @@ export function BucketAllocationPanel({
             ＊{summary.substitutedStockNames.length}銘柄（
             {summary.substitutedStockNames.join("、")}
             ）は価格を取得できないため、評価額を取得金額で代用しています。
-          </p>
-        )}
-        {!summary.marketValueComplete && (
-          <p className="text-xs text-muted-foreground">
-            一部の評価額が不明なため、時価ベースの割合を出していません。
           </p>
         )}
         {summary.exchangeRate !== null && (
@@ -342,8 +328,10 @@ export function BucketAllocationPanel({
         <summary className="cursor-pointer font-semibold">計算の前提</summary>
         <ul className="mt-2 list-disc space-y-1 pl-4">
           <li>割合と金額は記録から計算した参考値です。</li>
-          <li>上限は投入額（買付金額の合計）に対する割合で判定します。</li>
-          <li>時価ベースの割合は警告線の確認だけに使います。</li>
+          <li>
+            割合・上限・警告線は、どれも評価額（時価）の合計に対するサテライトの割合です。値上がりでも割合は増えます。
+          </li>
+          <li>価格を取得できない銘柄は、評価額を取得金額で代用します。</li>
           <li>
             USD建ては円に換算します。換算レートが取れないとき、古いレートでは代用しません。
           </li>
