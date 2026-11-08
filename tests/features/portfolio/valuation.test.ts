@@ -4,6 +4,7 @@ import type { PortfolioHolding } from "@/features/portfolio/portfolio";
 import {
   calculateValuation,
   summarizeValuation,
+  toYenValuation,
   totalInJpy,
 } from "@/features/portfolio/valuation";
 
@@ -295,5 +296,42 @@ describe("totalInJpy", () => {
     const total = totalInJpy(summaries, 150);
     expect(total.marketValueJpy).toBeNull();
     expect(total.acquisitionAmountJpy).toBe(200 + 10 * 150);
+  });
+});
+
+describe("toYenValuation", () => {
+  it("converts every USD amount with the same rate and keeps the profit rate", () => {
+    const [valued] = calculateValuation(
+      [
+        holding({
+          ticker: "AAPL",
+          marketCode: "US",
+          currency: "USD",
+          quantity: 2,
+          averagePurchasePrice: 10,
+          acquisitionAmount: 20,
+        }),
+      ],
+      new Map([["AAPL", quote("AAPL", 15, "USD")]]),
+    );
+
+    const yen = toYenValuation(valued, 150);
+
+    expect(yen.holding.currency).toBe("JPY");
+    expect(yen.holding.acquisitionAmount).toBe(3000);
+    expect(yen.holding.averagePurchasePrice).toBe(1500);
+    expect(yen.quote).toMatchObject({ price: 2250, currency: "JPY" });
+    expect(yen.marketValue).toBe(4500);
+    expect(yen.unrealizedProfitLoss).toBe(1500);
+    expect(yen.unrealizedProfitLossRate).toBe(valued.unrealizedProfitLossRate);
+  });
+
+  it("leaves JPY holdings unchanged", () => {
+    const [valued] = calculateValuation(
+      [holding()],
+      new Map([["7203.T", quote("7203.T", 150)]]),
+    );
+
+    expect(toYenValuation(valued, 150)).toBe(valued);
   });
 });

@@ -214,3 +214,33 @@ export function totalInJpy(
         : null,
   };
 }
+
+/**
+ * 米ドル建ての評価を、表示のためだけに円へ換算した写しを返す。円建てはそのまま返す。
+ * 価格・取得額・損益をすべて同じ現在のレートで換算するので、損益率は変わらず、為替の損益は含まない。
+ */
+export function toYenValuation(
+  valuation: ValuedHolding,
+  usdJpyRate: number,
+): ValuedHolding {
+  const { holding, quote } = valuation;
+  if (holding.currency !== "USD") return valuation;
+  const yen = (value: number | null) =>
+    value === null ? null : value * usdJpyRate;
+  return {
+    ...valuation,
+    holding: {
+      ...holding,
+      currency: "JPY",
+      averagePurchasePrice: yen(holding.averagePurchasePrice),
+      acquisitionAmount: yen(holding.acquisitionAmount),
+    },
+    quote:
+      quote === null || quote.currency !== "USD"
+        ? quote
+        : { ...quote, price: quote.price * usdJpyRate, currency: "JPY" },
+    marketValue: yen(valuation.marketValue),
+    unrealizedProfitLoss: yen(valuation.unrealizedProfitLoss),
+    realizedProfitLoss: yen(valuation.realizedProfitLoss),
+  };
+}

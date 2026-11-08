@@ -131,10 +131,13 @@ function quote(overrides: Partial<MarketQuote> = {}): MarketQuote {
   };
 }
 
-async function render(market?: "jp" | "us") {
+async function render(market?: "jp" | "us", display?: "jpy") {
   return renderToStaticMarkup(
     await PortfolioPage({
-      searchParams: Promise.resolve(market ? { market } : {}),
+      searchParams: Promise.resolve({
+        ...(market ? { market } : {}),
+        ...(display ? { display } : {}),
+      }),
     }),
   );
 }
@@ -194,6 +197,37 @@ describe("portfolio page valuation UI", () => {
     expect(markup).toContain("算出できません");
     expect(markup).toContain(
       "換算レートを取得できないため、米国株式を含む合計は出していません。古いレートは使いません。",
+    );
+  });
+
+  it("shows US holdings in yen when requested and a rate is available", async () => {
+    mocks.bucketSummary = bucketSummary({
+      exchangeRate: {
+        rate: 150,
+        priceAt: "2026-11-08T05:21:16.000Z",
+        sourceName: "Delayed Quote",
+      },
+    });
+
+    const usd = await render("us");
+    expect(usd).toContain("300.00 USD");
+    expect(usd).toContain('href="/portfolio?market=us&amp;display=jpy"');
+
+    // 2 x 150 USD = 300 USD -> 45,000 JPY; cost 200 USD -> 30,000 JPY.
+    const yen = await render("us", "jpy");
+    expect(yen).toContain("45,000円");
+    expect(yen).toContain("30,000円");
+    expect(yen).toContain("+15,000円");
+    expect(yen).not.toContain("300.00 USD");
+    expect(yen).toContain("1 USD = 150円で換算した参考値です。");
+  });
+
+  it("falls back to USD with a note when yen is requested without a rate", async () => {
+    const markup = await render("us", "jpy");
+
+    expect(markup).toContain("300.00 USD");
+    expect(markup).toContain(
+      "換算レートを取得できないため、ドルで表示しています。",
     );
   });
 
