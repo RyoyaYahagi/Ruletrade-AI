@@ -22,6 +22,7 @@ import {
 import {
   calculateValuation,
   summarizeValuation,
+  toYenValuation,
   totalInJpy,
   type JpyTotal,
   type ValuedHolding,
@@ -144,18 +145,74 @@ function JpyTotalPanel({
   );
 }
 
+function CurrencyToggle({
+  showYen,
+  yenRequested,
+  rate,
+}: {
+  showYen: boolean;
+  yenRequested: boolean;
+  rate: number | null;
+}) {
+  const option =
+    "flex min-h-9 items-center justify-center rounded-lg px-3 text-sm aria-[current=true]:bg-card aria-[current=true]:font-semibold aria-[current=true]:text-foreground aria-[current=true]:shadow-[0_1px_2px_rgb(23_32_27/0.08)]";
+  return (
+    <div className="space-y-1.5">
+      <nav
+        aria-label="表示通貨"
+        className="grid w-fit grid-cols-2 gap-1 rounded-xl bg-secondary p-1 text-muted-foreground"
+      >
+        <Link
+          href="/portfolio?market=us"
+          scroll={false}
+          aria-current={!showYen}
+          className={option}
+        >
+          ドル
+        </Link>
+        {rate === null ? (
+          <span className={`${option} cursor-not-allowed opacity-50`}>円</span>
+        ) : (
+          <Link
+            href="/portfolio?market=us&display=jpy"
+            scroll={false}
+            aria-current={showYen}
+            className={option}
+          >
+            円
+          </Link>
+        )}
+      </nav>
+      {showYen && rate !== null && (
+        <p className="px-1 text-xs leading-5 text-muted-foreground">
+          1 USD = {rate.toLocaleString("ja-JP", { maximumFractionDigits: 2 })}
+          円で換算した参考値です。取得額と損益も同じ現在のレートで換算するため、為替の損益は含みません。
+        </p>
+      )}
+      {rate === null && (
+        <p className="px-1 text-xs text-muted-foreground">
+          {yenRequested
+            ? "換算レートを取得できないため、ドルで表示しています。"
+            : "換算レートを取得できないため、円表示は使えません。"}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Summary({
   market,
+  currency,
   summary,
   realizedProfitLoss,
   allocation,
 }: {
   market: Market;
+  currency: "JPY" | "USD";
   summary: ReturnType<typeof summarizeValuation>["JPY"];
   realizedProfitLoss: number | null;
   allocation: React.ReactNode;
 }) {
-  const currency = market === "jp" ? "JPY" : "USD";
   const title =
     market === "jp" ? "国内株式ポートフォリオ" : "米国株式ポートフォリオ";
   const profit = summary.unrealizedProfitLoss;
@@ -275,7 +332,10 @@ function MarketTabs({
 export default async function PortfolioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ market?: string | string[] }>;
+  searchParams: Promise<{
+    market?: string | string[];
+    display?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   const market: Market = params.market === "us" ? "us" : "jp";
@@ -344,12 +404,25 @@ export default async function PortfolioPage({
           summarizeValuation(allValuedHoldings),
           bucketSummary.exchangeRate?.rate ?? null,
         );
-  const summary =
-    summarizeValuation(valuedHoldings)[market === "jp" ? "JPY" : "USD"];
-  const currency = market === "jp" ? "JPY" : "USD";
-  const realizedProfitLoss = realizedProfitLossForCurrency(realized, currency);
+  const usdJpyRate = bucketSummary.exchangeRate?.rate ?? null;
+  const yenRequested = market === "us" && params.display === "jpy";
+  // 円表示は表示のための換算だけで、集計の元の値は米ドルのまま。レートが無ければ米ドルで出す
+  const showYen = yenRequested && usdJpyRate !== null;
+  const displayValuations = showYen
+    ? valuedHoldings.map((item) => toYenValuation(item, usdJpyRate))
+    : valuedHoldings;
+  const currency = market === "jp" || showYen ? "JPY" : "USD";
+  const summary = summarizeValuation(displayValuations)[currency];
+  const nativeRealized = realizedProfitLossForCurrency(
+    realized,
+    market === "jp" ? "JPY" : "USD",
+  );
+  const realizedProfitLoss =
+    showYen && nativeRealized !== null
+      ? nativeRealized * usdJpyRate
+      : nativeRealized;
   const valuationByStockId = new Map(
-    valuedHoldings.map((item) => [item.holding.stockId, item]),
+    displayValuations.map((item) => [item.holding.stockId, item]),
   );
   const sortedCurrentHoldings = currentHoldings
     .map((holding) => valuationByStockId.get(holding.stockId)!)
@@ -395,8 +468,16 @@ export default async function PortfolioPage({
         <BucketAllocationPanel summary={bucketSummary} settings={settings} />
         <MarketTabs market={market} jpCount={jpCount} usCount={usCount} />
       </div>
+      {market === "us" && (
+        <CurrencyToggle
+          showYen={showYen}
+          yenRequested={yenRequested}
+          rate={usdJpyRate}
+        />
+      )}
       <Summary
         market={market}
+        currency={currency}
         summary={summary}
         realizedProfitLoss={realizedProfitLoss}
         allocation={allocation}
