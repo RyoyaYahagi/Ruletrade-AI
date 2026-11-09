@@ -1,3 +1,4 @@
+import { checkBrowserWriteRequest } from "@/lib/http/browser-write-request";
 import {
   importCsv,
   previewCsv,
@@ -9,28 +10,8 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
-    const origin = request.headers.get("origin");
-    // The HTTPS proxy forwards to HTTP on loopback, so request.url is internal.
-    // Compare the browser's host (including its port) with the forwarded host.
-    const forwardedHost = request.headers
-      .get("x-forwarded-host")
-      ?.split(",")[0]
-      .trim();
-    const host =
-      forwardedHost || request.headers.get("host") || new URL(request.url).host;
-    const originUrl = origin && URL.canParse(origin) ? new URL(origin) : null;
-    if (
-      request.headers.get("sec-fetch-site") === "cross-site" ||
-      (origin &&
-        (!originUrl ||
-          !["https:", "http:"].includes(originUrl.protocol) ||
-          origin !== originUrl.origin ||
-          originUrl.host !== host))
-    )
-      return Response.json(
-        { error: "この操作はアプリの画面から実行してください。" },
-        { status: 403 },
-      );
+    const rejected = checkBrowserWriteRequest(request);
+    if (rejected) return rejected;
     // Bound the request while streaming, before multipart parsing allocates the file.
     const reader = request.body?.getReader();
     if (!reader) throw new Error("CSVを選択してください。");

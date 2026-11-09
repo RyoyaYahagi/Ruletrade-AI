@@ -14,12 +14,13 @@ adds judgment-heavy checks that cannot be enforced mechanically by CI or lint.
 - Original input remains the source of truth; extraction and comparison are
   derived data. Preserve original text, transcripts, and follow-up answers.
 - New thoughts append timeline events rather than overwriting past decisions.
-- Validate Gemini output with Zod before saving or displaying it.
-- Keep the current single-user scope: no authentication, ownership layer,
-  additional AI provider, or provider abstraction without a scope change.
+- Validate Gemini and Jev output with Zod before saving or displaying it.
+- Keep the single-user Web UI without login or ownership management. Preserve
+  the Muse API read/write Bearer scopes. Keep Gemini for journal AI and Jev for
+  feedback classification; add no AI provider or provider abstraction.
 - Transaction prices that are unknown stay empty rather than becoming zero.
 - No copy that reads as a buy/sell recommendation or investment advice.
-- Gemini calls and secrets remain server-side: no `NEXT_PUBLIC_` misuse, no
+- Gemini/Jev calls and secrets remain server-side: no `NEXT_PUBLIC_` misuse, no
   server-only module imported into a Client Component.
 - Keep private input and secrets out of logs and committed database files.
 

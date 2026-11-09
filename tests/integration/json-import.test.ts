@@ -16,6 +16,7 @@ describe("JSON import", () => {
     importRoute.POST(
       new Request("http://localhost/api/import/json", {
         method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify(value),
       }),
     );
@@ -151,6 +152,7 @@ describe("JSON import", () => {
     const response = await importRoute.POST(
       new Request("http://localhost/api/import/json", {
         method: "POST",
+        headers: { "content-type": "application/json" },
         body: "{",
       }),
     );

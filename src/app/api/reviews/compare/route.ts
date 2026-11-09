@@ -1,3 +1,4 @@
+import { checkBrowserWriteRequest } from "@/lib/http/browser-write-request";
 import { asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -15,6 +16,9 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rejected = checkBrowserWriteRequest(request, "application/json");
+  if (rejected) return rejected;
+
   const body = await request.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {

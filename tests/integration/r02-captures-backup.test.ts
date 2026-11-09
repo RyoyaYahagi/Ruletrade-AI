@@ -17,6 +17,7 @@ describe("captures and origins in JSON backups", () => {
     importRoute.POST(
       new Request("http://localhost/api/import/json", {
         method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify(value),
       }),
     );
