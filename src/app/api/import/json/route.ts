@@ -1,9 +1,13 @@
+import { checkBrowserWriteRequest } from "@/lib/http/browser-write-request";
 import { importJson, JsonImportError } from "@/features/json-import/service";
 
 export const runtime = "nodejs";
 const maxBytes = 20 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  const rejected = checkBrowserWriteRequest(request, "application/json");
+  if (rejected) return rejected;
+
   const headers = { "Cache-Control": "no-store" };
   try {
     if (!request.body)

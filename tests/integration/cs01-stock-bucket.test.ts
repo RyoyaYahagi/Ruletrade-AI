@@ -130,6 +130,7 @@ it("round-trips buckets and their history through JSON export and import", async
   const response = await importRoute.POST(
     new Request("http://localhost/api/import/json", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(exported),
     }),
   );
@@ -151,6 +152,7 @@ it("treats a backup without bucket data as unclassified", async () => {
   const response = await importRoute.POST(
     new Request("http://localhost/api/import/json", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(legacy),
     }),
   );

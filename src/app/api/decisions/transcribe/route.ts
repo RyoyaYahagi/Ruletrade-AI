@@ -1,3 +1,4 @@
+import { checkBrowserWriteRequest } from "@/lib/http/browser-write-request";
 import { NextResponse } from "next/server";
 
 import { transcribeAudio } from "@/lib/ai/gemini";
@@ -7,6 +8,9 @@ const MAX_AUDIO_BYTES = 14 * 1024 * 1024;
 const AUDIO_TYPES = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"]);
 
 export async function POST(request: Request) {
+  const rejected = checkBrowserWriteRequest(request);
+  if (rejected) return rejected;
+
   const formData = await request.formData().catch(() => null);
   const audio = formData?.get("audio");
   if (!(audio instanceof File) || audio.size === 0 || audio.size > MAX_AUDIO_BYTES) {

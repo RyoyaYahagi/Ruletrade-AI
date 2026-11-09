@@ -61,6 +61,7 @@ it("saves normalized fund codes and clears them together", async () => {
   const restored = await importRoute.POST(
     new Request("http://localhost/api/import/json", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(exported),
     }),
   );

@@ -91,6 +91,7 @@ it("includes settings in the export and restores them on import", async () => {
   const response = await importRoute.POST(
     new Request("http://localhost/api/import/json", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(exported),
     }),
   );
@@ -107,6 +108,7 @@ it("leaves settings untouched when an older backup has none", async () => {
   const response = await importRoute.POST(
     new Request("http://localhost/api/import/json", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(legacy),
     }),
   );
