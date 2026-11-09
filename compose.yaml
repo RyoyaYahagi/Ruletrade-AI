@@ -1,0 +1,26 @@
+# 試用向けの最小構成。自分のPCの localhost だけで使う想定。
+# 使い方:
+#   cp .env.example .env.local   # キーなしでも台帳の基本機能は動く
+#   docker compose up --build
+#   → http://localhost:3000 を開く
+#
+# 注意: このアプリにはログイン機能がありません。
+# ポートをインターネットに公開しないでください（下の ports は
+# 127.0.0.1 にだけ bind しています。この行を変えないこと）。
+
+services:
+  ruletrade:
+    build: .
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      RULETRADE_DATABASE_PATH: .data/ruletrade-mvp.sqlite
+    volumes:
+      - ruletrade-data:/app/.data
+    restart: unless-stopped
+
+volumes:
+  ruletrade-data:
