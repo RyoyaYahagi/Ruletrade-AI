@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Mic, Square, WandSparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import {
   listCaptureTransactionsAction,
   saveDecisionAction,
@@ -14,33 +14,14 @@ import {
 } from "@/features/transactions/matching";
 import { LinkedTransactionSelector } from "@/features/capture/linked-transaction-selector";
 import {
-  DecisionExtractionSchema,
-  type DecisionExtraction,
-} from "@/schemas/decision";
-import type { Stock } from "@/schemas/stock";
-import type { Transaction } from "@/schemas/transaction";
-import {
   ReviewSchedule,
   resolveReviewDates,
   type ReviewScheduleValue,
 } from "@/features/capture/review-schedule";
-import { useVoiceTranscription } from "@/features/capture/use-voice-transcription";
 import { decisionTypeLabel } from "@/features/decisions/decision-display";
-
-type CaptureMode = "writing" | "extracting" | "confirming" | "saving";
-type CaptureFactContext = {
-  currentPosition: { quantity: number; averagePurchasePrice: number | null; acquisitionAmount: number | null; currency: "JPY" | "USD" | null } | null;
-  linkedTransaction: { side: "buy" | "sell"; quantity: number; price: number | null; priceCurrency: "JPY" | "USD" | null; executedAt: string } | null;
-};
-
-const initialExtraction: DecisionExtraction = {
-  stock: { ticker: null, name: "", market: null },
-  type: "note",
-  summary: null,
-  points: [],
-  followUpQuestion: null,
-  transaction: null,
-};
+import type { Stock } from "@/schemas/stock";
+import type { DecisionType } from "@/schemas/decision";
+import type { Transaction } from "@/schemas/transaction";
 
 function localDateInputValue(date = new Date()) {
   const localDate = new Date(
@@ -62,21 +43,40 @@ export function CaptureForm({
 }) {
   const router = useRouter();
   const [rawInput, setRawInput] = useState("");
-  const [transcript, setTranscript] = useState<string | null>(null);
-  const [questionAnswer, setQuestionAnswer] = useState("");
-  const [recordedQuestion, setRecordedQuestion] = useState<string | null>(null);
-  const [askedQuestion, setAskedQuestion] = useState(false);
-  const [mode, setMode] = useState<CaptureMode>("writing");
-  const [extraction, setExtraction] =
-    useState<DecisionExtraction>(initialExtraction);
-  const [factContext, setFactContext] = useState<CaptureFactContext | null>(null);
   const [stockChoice, setStockChoice] = useState(
     fixedStock ? `existing:${fixedStock.id}` : "new",
   );
-  const [decisionDate, setDecisionDate] = useState(() =>
+  const [stockName, setStockName] = useState("");
+  const [ticker, setTicker] = useState("");
+  const [type, setType] = useState<DecisionType>(
+    initialTransaction ? initialDecisionType(initialTransaction) : "note",
+  );
+  const [summary, setSummary] = useState("");
+  const [points, setPoints] = useState<string[]>([]);
+  const [decisionDate, setDecisionDate] = useState(
     initialTransaction
       ? japanDate(initialTransaction.executedAt)
       : japanDate(new Date()),
+  );
+  const [reviewSchedule, setReviewSchedule] = useState<ReviewScheduleValue>({
+    choices: [],
+    earningsDate: "",
+    dates: [""],
+  });
+  const [recordTrade, setRecordTrade] = useState(Boolean(initialTransaction));
+  const [tradeSide, setTradeSide] = useState<"buy" | "sell">(
+    initialTransaction?.side ?? "buy",
+  );
+  const [tradeQuantity, setTradeQuantity] = useState(
+    initialTransaction ? String(initialTransaction.quantity) : "",
+  );
+  const [tradePrice, setTradePrice] = useState(
+    initialTransaction?.price == null ? "" : String(initialTransaction.price),
+  );
+  const [tradeDate, setTradeDate] = useState(
+    initialTransaction
+      ? localDateInputValue(new Date(initialTransaction.executedAt))
+      : localDateInputValue(),
   );
   const [fetchedTransactions, setFetchedTransactions] = useState<{
     stockId: string;
@@ -90,19 +90,15 @@ export function CaptureForm({
     key: string;
     id: string | null;
   } | null>(null);
-  const [recordTrade, setRecordTrade] = useState(false);
-  const [reviewSchedule, setReviewSchedule] = useState<ReviewScheduleValue>({
-    choices: [],
-    earningsDate: "",
-    dates: [""],
-  });
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const effectiveStockId =
-    fixedStock?.id ??
+  const selectedStock =
+    fixedStock ??
     (stockChoice.startsWith("existing:")
-      ? stockChoice.slice("existing:".length)
-      : null);
+      ? stocks.find((item) => item.id === stockChoice.slice(9))
+      : undefined);
+  const effectiveStockId = selectedStock?.id;
   useEffect(() => {
     if (!effectiveStockId || suppliedTransactions) return;
     let active = true;
@@ -114,7 +110,7 @@ export function CaptureForm({
         }
       })
       .catch((cause: unknown) => {
-        if (active) {
+        if (active)
           setTransactionFetchError({
             stockId: effectiveStockId,
             message:
@@ -122,13 +118,38 @@ export function CaptureForm({
                 ? cause.message
                 : "売買履歴を読み込めませんでした。",
           });
-        }
       });
     return () => {
       active = false;
     };
   }, [effectiveStockId, suppliedTransactions]);
-
+  const availableTransactions =
+    suppliedTransactions ??
+    (effectiveStockId && fetchedTransactions?.stockId === effectiveStockId
+      ? fetchedTransactions.items
+      : []);
+  const candidates = effectiveStockId
+    ? findTransactionCandidates(
+        availableTransactions,
+        type,
+        decisionDate,
+        effectiveStockId,
+      )
+    : [];
+  const selectionKey = `${effectiveStockId ?? "new"}:${type}:${decisionDate}`;
+  const defaultTransactionId =
+    initialTransaction &&
+    candidates.some((item) => item.id === initialTransaction.id)
+      ? initialTransaction.id
+      : candidates.length === 1
+        ? candidates[0].id
+        : null;
+  const selectedTransactionId =
+    transactionSelection?.key === selectionKey
+      ? transactionSelection.id
+      : defaultTransactionId;
+  const linkedTransaction =
+    candidates.find((item) => item.id === selectedTransactionId) ?? null;
   const candidatesLoading = Boolean(
     effectiveStockId &&
     !suppliedTransactions &&
@@ -139,195 +160,83 @@ export function CaptureForm({
     effectiveStockId && transactionFetchError?.stockId === effectiveStockId
       ? transactionFetchError.message
       : null;
-  const availableTransactions = suppliedTransactions
-    ? suppliedTransactions
-    : fetchedTransactions?.stockId === effectiveStockId
-      ? fetchedTransactions.items
-      : [];
-  const transactionCandidates = effectiveStockId
-    ? findTransactionCandidates(
-        availableTransactions,
-        extraction.type,
-        decisionDate,
-        effectiveStockId,
-      )
-    : [];
-  const selectionKey = `${effectiveStockId ?? "new"}:${extraction.type}:${decisionDate}`;
-  const defaultTransactionId =
-    initialTransaction &&
-    transactionCandidates.some((item) => item.id === initialTransaction.id)
-      ? initialTransaction.id
-      : transactionCandidates.length === 1
-        ? transactionCandidates[0].id
-        : null;
-  const selectedTransactionId =
-    transactionSelection?.key === selectionKey
-      ? transactionSelection.id
-      : defaultTransactionId;
-  const selectedLinkedTransaction =
-    transactionCandidates.find((item) => item.id === selectedTransactionId) ??
-    null;
-
-  const handleTranscript = useCallback((value: string) => {
-    setTranscript(value);
-    setRawInput(value);
-  }, []);
-  const voice = useVoiceTranscription(handleTranscript);
-
-  async function extract(answer?: string) {
-    if (!rawInput.trim()) {
-      setError("記録する内容を入力してください。");
-      return;
-    }
-    setError(null);
-    setMode("extracting");
-    const questionToPreserve = answer ? extraction.followUpQuestion : null;
-    try {
-      const response = await fetch("/api/decisions/extract", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          rawInput,
-          ...(effectiveStockId ? { stockId: effectiveStockId } : {}),
-          ...(initialTransaction ? { transactionId: initialTransaction.id } : {}),
-          ...(answer ? { followUpAnswer: answer } : {}),
-        }),
-      });
-      const result = (await response.json()) as
-        | (DecisionExtraction & { factContext?: CaptureFactContext })
-        | { error?: string };
-      if (!response.ok) {
-        throw new Error("error" in result ? result.error : undefined);
-      }
-      const extracted = DecisionExtractionSchema.parse(result);
-      setFactContext("factContext" in result ? result.factContext ?? null : null);
-      const confirmedExtraction = {
-        ...extracted,
-        ...(fixedStock
-          ? {
-              stock: {
-                ticker: fixedStock.ticker,
-                name: fixedStock.name,
-                market: fixedStock.market,
-              },
-            }
-          : {}),
-        ...(initialTransaction
-          ? { type: initialDecisionType(initialTransaction) }
-          : {}),
-        transaction: initialTransaction
-          ? null
-          : extracted.transaction
-          ? {
-              ...extracted.transaction,
-              executedAt:
-                extracted.transaction.executedAt ?? new Date().toISOString(),
-            }
-          : null,
-      };
-      setExtraction(confirmedExtraction);
-      if (questionToPreserve) setRecordedQuestion(questionToPreserve);
-      setRecordTrade(Boolean(confirmedExtraction.transaction));
-      if (answer) setAskedQuestion(true);
-      setMode("confirming");
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "内容を整理できませんでした。もう一度お試しください。",
-      );
-      setMode("writing");
-    }
-  }
 
   async function save() {
-    if (candidatesLoading || candidatesError) {
-      setError(
+    if (!rawInput.trim()) return setError("記録する内容を入力してください。");
+    if (candidatesLoading || candidatesError)
+      return setError(
         candidatesError ?? "売買履歴の読み込みが完了するまで保存できません。",
       );
-      return;
-    }
-    if (!extraction.stock.name.trim()) {
-      setError("銘柄名を入力してください。");
-      return;
-    }
+    const name = selectedStock?.name ?? stockName.trim();
+    if (!name) return setError("銘柄名を入力してください。");
     if (
       reviewSchedule.choices.includes("earnings") &&
       !reviewSchedule.earningsDate
-    ) {
-      setError("次の決算日を入力してください。");
-      return;
-    }
-    if (
-      !selectedLinkedTransaction &&
-      recordTrade &&
-      (!extraction.transaction?.quantity ||
-        extraction.transaction.quantity <= 0)
-    ) {
-      setError("売買履歴を追加する場合は、確認画面で数量を入力してください。");
-      return;
-    }
-    if (stockChoice === "new") {
-      const normalizedName = extraction.stock.name
-        .normalize("NFKC")
-        .trim()
-        .replace(/\s+/g, " ")
-        .toLocaleLowerCase("ja-JP");
-      const normalizedTicker =
-        extraction.stock.ticker?.trim().toLocaleUpperCase("en-US") ?? null;
-      const match = stocks.find((stock) => {
-        const sameTicker =
-          normalizedTicker &&
-          stock.ticker?.trim().toLocaleUpperCase("en-US") === normalizedTicker;
-        const sameName =
-          stock.name
-            .normalize("NFKC")
-            .trim()
-            .replace(/\s+/g, " ")
-            .toLocaleLowerCase("ja-JP") === normalizedName;
-        return Boolean(sameTicker || sameName);
-      });
-      if (match) {
-        setError(
-          `「${match.name}」は登録済みです。銘柄の登録先で既存銘柄を選択してください。`,
-        );
-        return;
-      }
-    }
+    )
+      return setError("次の決算日を入力してください。");
     if (
       reviewSchedule.choices.includes("date") &&
       reviewSchedule.dates.some((date) => !date)
-    ) {
-      setError("振り返り日を入力してください。");
-      return;
-    }
-    setMode("saving");
-    setError(null);
-    const reviewDates = resolveReviewDates(reviewSchedule);
-    const transactionInput =
+    )
+      return setError("振り返り日を入力してください。");
+    if (
       recordTrade &&
-      extraction.transaction?.quantity &&
-      extraction.transaction.quantity > 0 &&
-      extraction.transaction.executedAt
-        ? {
-            ...extraction.transaction,
-            executedAt: extraction.transaction.executedAt,
-          }
-        : null;
+      !linkedTransaction &&
+      (!tradeQuantity || Number(tradeQuantity) <= 0)
+    )
+      return setError("売買履歴を追加する場合は数量を入力してください。");
+    if (stockChoice === "new") {
+      const duplicate = stocks.find(
+        (item) =>
+          (ticker.trim() &&
+            item.ticker?.toUpperCase() === ticker.trim().toUpperCase()) ||
+          item.name.normalize("NFKC").trim().toLocaleLowerCase("ja-JP") ===
+            name.normalize("NFKC").trim().toLocaleLowerCase("ja-JP"),
+      );
+      if (duplicate)
+        return setError(
+          `「${duplicate.name}」は登録済みです。既存銘柄を選択してください。`,
+        );
+    }
+    setSaving(true);
+    setError(null);
     try {
       const saved = await saveDecisionAction({
-        ...extraction,
-        rawInput,
-        transcript,
-        followUpAnswer: questionAnswer.trim() || null,
-        followUpQuestion: recordedQuestion ?? extraction.followUpQuestion,
-        reviewDates,
+        type,
+        stock: {
+          name,
+          ticker: selectedStock?.ticker ?? (ticker.trim() || null),
+          market: selectedStock?.market ?? null,
+        },
+        summary: summary.trim() || null,
+        points: points
+          .map((text) => ({
+            kind: "other" as const,
+            text,
+            source: "raw_input" as const,
+          }))
+          .filter((point) => point.text.trim()),
+        transaction: null,
+        rawInput: rawInput.trim(),
+        transcript: null,
+        followUpAnswer: null,
+        followUpQuestion: null,
+        reviewDates: resolveReviewDates(reviewSchedule),
         decidedAt: decisionDate,
-        existingTransactionId: selectedLinkedTransaction?.id ?? null,
-        transactionInput: selectedLinkedTransaction ? null : transactionInput,
-        ...(stockChoice.startsWith("existing:")
-          ? { stockId: stockChoice.slice("existing:".length) }
-          : {}),
+        existingTransactionId: linkedTransaction?.id ?? null,
+        transactionInput:
+          recordTrade && !linkedTransaction
+            ? {
+                side: tradeSide,
+                quantity: Number(tradeQuantity),
+                price: tradePrice ? Number(tradePrice) : null,
+                fee: null,
+                executedAt: new Date(
+                  `${tradeDate}T12:00:00.000Z`,
+                ).toISOString(),
+              }
+            : null,
+        ...(effectiveStockId ? { stockId: effectiveStockId } : {}),
       });
       router.push(`/stocks/${saved.stockId}`);
       router.refresh();
@@ -335,151 +244,220 @@ export function CaptureForm({
       setError(
         cause instanceof Error
           ? cause.message
-          : "保存できませんでした。入力内容を確認してもう一度お試しください。",
+          : "保存できませんでした。入力内容を確認してください。",
       );
-      setMode("confirming");
+      setSaving(false);
     }
   }
 
-  function setPointText(index: number, text: string) {
-    setExtraction((current) => ({ ...current, points: current.points.map((point, i) => i === index ? { ...point, text } : point) }));
-  }
-
-  const selectedStock =
-    fixedStock ??
-    (stockChoice.startsWith("existing:")
-      ? stocks.find(
-          (stock) => stock.id === stockChoice.slice("existing:".length),
-        )
-      : undefined);
-
-  const confirming = mode === "confirming" || mode === "saving";
-  const transactionField = (
-    label: string,
-    input: React.ReactNode,
-  ) => (
-    <label className="text-sm text-muted-foreground">
-      {label}
-      {input}
-    </label>
-  );
-  const updateTransaction = (patch: Partial<NonNullable<DecisionExtraction["transaction"]>>) =>
-    setExtraction((v) => ({
-      ...v,
-      transaction: v.transaction ? { ...v.transaction, ...patch } : null,
-    }));
-
   return (
     <div className="space-y-6">
-      {!confirming && (
-        <section aria-labelledby="capture-heading" className="space-y-5">
-          <h1 id="capture-heading" className="page-title">
-            いま何を考えていますか？
-          </h1>
-          {fixedStock ? (
-            <p className="text-sm">
-              <span className="text-muted-foreground">記録する銘柄</span>
-              <span className="ml-2 rounded-full bg-accent px-3 py-1 font-semibold text-accent-foreground">
-                {fixedStock.name}
-              </span>
-            </p>
-          ) : (
-            <label className="block text-sm text-muted-foreground">
-              記録対象の銘柄
-              <select
-                value={stockChoice}
-                onChange={(event) => setStockChoice(event.target.value)}
-                className="input mt-1 text-foreground"
-              >
-                <option value="new">新しい銘柄として登録</option>
-                {stocks.map((stock) => (
-                  <option key={stock.id} value={`existing:${stock.id}`}>
-                    既存の銘柄: {stock.name}
-                    {stock.ticker ? ` (${stock.ticker})` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+      <section className="space-y-2">
+        <h1 className="page-title">考えを記録する</h1>
+        <p className="text-sm text-muted-foreground">
+          文章を読み返しながら、必要な項目を自分で整理して保存します。
+        </p>
+      </section>
+      {!fixedStock && (
+        <label className="block text-sm text-muted-foreground">
+          記録対象の銘柄
+          <select
+            value={stockChoice}
+            onChange={(event) => setStockChoice(event.target.value)}
+            className="input mt-1 text-foreground"
+          >
+            <option value="new">新しい銘柄として登録</option>
+            {stocks.map((item) => (
+              <option key={item.id} value={`existing:${item.id}`}>
+                既存の銘柄: {item.name}
+                {item.ticker ? ` (${item.ticker})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {fixedStock && (
+        <p className="text-sm">
+          記録する銘柄：<strong>{fixedStock.name}</strong>
+        </p>
+      )}
+      <section className="surface space-y-4 p-5">
+        <label className="block text-sm text-muted-foreground">
+          いま考えていること
+          <textarea
+            value={rawInput}
+            onChange={(event) => setRawInput(event.target.value)}
+            rows={7}
+            placeholder="判断の理由や、考え直す条件などを自分の言葉で記録します。"
+            className="journal-text input mt-2 w-full text-foreground"
+          />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {!selectedStock && (
+            <>
+              <label className="text-sm text-muted-foreground">
+                銘柄名
+                <input
+                  value={stockName}
+                  onChange={(event) => setStockName(event.target.value)}
+                  className="input mt-1 text-foreground"
+                />
+              </label>
+              <label className="text-sm text-muted-foreground">
+                証券コード（任意）
+                <input
+                  value={ticker}
+                  onChange={(event) => setTicker(event.target.value)}
+                  className="input mt-1 text-foreground"
+                />
+              </label>
+            </>
           )}
-          <div className="surface p-5">
-            <label className="text-sm text-muted-foreground" htmlFor="raw-input">
-              いま考えていること
-            </label>
-            <textarea
-              id="raw-input"
-              value={rawInput}
-              onChange={(event) => setRawInput(event.target.value)}
-              disabled={
-                mode === "extracting" ||
-                voice.recording ||
-                voice.transcribing
-              }
-              rows={8}
-              placeholder="思ったことを、そのまま。判断の理由や、考え直す条件、振り返る時期も書いておくと後で役立ちます。"
-              className="journal-text mt-2 w-full resize-y bg-transparent text-lg outline-none placeholder:text-muted-foreground/70"
+          <label className="text-sm text-muted-foreground">
+            判断した日
+            <input
+              type="date"
+              value={decisionDate}
+              onChange={(event) => setDecisionDate(event.target.value)}
+              className="input mt-1 text-foreground"
             />
-          </div>
-          {transcript && (
-            <details className="rounded-xl bg-secondary p-4">
-              <summary className="cursor-pointer text-xs font-medium">
-                編集前の文字起こし原文
-              </summary>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
-                {transcript}
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                上の入力欄で文字起こしの誤りを修正できます。修正した文章とこの原文は別々に保存します。
-              </p>
-            </details>
-          )}
-          {voice.error && (
-            <p role="alert" className="text-sm text-destructive">
-              {voice.error}
-            </p>
-          )}
-          <div className="action-bar space-y-2">
-            <p className="text-center text-xs text-muted-foreground" aria-live="polite">
-              {voice.recording
-                ? "録音中です。もう一度押すと停止します"
-                : voice.transcribing
-                  ? "文字起こししています…"
-                  : "保存前に整理結果を確認できます。書いた文章はそのまま残ります。"}
-            </p>
-            <div className="flex items-center gap-3">
+          </label>
+          <label className="text-sm text-muted-foreground">
+            記録の種類
+            <select
+              value={type}
+              onChange={(event) => setType(event.target.value as DecisionType)}
+              className="input mt-1 text-foreground"
+            >
+              {Object.entries(decisionTypeLabel).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label className="block text-sm text-muted-foreground">
+          要約（任意）
+          <textarea
+            value={summary}
+            onChange={(event) => setSummary(event.target.value)}
+            rows={2}
+            className="input mt-1 w-full text-foreground"
+          />
+        </label>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">整理した点（任意）</p>
+          {points.map((point, index) => (
+            <div className="flex gap-2" key={index}>
+              <input
+                aria-label={`整理した点 ${index + 1}`}
+                value={point}
+                onChange={(event) =>
+                  setPoints((current) =>
+                    current.map((value, i) =>
+                      i === index ? event.target.value : value,
+                    ),
+                  )
+                }
+                className="input text-foreground"
+              />
               <button
                 type="button"
-                onClick={
-                  voice.recording ? voice.stopRecording : voice.startRecording
+                onClick={() =>
+                  setPoints((current) => current.filter((_, i) => i !== index))
                 }
-                disabled={mode !== "writing" || voice.transcribing}
-                aria-label={voice.recording ? "録音を停止" : "話して記録"}
-                className={`flex size-14 shrink-0 items-center justify-center rounded-full disabled:opacity-50 ${voice.recording ? "bg-destructive text-white" : "border-[1.5px] border-primary bg-card text-primary"}`}
+                className="button-soft"
               >
-                {voice.recording ? (
-                  <Square aria-hidden size={22} />
-                ) : (
-                  <Mic aria-hidden size={24} />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => void extract()}
-                disabled={
-                  mode !== "writing" ||
-                  voice.recording ||
-                  voice.transcribing ||
-                  !rawInput.trim()
-                }
-                className="button-primary min-h-14 flex-1"
-              >
-                <WandSparkles size={18} aria-hidden />
-                {mode === "extracting" ? "整理しています…" : "内容を整理する"}
+                削除
               </button>
             </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setPoints((current) => [...current, ""])}
+            className="text-sm font-medium text-primary"
+          >
+            点を追加
+          </button>
+        </div>
+        {effectiveStockId && candidatesError && (
+          <p role="alert" className="text-sm text-destructive">
+            {candidatesError}
+          </p>
+        )}
+        {effectiveStockId && (
+          <LinkedTransactionSelector
+            transactions={candidates}
+            value={selectedTransactionId}
+            onChange={(id) =>
+              setTransactionSelection({ key: selectionKey, id })
+            }
+            loading={candidatesLoading}
+            disabled={saving || Boolean(candidatesError)}
+          />
+        )}
+        {!linkedTransaction && (
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={recordTrade}
+              onChange={(event) => setRecordTrade(event.target.checked)}
+              className="size-5 accent-primary"
+            />
+            売買の事実も履歴に記録する
+          </label>
+        )}
+        {recordTrade && !linkedTransaction && (
+          <div className="grid gap-3 sm:grid-cols-4">
+            <label className="text-sm text-muted-foreground">
+              売買
+              <select
+                value={tradeSide}
+                onChange={(event) =>
+                  setTradeSide(event.target.value as "buy" | "sell")
+                }
+                className="input mt-1 text-foreground"
+              >
+                <option value="buy">購入</option>
+                <option value="sell">売却</option>
+              </select>
+            </label>
+            <label className="text-sm text-muted-foreground">
+              数量
+              <input
+                type="number"
+                min="0.0001"
+                step="any"
+                value={tradeQuantity}
+                onChange={(event) => setTradeQuantity(event.target.value)}
+                className="input mt-1 text-foreground"
+              />
+            </label>
+            <label className="text-sm text-muted-foreground">
+              単価（任意）
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={tradePrice}
+                onChange={(event) => setTradePrice(event.target.value)}
+                className="input mt-1 text-foreground"
+              />
+            </label>
+            <label className="text-sm text-muted-foreground">
+              約定日
+              <input
+                type="date"
+                value={tradeDate}
+                onChange={(event) => setTradeDate(event.target.value)}
+                className="input mt-1 text-foreground"
+              />
+            </label>
           </div>
-        </section>
-      )}
-
+        )}
+        <ReviewSchedule value={reviewSchedule} onChange={setReviewSchedule} />
+      </section>
       {error && (
         <p
           role="alert"
@@ -488,360 +466,17 @@ export function CaptureForm({
           {error}
         </p>
       )}
-
-      {confirming && (
-        <section className="space-y-6" aria-labelledby="confirm-heading">
-          <div>
-            <p className="text-sm font-medium text-primary">保存前の確認</p>
-            <h1 id="confirm-heading" className="mt-1 text-2xl font-bold tracking-tight">
-              整理した内容を確認してください
-            </h1>
-          </div>
-          <fieldset disabled={mode === "saving"} className="contents">
-            <section className="surface space-y-3 p-5" aria-labelledby="raw-heading">
-              <div className="flex items-center justify-between gap-3">
-                <h2 id="raw-heading" className="text-sm font-semibold text-muted-foreground">
-                  あなたの言葉（原文）
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setMode("writing")}
-                  className="min-h-11 rounded-xl px-2 text-sm font-medium text-primary"
-                >
-                  入力に戻って直す
-                </button>
-              </div>
-              <p className="journal-text whitespace-pre-wrap text-[17px]">{rawInput}</p>
-              {transcript && transcript !== rawInput && (
-                <details className="rounded-xl bg-secondary p-3">
-                  <summary className="cursor-pointer text-xs font-medium">
-                    編集前の文字起こし原文
-                  </summary>
-                  <p className="journal-text mt-2 whitespace-pre-wrap text-sm">
-                    {transcript}
-                  </p>
-                </details>
-              )}
-            </section>
-
-            {extraction.followUpQuestion && !askedQuestion && (
-              <section className="space-y-3 rounded-2xl bg-ai-soft p-5" aria-label="AIからの確認">
-                <label className="block text-sm" htmlFor="follow-up">
-                  <span className="block text-xs font-semibold text-ai">AIからの確認（任意）</span>
-                  <span className="mt-1 block leading-7">{extraction.followUpQuestion}</span>
-                </label>
-                <textarea
-                  id="follow-up"
-                  value={questionAnswer}
-                  onChange={(event) => setQuestionAnswer(event.target.value)}
-                  rows={2}
-                  className="input journal-text"
-                />
-                <button
-                  type="button"
-                  onClick={() => void extract(questionAnswer)}
-                  disabled={!questionAnswer.trim() || mode === "saving"}
-                  className="button-soft"
-                >
-                  回答を反映
-                </button>
-              </section>
-            )}
-
-            {factContext && (
-              <section className="space-y-1 px-1 text-sm" aria-label="DBの記録">
-                <h2 className="font-semibold text-muted-foreground">DBの記録</h2>
-                {factContext.linkedTransaction && <p>紐付け売買: {factContext.linkedTransaction.side === "buy" ? "購入" : "売却"} {factContext.linkedTransaction.quantity}株 · {factContext.linkedTransaction.price === null ? "価格未登録" : `${factContext.linkedTransaction.price.toLocaleString("ja-JP")} ${factContext.linkedTransaction.priceCurrency === "USD" ? "USD" : "円"}`} · {japanDate(factContext.linkedTransaction.executedAt)}</p>}
-                {factContext.currentPosition && <p>現在の保有: {factContext.currentPosition.quantity}株 · 参考平均購入単価 {factContext.currentPosition.averagePurchasePrice === null ? "不明" : `${Math.round(factContext.currentPosition.averagePurchasePrice).toLocaleString("ja-JP")} ${factContext.currentPosition.currency === "USD" ? "USD" : "円"}`} · 参考取得額 {factContext.currentPosition.acquisitionAmount === null ? "不明" : `${Math.round(factContext.currentPosition.acquisitionAmount).toLocaleString("ja-JP")} ${factContext.currentPosition.currency === "USD" ? "USD" : "円"}`}</p>}
-                {!factContext.linkedTransaction && !factContext.currentPosition && <p className="text-muted-foreground">該当する売買・保有記録はありません。</p>}
-              </section>
-            )}
-
-            <section className="space-y-2" aria-labelledby="basics-heading">
-              <h2 id="basics-heading" className="section-label">記録の情報</h2>
-              <div className="surface space-y-4 p-5">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="text-sm text-muted-foreground">
-                    銘柄名
-                    <input
-                      value={selectedStock?.name ?? extraction.stock.name}
-                      disabled={Boolean(selectedStock)}
-                      onChange={(event) =>
-                        setExtraction((v) => ({
-                          ...v,
-                          stock: { ...v.stock, name: event.target.value },
-                        }))
-                      }
-                      className="input mt-1 text-foreground disabled:bg-secondary"
-                    />
-                  </label>
-                  <label className="text-sm text-muted-foreground">
-                    証券コード（任意）
-                    <input
-                      value={selectedStock?.ticker ?? extraction.stock.ticker ?? ""}
-                      disabled={Boolean(selectedStock)}
-                      onChange={(event) =>
-                        setExtraction((v) => ({
-                          ...v,
-                          stock: { ...v.stock, ticker: event.target.value || null },
-                        }))
-                      }
-                      className="input mt-1 font-mono text-foreground disabled:bg-secondary"
-                    />
-                  </label>
-                  <label className="text-sm text-muted-foreground">
-                    判断した日
-                    <input
-                      type="date"
-                      value={decisionDate}
-                      onChange={(event) => setDecisionDate(event.target.value)}
-                      className="input mt-1 text-foreground"
-                    />
-                  </label>
-                  <label className="text-sm text-muted-foreground">
-                    記録の種類
-                    <select
-                      value={extraction.type}
-                      onChange={(event) =>
-                        setExtraction((v) => ({
-                          ...v,
-                          type: event.target.value as DecisionExtraction["type"],
-                        }))
-                      }
-                      className="input mt-1 text-foreground"
-                    >
-                      {Object.entries(decisionTypeLabel).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                {effectiveStockId && candidatesError && (
-                  <p role="alert" className="text-sm text-destructive">
-                    {candidatesError}
-                  </p>
-                )}
-                {effectiveStockId && (
-                  <LinkedTransactionSelector
-                    transactions={transactionCandidates}
-                    value={selectedTransactionId}
-                    onChange={(id) =>
-                      setTransactionSelection({ key: selectionKey, id })
-                    }
-                    loading={candidatesLoading}
-                    disabled={mode === "saving" || Boolean(candidatesError)}
-                  />
-                )}
-                {!selectedLinkedTransaction && (
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={recordTrade}
-                      className="size-5 accent-primary"
-                      onChange={(event) => {
-                        const enabled = event.target.checked;
-                        setRecordTrade(enabled);
-                        if (enabled && !extraction.transaction)
-                          setExtraction((v) => ({
-                            ...v,
-                            transaction: {
-                              side: v.type === "sell" ? "sell" : "buy",
-                              quantity: null,
-                              price: null,
-                              fee: null,
-                              executedAt: new Date().toISOString(),
-                            },
-                          }));
-                      }}
-                    />
-                    売買の事実も履歴に記録する
-                  </label>
-                )}
-                {!selectedLinkedTransaction &&
-                  recordTrade &&
-                  extraction.transaction && (
-                    <fieldset className="rounded-xl bg-secondary p-4">
-                      <legend className="sr-only">売買履歴に追加</legend>
-                      <p aria-hidden className="mb-3 text-sm font-semibold">売買履歴に追加</p>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {transactionField(
-                          "売買",
-                          <select
-                            value={extraction.transaction.side}
-                            onChange={(event) =>
-                              updateTransaction({ side: event.target.value as "buy" | "sell" })
-                            }
-                            className="input mt-1 text-foreground"
-                          >
-                            <option value="buy">購入</option>
-                            <option value="sell">売却</option>
-                          </select>,
-                        )}
-                        {transactionField(
-                          "数量",
-                          <input
-                            type="number"
-                            min="0.0001"
-                            step="any"
-                            value={extraction.transaction.quantity ?? ""}
-                            onChange={(event) =>
-                              updateTransaction({
-                                quantity: event.target.value ? Number(event.target.value) : null,
-                              })
-                            }
-                            className="input mt-1 text-foreground"
-                          />,
-                        )}
-                        {transactionField(
-                          "単価",
-                          <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            value={extraction.transaction.price ?? ""}
-                            onChange={(event) =>
-                              updateTransaction({
-                                price: event.target.value ? Number(event.target.value) : null,
-                              })
-                            }
-                            placeholder="未入力"
-                            className="input mt-1 text-foreground"
-                          />,
-                        )}
-                        {transactionField(
-                          "約定日",
-                          <input
-                            type="date"
-                            value={
-                              extraction.transaction.executedAt
-                                ? localDateInputValue(new Date(extraction.transaction.executedAt))
-                                : localDateInputValue()
-                            }
-                            onChange={(event) =>
-                              updateTransaction({
-                                executedAt: new Date(`${event.target.value}T12:00:00.000Z`).toISOString(),
-                              })
-                            }
-                            className="input mt-1 text-foreground"
-                          />,
-                        )}
-                      </div>
-                    </fieldset>
-                  )}
-                <ReviewSchedule value={reviewSchedule} onChange={setReviewSchedule} />
-              </div>
-            </section>
-
-            <section className="space-y-2" aria-labelledby="ai-heading">
-              <div className="flex items-center gap-2 px-1">
-                <h2 id="ai-heading" className="text-sm font-semibold text-muted-foreground">
-                  AIによる整理
-                </h2>
-                <span className="rounded-md bg-ai-soft px-1.5 py-0.5 text-[11px] font-semibold text-ai">
-                  要確認
-                </span>
-              </div>
-              <div className="surface space-y-5 p-5">
-                <label className="block text-xs font-semibold text-ai">
-                  要約
-                  <textarea
-                    value={extraction.summary ?? ""}
-                    onChange={(event) =>
-                      setExtraction((v) => ({
-                        ...v,
-                        summary: event.target.value || null,
-                      }))
-                    }
-                    rows={2}
-                    className="input mt-1 text-[15px] font-normal leading-7 text-foreground"
-                  />
-                </label>
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-ai">あなたの発言から整理した点</p>
-                  {extraction.points.map((point, index) => (
-                    <div key={`${index}-${point.source}`} className="grid gap-2 rounded-xl bg-secondary/60 p-3 sm:grid-cols-[1fr_9rem_auto]">
-                      <textarea
-                        aria-label={`整理した点 ${index + 1}`}
-                        value={point.text}
-                        onChange={(event) => setPointText(index, event.target.value)}
-                        rows={2}
-                        className="input text-[15px] leading-7"
-                      />
-                      <label className="text-xs text-muted-foreground">
-                        出典
-                        <select
-                          aria-label={`整理した点 ${index + 1} の出典`}
-                          value={point.source}
-                          onChange={(event) =>
-                            setExtraction((v) => ({
-                              ...v,
-                              points: v.points.map((item, i) =>
-                                i === index
-                                  ? { ...item, source: event.target.value as "raw_input" | "follow_up_answer" }
-                                  : item,
-                              ),
-                            }))
-                          }
-                          className="input mt-1 py-2 text-sm text-foreground"
-                        >
-                          <option value="raw_input">元の発言</option>
-                          <option value="follow_up_answer">追加回答</option>
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        aria-label={`整理した点 ${index + 1} を削除`}
-                        onClick={() =>
-                          setExtraction((v) => ({
-                            ...v,
-                            points: v.points.filter((_, i) => i !== index),
-                          }))
-                        }
-                        className="min-h-10 self-end rounded-xl px-3 text-sm text-destructive"
-                      >
-                        削除
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExtraction((v) => ({
-                        ...v,
-                        points: [...v.points, { kind: "other", text: "", source: "raw_input" }],
-                      }))
-                    }
-                    className="min-h-10 text-sm font-medium text-primary"
-                  >
-                    点を追加
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <div className="action-bar space-y-2">
-              <button
-                type="button"
-                onClick={() => void save()}
-                disabled={
-                  mode === "saving" ||
-                  candidatesLoading ||
-                  Boolean(candidatesError)
-                }
-                className="button-primary min-h-14 w-full"
-              >
-                <Check size={18} aria-hidden />
-                {mode === "saving" ? "保存しています…" : "この内容で保存"}
-              </button>
-              <p className="text-center text-xs text-muted-foreground">
-                新しい記録としてタイムラインに追加されます
-              </p>
-            </div>
-          </fieldset>
-        </section>
-      )}
+      <div className="action-bar">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving || candidatesLoading || Boolean(candidatesError)}
+          className="button-primary min-h-14 w-full"
+        >
+          <Check size={18} aria-hidden />
+          {saving ? "保存しています…" : "この内容で保存"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -37,9 +37,6 @@ for (const width of [1280, 320]) {
     const exportLink = page.getByRole("link", { name: /JSONをエクスポート/ });
     await expect(exportLink).toHaveAttribute("href", "/api/export");
     await expect(exportLink).toHaveAttribute("download", "");
-    await expect(
-      page.getByRole("button", { name: /お問い合わせ・改善要望/ }),
-    ).toBeVisible();
 
     await expect
       .poll(() =>

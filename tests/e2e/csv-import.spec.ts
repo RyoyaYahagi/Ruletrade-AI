@@ -86,37 +86,18 @@ test("reviews a manual trade conflict, applies either value, and can undo safely
   try {
     const ticker = "MERGE-E2E-9027";
     const stockName = "取込確認用の架空会社";
-    const extraction = {
-      type: "buy",
-      stock: { ticker, name: stockName, market: "JP" },
-      summary: "CSV照合の確認用記録",
-      points: [
-        { kind: "other", text: "CSV照合の確認用記録", source: "raw_input" },
-      ],
-      transaction: {
-        side: "buy",
-        quantity: 10,
-        price: 1000,
-        fee: null,
-        executedAt: "2025-01-10T12:00:00.000Z",
-      },
-      followUpQuestion: null,
-    };
-    await page.route("**/api/decisions/extract", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        json: extraction,
-      });
-    });
     await page.goto("/capture/structured");
     await page
       .getByLabel("いま考えていること")
       .fill("CSV照合テスト用の判断メモ。");
-    await page.getByRole("button", { name: "内容を整理する" }).click();
-    await expect(
-      page.getByRole("heading", { name: "整理した内容を確認してください" }),
-    ).toBeVisible();
+    await page.getByLabel("銘柄名").fill(stockName);
+    await page.getByLabel("証券コード（任意）").fill(ticker);
+    await page.getByLabel("記録の種類").selectOption("buy");
+    await page.getByLabel("要約（任意）").fill("CSV照合の確認用記録");
+    await page.getByLabel("売買の事実も履歴に記録する").check();
+    await page.getByLabel("数量").fill("10");
+    await page.getByLabel("単価（任意）").fill("1000");
+    await page.getByLabel("約定日").fill("2025-01-10");
     await page.getByRole("button", { name: "この内容で保存" }).click();
     await expect(page).toHaveURL(/\/stocks\//);
     const stockId = new URL(page.url()).pathname.split("/").at(-1)!;

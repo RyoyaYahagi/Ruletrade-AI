@@ -11,17 +11,15 @@ adds judgment-heavy checks that cannot be enforced mechanically by CI or lint.
 
 ## Domain / safety (highest priority)
 
-- Original input remains the source of truth; extraction and comparison are
-  derived data. Preserve original text, transcripts, and follow-up answers.
+- Original input remains the source of truth. Preserve existing transcript,
+  extracted-content, and comparison fields when changing ledger flows.
 - New thoughts append timeline events rather than overwriting past decisions.
-- Validate Gemini and Jev output with Zod before saving or displaying it.
-- Keep the single-user Web UI without login or ownership management. Preserve
-  the Muse API read/write Bearer scopes. Keep Gemini for journal AI and Jev for
-  feedback classification; add no AI provider or provider abstraction.
+- Keep the app focused on ledger storage. AI support runs through Muse outside
+  the app; preserve the Muse API read/write Bearer scopes.
 - Transaction prices that are unknown stay empty rather than becoming zero.
 - No copy that reads as a buy/sell recommendation or investment advice.
-- Gemini/Jev calls and secrets remain server-side: no `NEXT_PUBLIC_` misuse, no
-  server-only module imported into a Client Component.
+- Secrets remain server-side: no `NEXT_PUBLIC_` misuse, no server-only module
+  imported into a Client Component.
 - Keep private input and secrets out of logs and committed database files.
 
 ## Correctness beyond the happy path
