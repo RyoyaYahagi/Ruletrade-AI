@@ -5,15 +5,15 @@
 ### Changed
 
 - Replaced the investment-rule workbench with a single-user investment decision journal.
-- Use server-side Gemini with Zod validation and SQLite through Drizzle.
+- Remove in-app AI features: recording transcription, content organization and trade-candidate extraction, comparison with past decisions, and the inquiry interface and submission endpoint.
 - Align review and release templates with the current product scope.
 - Retain `frontend-design/` as historical design reference material.
 
 ### Features
 
-- Text and voice capture with confirmation before saving.
+- Save original thoughts to the inbox and enter decision details manually.
 - Preserve original input and append each new thought to a stock timeline.
-- Compare current thinking with recorded decisions and save personal reflections.
+- Read past decisions and save current thinking and personal reflections in writing.
 - Record transactions, allowing unknown prices to remain empty.
 - Show due reviews when the app opens.
 
