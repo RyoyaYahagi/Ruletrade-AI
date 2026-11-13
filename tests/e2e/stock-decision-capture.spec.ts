@@ -18,24 +18,6 @@ test("records a decision for an imported trade without adding another trade", as
     (item: Transaction) => item.decisionId === null && item.side === "buy",
   );
   expect(trade).toBeTruthy();
-  await page.route("**/api/decisions/extract", (route) =>
-    route.fulfill({
-      json: {
-        type: "note",
-        stock: { name: "別の抽出銘柄", ticker: null, market: null },
-        summary: "過去の購入理由",
-        points: [{ kind: "reason", text: "将来の需要を期待して購入", source: "raw_input" }],
-        transaction: {
-          side: "buy",
-          quantity: 100,
-          price: 1000,
-          fee: null,
-          executedAt: trade.executedAt,
-        },
-        followUpQuestion: null,
-      },
-    }),
-  );
   await page.goto(`/stocks/${trade.stockId}?tab=trades`);
   await page
     .locator("li")
@@ -45,15 +27,19 @@ test("records a decision for an imported trade without adding another trade", as
   await page
     .getByLabel("いま考えていること")
     .fill("このとき将来の需要を期待して購入した。");
-  await page.getByRole("button", { name: "内容を整理する" }).click();
   await expect(page.getByLabel("銘柄の登録先")).toHaveCount(0);
   await expect(page.getByLabel("記録の種類")).toHaveValue("buy");
   await expect(page.getByLabel("判断した日")).not.toHaveValue("");
   await expect(page.getByRole("group", { name: "関連する売買" })).toBeVisible();
+  await page.getByLabel("要約（任意）").fill("過去の購入理由");
+  await page.getByRole("button", { name: "点を追加" }).click();
+  await page
+    .getByLabel("整理した点 1", { exact: true })
+    .fill("将来の需要を期待して購入");
   await expect(page.getByText("売買の事実も履歴に記録する")).toHaveCount(0);
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(new RegExp(`/stocks/${trade.stockId}$`));
-  await page.locator("summary", { hasText: "AIによる整理" }).click();
+  await page.locator("summary", { hasText: "保存済みの整理情報" }).click();
   await expect(page.getByText("過去の購入理由", { exact: true })).toBeVisible();
   await expect(page.getByText(/関連売買:/)).toBeVisible();
   const after = await (await page.request.get("/api/export")).json();
@@ -72,23 +58,12 @@ test("records a decision for an imported trade without adding another trade", as
 test("offers multiple matching trades, defaults a unique match, and preserves opting out", async ({
   page,
 }) => {
-  await page.route("**/api/decisions/extract", (route) =>
-    route.fulfill({
-      json: {
-        type: "note",
-        stock: { name: "架空候補確認社", ticker: null, market: null },
-        summary: "候補確認の判断",
-        points: [{ kind: "other", text: "候補確認の判断", source: "raw_input" }],
-        transaction: null,
-        followUpQuestion: null,
-      },
-    }),
-  );
   await page.goto("/capture/structured");
   await page
     .getByLabel("いま考えていること")
     .fill("架空候補確認社について記録する。");
-  await page.getByRole("button", { name: "内容を整理する" }).click();
+  await page.getByLabel("銘柄名").fill("架空候補確認社");
+  await page.getByLabel("証券コード（任意）").fill("CANDIDATE-E2E");
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(/\/stocks\//);
   const stockUrl = page.url();
@@ -107,7 +82,7 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
   await page
     .getByLabel("いま考えていること")
     .fill("過去の購入理由を記録する。");
-  await page.getByRole("button", { name: "内容を整理する" }).click();
+  await page.getByLabel("記録の種類").selectOption("buy");
   await page.getByLabel("記録の種類").selectOption("buy");
   await page.getByLabel("判断した日").fill("2026-02-14");
   const selector = page.getByRole("group", { name: "関連する売買" });
@@ -116,7 +91,7 @@ test("offers multiple matching trades, defaults a unique match, and preserves op
   await page.getByLabel("判断した日").fill("2026-02-15");
   await expect(selector.getByRole("combobox")).not.toHaveValue("none");
   await selector.getByRole("combobox").selectOption("none");
-  await page.getByLabel("要約").fill("紐付けない選択を維持する");
+  await page.getByLabel("要約（任意）").fill("紐付けない選択を維持する");
   await expect(selector.getByRole("combobox")).toHaveValue("none");
   await page.getByRole("button", { name: "この内容で保存" }).click();
   await expect(page).toHaveURL(stockUrl);

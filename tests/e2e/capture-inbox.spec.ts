@@ -49,19 +49,9 @@ function withDatabase<T>(run: (db: Database.Database) => T): T {
   }
 }
 
-test("saves the exact web text to the inbox and reads it through the API without AI", async ({
+test("saves the exact web text to the inbox and reads it through the API", async ({
   page,
 }) => {
-  let aiCalls = 0;
-  await page.route("**/api/decisions/extract", (route) => {
-    aiCalls += 1;
-    return route.fulfill({ json: {} });
-  });
-  await page.route("**/api/decisions/transcribe", (route) => {
-    aiCalls += 1;
-    return route.fulfill({ json: { transcript: "" } });
-  });
-
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/capture");
   await expect(
@@ -77,7 +67,9 @@ test("saves the exact web text to the inbox and reads it through the API without
   await expect(page.getByText(/未整理として保存しました/)).toBeVisible();
   await expect(page.getByText("銘柄: 未定")).toBeVisible();
   await expect(
-    page.getByText("振り返り日は保存していません。整理するときに決められます。"),
+    page.getByText(
+      "振り返り日は保存していません。整理するときに決められます。",
+    ),
   ).toBeVisible();
   await expect(page.getByText("保存した原文")).toBeVisible();
   await expect
@@ -91,8 +83,6 @@ test("saves the exact web text to the inbox and reads it through the API without
     path: "test-results/r07-capture-mobile.png",
     fullPage: true,
   });
-
-  expect(aiCalls).toBe(0);
 
   const captures = await listCaptures(page.request);
   const capture = captures.find((item) => item.rawInput === rawInput);
@@ -108,7 +98,9 @@ test("saves the exact web text to the inbox and reads it through the API without
   expect(new Date(capture!.createdAt).toISOString()).toBe(capture!.createdAt);
 });
 
-test("saves from a stock detail page with the stock fixed", async ({ page }) => {
+test("saves from a stock detail page with the stock fixed", async ({
+  page,
+}) => {
   await page.goto("/");
   const stockId = randomUUID();
   const stockName = `固定銘柄テスト ${stockId.slice(0, 8)}`;
@@ -169,9 +161,12 @@ test("enforces auth and status validation and leaves no partial write", async ({
   });
   expect(wrongScope.status()).toBe(401);
 
-  const invalidStatus = await page.request.get(`${CAPTURES_API}?status=unknown`, {
-    headers: auth(READ_TOKEN),
-  });
+  const invalidStatus = await page.request.get(
+    `${CAPTURES_API}?status=unknown`,
+    {
+      headers: auth(READ_TOKEN),
+    },
+  );
   expect(invalidStatus.status()).toBe(400);
   expect((await invalidStatus.json()).error.code).toBe("validation_error");
 
@@ -241,8 +236,11 @@ test("replays the same key and rejects content and endpoint conflicts", async ({
       data: body,
     });
     expect(first.status()).toBe(201);
-    const firstCapture = ((await first.json()) as { data: { replayed: boolean; capture: ApiCapture } })
-      .data.capture;
+    const firstCapture = (
+      (await first.json()) as {
+        data: { replayed: boolean; capture: ApiCapture };
+      }
+    ).data.capture;
     expect((firstCapture as ApiCapture).rawInput).toBe(rawInput);
 
     const second = await page.request.post(CAPTURES_API, {

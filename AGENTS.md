@@ -4,10 +4,10 @@ Ruletrade-AI is a personal investment decision journal. Users record their own t
 
 ## Product and architecture
 
-- Treat the user's original words as the source of truth. AI extraction, summaries, and comparisons are derived data.
+- Treat the user's original words as the source of truth. Preserve historical extraction, transcript, and comparison fields as stored data.
 - Save each new thought as a new timeline event; do not overwrite earlier decisions.
-- Keep Gemini and Jev calls server-side. Never expose API keys or other secrets to the browser, and never use `NEXT_PUBLIC_` for secrets.
-- Validate AI output with Zod before saving or displaying it. AI may organize notes and compare a user's current thinking with past notes, but must not recommend buying or selling.
+- Keep the app focused on ledger storage. AI assistance runs outside the app through Muse; the app does not record audio, transcribe, extract candidates, or generate comparisons.
+- The app does not provide investment advice, buy/sell recommendations, or order execution.
 - The Web UI is single-user and has no login or ownership layer. Muse integration APIs use separate read/write Bearer tokens; preserve those scopes. Add no Web login or ownership layer unless the product scope changes explicitly.
 - Prefer direct use of the existing framework and libraries. Keep domain logic small and easy to change.
 
@@ -15,7 +15,7 @@ Ruletrade-AI is a personal investment decision journal. Users record their own t
 
 - Do not implement a feature because it might be useful in the future.
 - Add an abstraction only when at least two concrete current use cases need it.
-- Use Gemini for investment-note extraction, comparison, and transcription. Use Jev only for feedback classification, through the configured gateway or TypeSafe API. Keep those roles separate and do not add a provider abstraction.
+- Do not add in-app AI or audio input. The feedback UI and endpoint are not part of the product.
 - Do not add repository patterns, factories, or manager layers ahead of a demonstrated need.
 - Remove unused code, dependencies, scripts, and documentation when their feature is removed.
 - Do not preserve old features with feature flags.

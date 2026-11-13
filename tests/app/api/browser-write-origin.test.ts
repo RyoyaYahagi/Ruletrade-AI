@@ -3,41 +3,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const services = vi.hoisted(() => ({
   importJson: vi.fn(),
   getDb: vi.fn(),
-  extractDecision: vi.fn(),
-  compareDecision: vi.fn(),
-  transcribeAudio: vi.fn(),
   previewCsv: vi.fn(),
   importCsv: vi.fn(),
   undoImport: vi.fn(),
-  classifyFeedback: vi.fn(),
-  createFeedbackIssue: vi.fn(),
 }));
 vi.mock("@/features/json-import/service", () => ({
   importJson: services.importJson,
   JsonImportError: class extends Error {},
 }));
 vi.mock("@/lib/db", () => ({ getDb: services.getDb }));
-vi.mock("@/lib/ai/gemini", () => services);
 vi.mock("@/features/csv-import/service", () => services);
-vi.mock("@/lib/feedback/classify", () => services);
-vi.mock("@/lib/feedback/github", () => services);
 
 import { POST as jsonImport } from "@/app/api/import/json/route";
-import { POST as extract } from "@/app/api/decisions/extract/route";
-import { POST as compare } from "@/app/api/reviews/compare/route";
-import { POST as transcribe } from "@/app/api/decisions/transcribe/route";
 import { POST as csvImport } from "@/app/api/import/route";
-import { POST as feedback } from "@/app/api/feedback/route";
 
 beforeEach(() => vi.resetAllMocks());
 
 const routes = [
   ["/api/import/json", jsonImport],
-  ["/api/decisions/extract", extract],
-  ["/api/reviews/compare", compare],
-  ["/api/decisions/transcribe", transcribe],
   ["/api/import", csvImport],
-  ["/api/feedback", feedback],
 ] as const;
 
 const attacks: [string, Record<string, string>][] = [
@@ -103,11 +87,7 @@ it("imports a same-origin JSON backup behind the HTTPS proxy", async () => {
   expect(services.importJson).toHaveBeenCalledWith({ formatVersion: 4 });
 });
 
-it.each([
-  ["/api/import/json", jsonImport],
-  ["/api/decisions/extract", extract],
-  ["/api/reviews/compare", compare],
-] as const)(
+it.each([["/api/import/json", jsonImport]] as const)(
   "rejects a simple text/plain JSON submission to %s",
   async (path, post) => {
     const request = new Request(`http://localhost${path}`, {
@@ -121,19 +101,3 @@ it.each([
       expect(service).not.toHaveBeenCalled();
   },
 );
-
-it("rejects a cross-site multipart audio upload before transcription", async () => {
-  const form = new FormData();
-  form.append(
-    "audio",
-    new File([new Uint8Array([1, 2, 3])], "voice.webm", { type: "audio/webm" }),
-  );
-  const request = new Request("http://localhost/api/decisions/transcribe", {
-    method: "POST",
-    headers: { origin: "https://evil.example" },
-    body: form,
-  });
-  expect((await transcribe(request)).status).toBe(403);
-  expect(request.bodyUsed).toBe(false);
-  expect(services.transcribeAudio).not.toHaveBeenCalled();
-});

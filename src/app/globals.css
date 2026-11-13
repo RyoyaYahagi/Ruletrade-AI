@@ -38,7 +38,7 @@
 
 /*
  * 色の役割: primary は記録と主要操作、attention は振り返り時期や理由の欠落、
- * ai は AI が整理した派生データ。利用者自身の言葉は font-serif で表示する。
+ * ai は過去に保存された整理データ向けの色。利用者自身の言葉は font-serif で表示する。
  */
 :root {
   --background: #f3f4f1;

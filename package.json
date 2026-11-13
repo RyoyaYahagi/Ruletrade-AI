@@ -17,11 +17,9 @@
     "check:test-hygiene": "bash scripts/check-test-hygiene.sh",
     "check:repo-hygiene": "bash scripts/check-no-db-artifacts.sh",
     "prepare": "bash scripts/setup-git-hooks.sh",
-    "test:e2e": "playwright test",
-    "test:eval": "tsx scripts/eval-decision-extraction.ts"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@google/genai": "^1.0.0",
     "better-sqlite3": "^12.10.0",
     "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.14.0",

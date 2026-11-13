@@ -3,27 +3,17 @@ import { expect, test } from "@playwright/test";
 test("edits a decision without losing the trade or original content and can cancel an edit", async ({
   page,
 }) => {
-  await page.route("**/api/decisions/extract", (route) =>
-    route.fulfill({
-      json: {
-        type: "buy",
-        stock: { name: "架空編集確認社", ticker: null, market: null },
-        summary: "編集前の投資仮説",
-        points: [{ kind: "expectation", text: "編集前の条件", source: "raw_input" }],
-        followUpQuestion: null,
-        transaction: {
-          side: "buy",
-          quantity: 10,
-          price: 1000,
-          fee: null,
-          executedAt: "2026-01-01T12:00:00.000Z",
-        },
-      },
-    }),
-  );
   await page.goto("/capture/structured");
   await page.getByLabel("いま考えていること").fill("編集前の原文を残す。");
-  await page.getByRole("button", { name: "内容を整理する" }).click();
+  await page.getByLabel("銘柄名").fill("架空編集確認社");
+  await page.getByLabel("記録の種類").selectOption("buy");
+  await page.getByLabel("要約（任意）").fill("編集前の投資仮説");
+  await page.getByRole("button", { name: "点を追加" }).click();
+  await page.getByLabel("整理した点 1", { exact: true }).fill("編集前の条件");
+  await page.getByLabel("売買の事実も履歴に記録する").check();
+  await page.getByLabel("数量").fill("10");
+  await page.getByLabel("単価（任意）").fill("1000");
+  await page.getByLabel("約定日").fill("2026-01-01");
   await page.getByRole("button", { name: "日付指定", exact: true }).click();
   await page.getByLabel("振り返り日", { exact: true }).fill("2099-01-01");
   await page.getByRole("button", { name: "この内容で保存" }).click();
@@ -46,15 +36,21 @@ test("edits a decision without losing the trade or original content and can canc
     .fill("編集後の投資仮説");
   await page.getByLabel("記録の種類").selectOption("add");
   await page.getByLabel("判断した日").fill("2026-01-02");
-    await page.getByLabel("整理した点 1", { exact: true }).fill("需要が鈍ったら考えを見直す");
+  await page
+    .getByLabel("整理した点 1", { exact: true })
+    .fill("需要が鈍ったら考えを見直す");
   await page.getByRole("button", { name: "振り返り日を追加" }).click();
   await page
     .getByLabel("追加の振り返り日 1", { exact: true })
     .fill("2099-02-01");
   await page.getByRole("button", { name: "変更を保存" }).click();
-  await page.locator("summary", { hasText: "AIによる整理" }).click();
-  await expect(page.getByText("編集後の投資仮説", { exact: true })).toBeVisible();
-  await expect(page.getByText("需要が鈍ったら考えを見直す", { exact: true })).toBeVisible();
+  await page.locator("summary", { hasText: "保存済みの整理情報" }).click();
+  await expect(
+    page.getByText("編集後の投資仮説", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("需要が鈍ったら考えを見直す", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText(/関連売買:/)).toBeVisible();
   await page.getByText("編集履歴（1件）", { exact: true }).click();
   await expect(
@@ -66,7 +62,9 @@ test("edits a decision without losing the trade or original content and can canc
   );
   expect(edited.createdAt).toBe(original.createdAt);
   expect(edited.summary).toBe("編集後の投資仮説");
-  expect(edited.points).toEqual([{ kind: "expectation", text: "需要が鈍ったら考えを見直す", source: "raw_input" }]);
+  expect(edited.points).toEqual([
+    { kind: "other", text: "需要が鈍ったら考えを見直す", source: "raw_input" },
+  ]);
   expect(edited.reviewDates).toHaveLength(2);
   expect(after.transactions).toEqual(before.transactions);
   expect(after.decisions).toHaveLength(before.decisions.length);
@@ -78,7 +76,7 @@ test("edits a decision without losing the trade or original content and can canc
     .getByRole("textbox", { name: "要約", exact: true })
     .fill("保存しない変更");
   await page.getByRole("link", { name: "キャンセル", exact: true }).click();
-  await page.locator("summary", { hasText: "AIによる整理" }).click();
+  await page.locator("summary", { hasText: "保存済みの整理情報" }).click();
   await expect(
     page.getByText("編集後の投資仮説", { exact: true }),
   ).toBeVisible();

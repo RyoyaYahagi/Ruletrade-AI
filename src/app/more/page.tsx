@@ -5,7 +5,6 @@ import { listImportBatches } from "@/features/csv-import/service";
 import { loadBucketSummary } from "@/features/portfolio/bucket-data";
 import { getAppSettings } from "@/features/settings/settings";
 import { BucketSettingsForm } from "@/features/settings/settings-form";
-import { FeedbackButton } from "./feedback-button";
 
 export const dynamic = "force-dynamic";
 
@@ -59,12 +58,6 @@ export default async function MorePage() {
             <JsonImportPanel />
           </div>
         </div>
-      </section>
-      <section className="space-y-2" aria-labelledby="support-heading">
-        <h2 id="support-heading" className="section-label">
-          サポート
-        </h2>
-        <FeedbackButton />
       </section>
       <p className="px-1 text-xs leading-6 text-muted-foreground">
         Ruletrade
