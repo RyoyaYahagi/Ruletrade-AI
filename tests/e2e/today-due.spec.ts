@@ -7,35 +7,14 @@ function jstDate(offsetDays: number): string {
   return new Date(shifted).toISOString().slice(0, 10);
 }
 
-type Extraction = {
-  type: "note";
-  stock: { ticker: string; name: string; market: string };
-  summary: string;
-  points: Array<{ kind: "other"; text: string; source: "raw_input" }>;
-  transaction: null;
-  followUpQuestion: null;
-};
-
-async function captureDecision(
-  page: Page,
-  current: { extraction: Extraction | null },
-  name: string,
-  reviewDate: string,
-) {
-  current.extraction = {
-    type: "note",
-    stock: { ticker: `E2E-${randomUUID().slice(0, 8)}`, name, market: "JP" },
-    summary: `${name}の判断`,
-    points: [{ kind: "other", text: `${name}の判断`, source: "raw_input" }],
-    transaction: null,
-    followUpQuestion: null,
-  };
+async function captureDecision(page: Page, name: string, reviewDate: string) {
   await page.goto("/capture/structured");
   await page.getByLabel("いま考えていること").fill(`${name}の判断メモ。`);
-  await page.getByRole("button", { name: "内容を整理する" }).click();
-  await expect(
-    page.getByRole("heading", { name: "整理した内容を確認してください" }),
-  ).toBeVisible();
+  await page.getByLabel("銘柄名").fill(name);
+  await page
+    .getByLabel("証券コード（任意）")
+    .fill(`E2E-${randomUUID().slice(0, 8)}`);
+  await page.getByLabel("要約（任意）").fill(`${name}の判断`);
   await page.getByRole("button", { name: "日付指定" }).click();
   await page.getByLabel("振り返り日").fill(reviewDate);
   await page.getByRole("button", { name: "この内容で保存" }).click();
@@ -53,18 +32,9 @@ test("今日画面 shows due decisions and unlinked trades from the same data as
   const unlinkedStockId = randomUUID();
   const transactionId = randomUUID();
 
-  const current: { extraction: Extraction | null } = { extraction: null };
-  await page.route("**/api/decisions/extract", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      json: current.extraction,
-    });
-  });
-
-  await captureDecision(page, current, olderName, jstDate(-5));
-  await captureDecision(page, current, recentName, jstDate(-1));
-  await captureDecision(page, current, futureName, jstDate(30));
+  await captureDecision(page, olderName, jstDate(-5));
+  await captureDecision(page, recentName, jstDate(-1));
+  await captureDecision(page, futureName, jstDate(30));
 
   const backup = {
     formatVersion: 1,

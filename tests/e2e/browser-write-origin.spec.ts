@@ -13,11 +13,7 @@ test("rejects cross-site browser writes without changing the journal", async ({
   const before = await snapshot();
   for (const path of [
     "/api/import/json",
-    "/api/decisions/extract",
-    "/api/decisions/transcribe",
-    "/api/reviews/compare",
     "/api/import",
-    "/api/feedback",
   ]) {
     const response = await request.post(path, {
       headers: {

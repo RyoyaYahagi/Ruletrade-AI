@@ -175,7 +175,7 @@ export function DecisionEditForm({
             </div>
           </section>
           <section className="space-y-2" aria-labelledby="edit-ai-heading">
-            <h2 id="edit-ai-heading" className="section-label">AIによる整理</h2>
+            <h2 id="edit-ai-heading" className="section-label">保存済みの整理情報</h2>
             <div className="surface space-y-4 p-5">
               <label className={labelClass}>
                 要約

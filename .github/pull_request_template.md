@@ -12,7 +12,7 @@ Closes #
 - [ ] Decision timeline / stock pages
 - [ ] Review / comparison
 - [ ] Transaction history
-- [ ] Gemini / Zod schemas
+- [ ] Zod schemas
 - [ ] SQLite / Drizzle
 - [ ] Docs / tooling
 - [ ] Operations
@@ -21,8 +21,8 @@ Closes #
 
 - [ ] Original input is preserved; AI output remains derived data
 - [ ] New thoughts append timeline events without overwriting earlier decisions
-- [ ] Gemini calls and secrets stay server-side
-- [ ] AI output is validated with Zod before saving or displaying it
+- [ ] AI processing stays outside the app
+- [ ] Existing saved derived data remains compatible
 - [ ] No buy/sell recommendations or investment advice
 - [ ] No authentication, ownership layer, or additional AI provider introduced
 - [ ] No secrets or database files committed
@@ -43,3 +43,7 @@ Manual checks / limitations:
 ## Risks / Recovery
 
 Describe any database compatibility changes, deployment impact, and how to recover if this change fails.
+
+## 人間が判断すること
+
+特になし

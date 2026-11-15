@@ -92,7 +92,7 @@ function DecisionCard({
         <div className="rounded-xl bg-secondary/60 p-3 text-sm">
           {decision.followUpQuestion && (
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-ai">AIからの確認:</span>{" "}
+              <span className="font-semibold text-muted-foreground">保存済みの追加確認:</span>{" "}
               {decision.followUpQuestion}
             </p>
           )}
@@ -114,7 +114,7 @@ function DecisionCard({
       {hasAiContent && (
         <details className="group rounded-xl bg-ai-soft px-3 text-sm">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold text-ai">
-            AIによる整理
+            保存済みの整理情報
             <span className="font-medium group-open:hidden">開く</span>
             <span className="hidden font-medium group-open:inline">閉じる</span>
           </summary>
@@ -135,7 +135,7 @@ function DecisionCard({
             <ConditionList label="買い増し条件" items={decision.addConditions} />
             {decision.followUpQuestion && !decision.followUpAnswer && (
               <p>
-                <span className="font-semibold text-ai">AIからの確認:</span>{" "}
+                <span className="font-semibold text-muted-foreground">保存済みの追加確認:</span>{" "}
                 {decision.followUpQuestion}
               </p>
             )}
@@ -489,7 +489,7 @@ export default async function StockPage({
                     {review.currentInput}
                   </div>
                   <div className="space-y-1.5 rounded-xl bg-ai-soft p-3.5 text-sm leading-7">
-                    <h3 className="text-xs font-semibold text-ai">AIが整理した違い</h3>
+                    <h3 className="text-xs font-semibold text-muted-foreground">保存済みの比較結果</h3>
                     <p>{review.summary}</p>
                     {review.differences.length > 0 && (
                       <ul className="list-disc space-y-1 pl-5">

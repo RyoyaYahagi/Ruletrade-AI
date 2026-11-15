@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Inbox, Sparkles } from "lucide-react";
+import { Check, Inbox } from "lucide-react";
 
 import { saveCaptureAction } from "@/features/capture/inbox-actions";
 import type { Stock } from "@/schemas/stock";
@@ -81,7 +81,7 @@ export function InboxCaptureForm({
             考えをそのまま残す
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            AIは使いません。書いた原文をそのまま保存し、「今日」の受け箱で見返せます。
+            書いた原文をそのまま保存し、「今日」の受け箱で見返せます。
           </p>
         </div>
 
@@ -213,12 +213,9 @@ export function InboxCaptureForm({
       </section>
 
       <section className="surface space-y-2 p-4 text-sm">
-        <p className="flex items-center gap-2 font-semibold">
-          <Sparkles aria-hidden size={16} className="text-ai" />
-          AIで整理して記録する
-        </p>
+        <p className="font-semibold">銘柄の台帳に記録する</p>
         <p className="text-muted-foreground">
-          内容を整理してから保存したいときは、こちらのフォームを使えます。
+          原文を読み返し、銘柄や記録の項目を入力して保存できます。
         </p>
         <Link
           href={structuredHref}

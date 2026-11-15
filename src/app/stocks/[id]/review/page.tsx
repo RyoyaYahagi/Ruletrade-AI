@@ -28,7 +28,7 @@ export default async function StockReviewPage({
     ? data.decisions.find((decision) => decision.id === query.decision)
     : undefined;
   if (query.decision && !reviewDecision) notFound();
-  // 比較 API は銘柄の過去の記録すべてと比べる。特定の判断を選んでいない場合は最新の記録を手がかりとして見せる。
+  // 特定の判断を選んでいない場合は最新の記録を振り返りの手がかりとして見せる。
   const shownDecision = reviewDecision ?? data.decisions.at(-1);
 
   return (
@@ -43,7 +43,7 @@ export default async function StockReviewPage({
         </Link>
         <h1 className="page-title">振り返り</h1>
         <p className="text-sm text-muted-foreground">
-          いまの考えを書くと、AIが{data.stock.name}の過去の記録との違いを整理します。
+          過去の記録を読み返し、いまの考えと自分の振り返りを書き残します。
         </p>
       </div>
 
@@ -76,7 +76,7 @@ export default async function StockReviewPage({
         </section>
       ) : (
         <p className="surface p-5 text-sm text-muted-foreground">
-          この銘柄の判断メモはまだありません。比較はできますが、違いは見つかりにくくなります。
+          この銘柄の判断メモはまだありません。現在の考えから記録を始められます。
         </p>
       )}
 
