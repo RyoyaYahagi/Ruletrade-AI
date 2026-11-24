@@ -1,6 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -18,12 +24,26 @@ import { integrationGrants, integrationTokens } from "@/lib/db/schema";
 const directory = mkdtempSync(path.join(os.tmpdir(), "ruletrade-api-keys-"));
 const databasePath = path.join(directory, "test.sqlite");
 const baseUrl = "http://localhost/api/integration/v1";
+const projectRoot = path.resolve(import.meta.dirname, "../../..");
 
-function cli(...args: string[]) {
+function cli(args: string[], { cwd = projectRoot, env = process.env } = {}) {
   return spawnSync(
     process.execPath,
-    ["--import", "tsx", "scripts/integration-keys.ts", ...args],
-    { encoding: "utf8", timeout: 5000 },
+    [
+      "--import",
+      import.meta.resolve("tsx"),
+      path.join(projectRoot, "scripts/integration-keys.ts"),
+      ...args,
+    ],
+    {
+      cwd,
+      env: {
+        ...env,
+        TSX_TSCONFIG_PATH: path.join(projectRoot, "tsconfig.json"),
+      },
+      encoding: "utf8",
+      timeout: 5000,
+    },
   );
 }
 
@@ -76,7 +96,7 @@ afterAll(() => {
 
 it("issues a read key from the CLI and accepts it immediately on GET /status", async () => {
   await expectUnauthorized(await statusWith());
-  const issued = cli("issue", "--scope", "read");
+  const issued = cli(["issue", "--scope", "read"]);
   expect(issued.status).toBe(0);
   expect(issued.stderr).toBe("");
   expect(/^rtk_[A-Za-z0-9_-]{43}\n$/.test(issued.stdout)).toBe(true);
@@ -87,7 +107,7 @@ it("issues a read key from the CLI and accepts it immediately on GET /status", a
   expect(response.status).toBe(200);
   expect((await response.text()).includes(token)).toBe(false);
 
-  const listed = cli("list");
+  const listed = cli(["list"]);
   expect(listed.status).toBe(0);
   expect(listed.stdout.includes(token)).toBe(false);
   const [grant] = JSON.parse(listed.stdout);
@@ -96,6 +116,39 @@ it("issues a read key from the CLI and accepts it immediately on GET /status", a
   expect(Date.parse(grant.expiresAt) - Date.parse(grant.createdAt)).toBe(
     90 * 24 * 60 * 60 * 1000,
   );
+});
+
+it("uses the explicit DB path for issue, list, and revoke when .env.local cannot be read", () => {
+  const cwd = mkdtempSync(path.join(directory, "cli-env-"));
+  mkdirSync(path.join(cwd, ".env.local"));
+
+  expect(cli(["issue", "--scope", "read"], { cwd }).status).toBe(0);
+  const grant = getDb().select().from(integrationGrants).get();
+  expect(grant?.scopes).toEqual(["ledger:read"]);
+
+  const listed = cli(["list"], { cwd });
+  expect(listed.status).toBe(0);
+  expect(JSON.parse(listed.stdout)).toEqual([grant]);
+
+  expect(cli(["revoke", grant!.id], { cwd }).status).toBe(0);
+  expect(getDb().select().from(integrationGrants).get()?.revokedAt).toEqual(
+    expect.any(String),
+  );
+});
+
+it("reads the DB path from .env.local when RULETRADE_DATABASE_PATH is unset", () => {
+  const cwd = mkdtempSync(path.join(directory, "cli-env-"));
+  writeFileSync(
+    path.join(cwd, ".env.local"),
+    `RULETRADE_DATABASE_PATH="${databasePath}"\n`,
+  );
+  const env = { ...process.env };
+  delete env.RULETRADE_DATABASE_PATH;
+
+  expect(cli(["issue", "--scope", "write"], { cwd, env }).status).toBe(0);
+  expect(getDb().select().from(integrationGrants).get()?.scopes).toEqual([
+    "ledger:write",
+  ]);
 });
 
 it("returns 401 when a read key is used for POST", async () => {
@@ -137,7 +190,7 @@ it("rejects a key revoked from the CLI immediately on the same app connection", 
   const [grant] = getDb().select().from(integrationGrants).all();
   expect((await statusWith(token)).status).toBe(200);
 
-  const revoked = cli("revoke", grant.id);
+  const revoked = cli(["revoke", grant.id]);
   expect(revoked.status).toBe(0);
   expect(revoked.stdout).toBe("");
   await expectUnauthorized(await statusWith(token));
@@ -212,7 +265,7 @@ it("stores the SHA-256 hash without the plaintext in SQLite", () => {
   const hash = createHash("sha256").update(token).digest("hex");
   expect(row?.tokenHash === hash).toBe(true);
   expect(readFileSync(databasePath).includes(token)).toBe(false);
-  expect(cli("list").stdout.includes(hash)).toBe(false);
+  expect(cli(["list"]).stdout.includes(hash)).toBe(false);
 });
 
 it("excludes the vault from JSON export and ignores injected vault rows on import", async () => {
@@ -231,7 +284,7 @@ it("excludes the vault from JSON export and ignores injected vault rows on impor
   }
   expect(JSON.stringify(json).includes(grant.id)).toBe(false);
 
-  expect(cli("revoke", grant.id).status).toBe(0);
+  expect(cli(["revoke", grant.id]).status).toBe(0);
   const otherId = randomUUID();
   const tokens = [
     { ...getDb().select().from(integrationTokens).get(), grantId: otherId },
@@ -257,7 +310,7 @@ it("excludes the vault from JSON export and ignores injected vault rows on impor
 });
 
 it("accepts explicit days and rejects invalid arguments without echoing values", () => {
-  const custom = cli("issue", "--scope", "write", "--days", "7");
+  const custom = cli(["issue", "--scope", "write", "--days", "7"]);
   expect(custom.status).toBe(0);
   const grant = getDb().select().from(integrationGrants).get()!;
   expect(grant.scopes).toEqual(["ledger:write"]);
@@ -267,9 +320,9 @@ it("accepts explicit days and rejects invalid arguments without echoing values",
 
   const secret = randomBytes(32).toString("base64url");
   for (const rejected of [
-    cli("issue", "--scope", "read", "--days", "0"),
-    cli("issue", "--scope", "read", "--days", secret),
-    cli("revoke", secret),
+    cli(["issue", "--scope", "read", "--days", "0"]),
+    cli(["issue", "--scope", "read", "--days", secret]),
+    cli(["revoke", secret]),
   ]) {
     expect(rejected.status).toBe(1);
     expect(rejected.stdout).toBe("");

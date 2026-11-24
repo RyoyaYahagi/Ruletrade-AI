@@ -58,10 +58,12 @@ function main() {
     return 1;
   }
 
-  try {
-    process.loadEnvFile(".env.local");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  if (process.env.RULETRADE_DATABASE_PATH === undefined) {
+    try {
+      process.loadEnvFile(".env.local");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
 
   const db = openDb();
