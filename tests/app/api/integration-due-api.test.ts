@@ -338,7 +338,9 @@ describe("GET /api/integration/v1/due", () => {
     for (const token of [null, "wrong-token", WRITE_TOKEN]) {
       const response = await route.GET(apiRequest(token));
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe("Bearer");
+      expect(response.headers.get("www-authenticate")).toBe(
+        token === null ? "Bearer" : 'Bearer error="invalid_token"',
+      );
       expect(response.headers.get("cache-control")).toBe("no-store");
       expect(await response.json()).toEqual({
         error: { code: "unauthorized", message: "認証に失敗しました。" },

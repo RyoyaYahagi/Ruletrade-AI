@@ -264,7 +264,9 @@ describe("authentication and methods", () => {
         await reviewRequest(validReviewBody(), token),
       ]) {
         expect(response.status).toBe(401);
-        expect(response.headers.get("www-authenticate")).toBe("Bearer");
+        expect(response.headers.get("www-authenticate")).toBe(
+          token === null ? "Bearer" : 'Bearer error="invalid_token"',
+        );
         expect(await readError(response)).toBe("unauthorized");
       }
     }

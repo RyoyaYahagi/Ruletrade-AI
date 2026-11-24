@@ -68,9 +68,11 @@ function captureWith(token?: string) {
   );
 }
 
-async function expectUnauthorized(response: Response) {
+async function expectUnauthorized(response: Response, tokenSupplied = true) {
   expect(response.status).toBe(401);
-  expect(response.headers.get("www-authenticate")).toBe("Bearer");
+  expect(response.headers.get("www-authenticate")).toBe(
+    tokenSupplied ? 'Bearer error="invalid_token"' : "Bearer",
+  );
   expect(await response.json()).toEqual({
     error: { code: "unauthorized", message: "認証に失敗しました。" },
   });
@@ -95,7 +97,7 @@ afterAll(() => {
 });
 
 it("issues a read key from the CLI and accepts it immediately on GET /status", async () => {
-  await expectUnauthorized(await statusWith());
+  await expectUnauthorized(await statusWith(), false);
   const issued = cli(["issue", "--scope", "read"]);
   expect(issued.status).toBe(0);
   expect(issued.stderr).toBe("");
@@ -230,7 +232,7 @@ it("rejects mismatching hashes, unexpected token and grant types, and malformed 
   const malformed = new Request(baseUrl + "/status", {
     headers: { Authorization: "Bearer" },
   });
-  await expectUnauthorized(await getStatus(malformed));
+  await expectUnauthorized(await getStatus(malformed), false);
 
   getDb().update(integrationTokens).set({ type: "access" }).run();
   await expectUnauthorized(await statusWith(token));

@@ -63,19 +63,19 @@
 
 ### 2.2 認証
 
-`Authorization: Bearer <token>` で認証する。有効なスコープ（§2.3）では、SQLite で管理する API キーと、移行用の静的トークンを受け付ける。
+`Authorization: Bearer <token>` で認証する。有効なスコープ（§2.3）では、OAuth access token、SQLite で管理する API キー、移行用の静的トークンを受け付ける。
 
-| 操作               | API キーに必要なスコープ | 移行用の環境変数        |
-| ------------------ | ------------------------ | ----------------------- |
-| 読み取り（`GET`）  | `ledger:read`            | `RULETRADE_READ_TOKEN`  |
-| 書き込み（`POST`） | `ledger:write`           | `RULETRADE_WRITE_TOKEN` |
+| 操作               | OAuth・API キーに必要なスコープ | 移行用の環境変数        |
+| ------------------ | ------------------------------- | ----------------------- |
+| 読み取り（`GET`）  | `ledger:read`                   | `RULETRADE_READ_TOKEN`  |
+| 書き込み（`POST`） | `ledger:write`                  | `RULETRADE_WRITE_TOKEN` |
 
 - 読み取りと書き込みのスコープは独立している。書き込みキーで読み取りはできず、読み取りキーで書き込みはできない。移行用の静的トークンも同様で、読み取り用と書き込み用に同じ値を設定しない。
-- ヘッダがない、Bearer の形式が違う、値が一致しない、期限切れ、取り消し済み、スコープ違いは、すべて 401 `unauthorized` とする。401 のヘッダは常に `WWW-Authenticate: Bearer` とする。Bearer の綴りは大文字小文字を区別しない。
-- まず静的トークンを SHA-256 と `crypto.timingSafeEqual` で照合する。一致しなければ、API キーの SHA-256 ハッシュを SQLite で照合する。API キーとその許可の両方が期限内で取り消されておらず、許可に必要なスコープが含まれている場合に通す。
+- ヘッダがない、Bearer の形式が違う、値が一致しない、期限切れ、取り消し済み、スコープ違いは、すべて 401 `unauthorized` とする。Bearer トークンが提示されなかった場合は `WWW-Authenticate: Bearer` を返す。提示されたトークンで認証できなかった場合は `WWW-Authenticate: Bearer error="invalid_token"` を返す。Bearer の綴りは大文字小文字を区別しない。
+- まず静的トークンを SHA-256 と `crypto.timingSafeEqual` で照合する。一致しなければ、`rtk_` の API キー（`type=api_key`）または `rta_` の OAuth access token（`type=access`）の SHA-256 ハッシュを SQLite で照合する。トークンとその許可の両方が期限内で取り消されておらず、許可に必要なスコープが含まれている場合に通す。
 - API キーは接頭辞 `rtk_` と、32 バイトの乱数を base64url で表した値で構成する。保存するのは SHA-256 ハッシュのみ。許可の最終使用時刻は認証成功時に更新し、許可ごとに 1 分に 1 回までとする。
-- API キーと許可は JSON エクスポート・インポートの対象外。取り消した許可は JSON を復元しても有効にならない。
-- トークンの値はログ・レスポンス・エラーメッセージに含めない。Muse 側へは Secure Vault 経由で渡し、チャット本文やファイルに値を書かない。
+- 許可、トークン、OAuth 認可リクエストは JSON エクスポート・インポートの対象外。取り消した許可は JSON を復元しても有効にならない。
+- 連携 API のレスポンスやログにトークンの値を含めない。API キーは Secure Vault 経由で Muse に渡す。
 
 #### API キーの管理
 
@@ -90,16 +90,38 @@ npm run --silent integration:keys -- revoke <grant-id>
 
 有効期間は既定 90 日。`issue` はキーの値を標準出力に 1 回だけ表示する。`list` は許可の ID、スコープ、期限、取り消し時刻、最終使用時刻などを表示する。`revoke` には一覧の許可 ID を渡す。発行と取り消しは、次の認証から再起動なしで反映される。
 
+#### OAuth 認可コードと PKCE
+
+Muse を事前登録する。必要な環境変数は `RULETRADE_OAUTH_CLIENT_ID`、`RULETRADE_OAUTH_CLIENT_SECRET_HASH`（シークレットの SHA-256 を16進数で指定）、`RULETRADE_OAUTH_REDIRECT_URIS`（カンマまたは空白区切り）、`RULETRADE_OAUTH_OWNER_LOGIN`。登録が不完全な場合、OAuth エンドポイントは 404 を返す。動的クライアント登録は提供しない。コールバック URI の既存クエリは保持する。OAuth 応答で使う `code`、`error`、`error_description`、`error_uri`、`state`、`iss` をクエリに含む URI は登録できない。[RFC 6749（2012/10）§3.1.2](https://www.rfc-editor.org/rfc/rfc6749.html#section-3.1.2)
+
+| メソッドとパス                                | 用途                                                           |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| `GET /.well-known/oauth-authorization-server` | メタデータを取得する                                           |
+| `GET /oauth/authorize`                        | 登録済みの Muse が同意画面を開く                               |
+| `POST /oauth/authorize`                       | 利用者が同意フォームを送る                                     |
+| `POST /oauth/token`                           | 認可コードを交換するか refresh token を更新する                |
+| `POST /oauth/revoke`                          | OAuth の許可と、その許可から発行したすべてのトークンを取り消す |
+
+- `issuer` は Tailscale Serve が転送する HTTPS のオリジン。Muse はメタデータ、認可、交換に同じオリジンを使用する。任意の `resource` を送る場合は、`issuer` に `/api/integration/v1` を付けた URL と一致させる。メタデータの仕様は [RFC 8414（2018/06）§2・§3](https://www.rfc-editor.org/rfc/rfc8414.html#section-2)、リソースの指定は [RFC 8707（2020/02）§2](https://www.rfc-editor.org/rfc/rfc8707.html#section-2) を参照。
+- 同意画面を開くには `response_type=code`、`client_id`、登録値と完全一致する `redirect_uri`、PKCE の `code_challenge` と `code_challenge_method=S256` を指定する。送られた `state` は内容を変えずに返し、リダイレクト応答には `iss` を付ける。[RFC 7636（2015/09）§4](https://www.rfc-editor.org/rfc/rfc7636.html#section-4)・[RFC 9207（2022/03）§2](https://www.rfc-editor.org/rfc/rfc9207.html#section-2)
+- 同意画面の取得と送信は、Tailscale Serve が付与した `Tailscale-User-Login` が登録したログイン名と一致する場合に限る。同意フォームの送信時は、`Origin` が `issuer` とスキーム・ホスト・ポートまで一致する必要がある。同意フォームは10分間、1回限り使える。アプリはループバックで待ち受ける。[Tailscale Serve の ID ヘッダ](https://tailscale.com/docs/features/tailscale-serve#identity-headers)
+- `/oauth/token` と `/oauth/revoke` は `application/x-www-form-urlencoded` で送る。クライアント認証は `client_secret_basic` または `client_secret_post`。トークン応答には `Cache-Control: no-store` を付け、OAuth のエラーは `{"error":"invalid_grant"}` のように返す。[RFC 6749（2012/10）§2.3.1・§5.2](https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2)
+- 初回の交換では `grant_type=authorization_code`、`code`、認可時と同じ `redirect_uri`、`code_verifier` を送る。認可コード（`rtc_`）は発行から120秒間、1回だけ使える。照合済みのコードが再使用された場合、その許可とすべてのトークンを取り消す。
+- 交換結果には `access_token`、`token_type=Bearer`、`expires_in`（秒）、`refresh_token`、許可された `scope` が含まれる。access token（`rta_`）は1時間、refresh token（`rtr_`）は発行または更新から30日経つと失効し、どちらも許可の期限である承認から90日を超えない。コードとトークンは接頭辞に32バイトの乱数の base64url 表現を続けた値で、保存するのは SHA-256 ハッシュのみ。
+- 更新には `grant_type=refresh_token` と `refresh_token` を送る。更新ごとに新しい access token と refresh token が発行される。更新時に `scope` を省略すると元の許可範囲が使われる。指定する場合は同じ範囲を送る。使用済みの refresh token が再送された場合、その許可とすべてのトークンを取り消す。
+- `/oauth/revoke` には `token` を送る。access token と refresh token のいずれでも許可全体を取り消せる。未知のトークンや取り消し済みのトークンにも HTTP 200 を返す。アプリの「その他」からも OAuth と DB 管理の API キーの許可を確認し、取り消せる。[RFC 7009（2013/08）§2](https://www.rfc-editor.org/rfc/rfc7009.html#section-2)
+
 ### 2.3 スコープの有効化
 
 読み取りと書き込みを別々に設定する。`RULETRADE_OAUTH_SCOPES` には `ledger:read ledger:write` のように、スコープを空白またはコンマで区切って指定する。
 
-| 操作     | 有効化の条件（いずれか一方）                                                                         |
-| -------- | --------------------------------------------------------------------------------------------------- |
+| 操作     | 有効化の条件（いずれか一方）                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------ |
 | 読み取り | `RULETRADE_OAUTH_SCOPES` に `ledger:read` がある、または `RULETRADE_READ_TOKEN` に空白以外の値がある   |
 | 書き込み | `RULETRADE_OAUTH_SCOPES` に `ledger:write` がある、または `RULETRADE_WRITE_TOKEN` に空白以外の値がある |
 
-- スコープの有効化は設定で決まり、DB 内の許可の有無や有効期限には依存しない。有効なスコープに使えるキーがなければ、認証失敗は 401 になる。
+- スコープの有効化は設定で決まり、DB 内の許可の有無や有効期限には依存しない。有効なスコープで認証に失敗した場合は 401 を返す。
+- Muse が認可を求められるスコープは `RULETRADE_OAUTH_SCOPES` に含まれるものに限る。`scope` を省略すると `ledger:read` を求める。画面では要求された範囲から選べる。`ledger:read` は初期選択され、`ledger:write` は利用者が選択する。各スコープは `read` と `write` にそれぞれ対応し、互いに独立する。
 - 無効なスコープは、`Authorization` ヘッダの有無にかかわらず、認証より先に存在しないパスと同じ 404 `{"error":{"code":"not_found","message":"リソースが見つかりません。"}}` を返す。Web UI には影響しない。
 
 ### 2.4 共通レスポンス形式とエラー形式
