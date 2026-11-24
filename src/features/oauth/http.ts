@@ -5,6 +5,15 @@ import {
   ledgerScopes,
 } from "@/features/integration/api-keys";
 
+const authorizationResponseParameters = [
+  "code",
+  "error",
+  "error_description",
+  "error_uri",
+  "state",
+  "iss",
+];
+
 export function configuredOAuthClient() {
   const id = process.env.RULETRADE_OAUTH_CLIENT_ID;
   const secretHash = process.env.RULETRADE_OAUTH_CLIENT_SECRET_HASH;
@@ -27,7 +36,10 @@ export function configuredOAuthClient() {
         ["https:", "http:"].includes(parsed.protocol) &&
         !parsed.username &&
         !parsed.password &&
-        (parsed.protocol === "https:" || isLoopback(parsed.hostname))
+        (parsed.protocol === "https:" || isLoopback(parsed.hostname)) &&
+        !authorizationResponseParameters.some((name) =>
+          parsed.searchParams.has(name),
+        )
       );
     })
   )
@@ -100,20 +112,11 @@ export function authorizationRedirect(
   result: { code: string } | { error: string },
 ) {
   const redirect = new URL(uri);
-  for (const key of [
-    "code",
-    "error",
-    "error_description",
-    "error_uri",
-    "state",
-    "iss",
-  ]) {
-    redirect.searchParams.delete(key);
-  }
-  for (const [key, value] of Object.entries(result))
-    redirect.searchParams.set(key, value);
-  if (state !== null) redirect.searchParams.set("state", state);
-  redirect.searchParams.set("iss", issuer);
+  const responseParams = new URLSearchParams(result);
+  if (state !== null) responseParams.set("state", state);
+  responseParams.set("iss", issuer);
+  const separator = redirect.search ? "&" : "?";
+  redirect.search += separator + responseParams.toString();
   return new Response(null, {
     status: 303,
     headers: {

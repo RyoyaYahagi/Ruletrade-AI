@@ -104,11 +104,15 @@ export async function POST(request: Request) {
   }
 
   const issuer = oauthIssuer(request);
+  if (!issuer) return oauthError("invalid_request");
+  if (request.headers.get("origin") !== issuer) {
+    return oauthError("access_denied", 403);
+  }
+
   const form = await readOAuthForm(request);
   const id = form?.get("request_id");
   const decision = form?.get("decision");
   if (
-    !issuer ||
     !form ||
     !id ||
     hasDuplicateParameter(form, ["request_id", "decision"]) ||
@@ -186,7 +190,7 @@ function consentPage(id: string, redirect: URL, scopes: string[]) {
         "Content-Type": "text/html; charset=utf-8",
         "Content-Security-Policy": `default-src 'none'; style-src 'unsafe-inline'; form-action 'self' ${redirect.origin}; frame-ancestors 'none'; base-uri 'none'`,
         // Same-origin form submissions must carry their Origin for the write check.
-      "Referrer-Policy": "same-origin",
+        "Referrer-Policy": "same-origin",
         "X-Content-Type-Options": "nosniff",
       },
     },

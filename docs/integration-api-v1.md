@@ -92,7 +92,7 @@ npm run --silent integration:keys -- revoke <grant-id>
 
 #### OAuth 認可コードと PKCE
 
-Muse を事前登録する。必要な環境変数は `RULETRADE_OAUTH_CLIENT_ID`、`RULETRADE_OAUTH_CLIENT_SECRET_HASH`（シークレットの SHA-256 を16進数で指定）、`RULETRADE_OAUTH_REDIRECT_URIS`（カンマまたは空白区切り）、`RULETRADE_OAUTH_OWNER_LOGIN`。登録が不完全な場合、OAuth エンドポイントは 404 を返す。動的クライアント登録は提供しない。
+Muse を事前登録する。必要な環境変数は `RULETRADE_OAUTH_CLIENT_ID`、`RULETRADE_OAUTH_CLIENT_SECRET_HASH`（シークレットの SHA-256 を16進数で指定）、`RULETRADE_OAUTH_REDIRECT_URIS`（カンマまたは空白区切り）、`RULETRADE_OAUTH_OWNER_LOGIN`。登録が不完全な場合、OAuth エンドポイントは 404 を返す。動的クライアント登録は提供しない。コールバック URI の既存クエリは保持する。OAuth 応答で使う `code`、`error`、`error_description`、`error_uri`、`state`、`iss` をクエリに含む URI は登録できない。[RFC 6749（2012/10）§3.1.2](https://www.rfc-editor.org/rfc/rfc6749.html#section-3.1.2)
 
 | メソッドとパス                                | 用途                                                           |
 | --------------------------------------------- | -------------------------------------------------------------- |
@@ -104,7 +104,7 @@ Muse を事前登録する。必要な環境変数は `RULETRADE_OAUTH_CLIENT_ID
 
 - `issuer` は Tailscale Serve が転送する HTTPS のオリジン。Muse はメタデータ、認可、交換に同じオリジンを使用する。任意の `resource` を送る場合は、`issuer` に `/api/integration/v1` を付けた URL と一致させる。メタデータの仕様は [RFC 8414（2018/06）§2・§3](https://www.rfc-editor.org/rfc/rfc8414.html#section-2)、リソースの指定は [RFC 8707（2020/02）§2](https://www.rfc-editor.org/rfc/rfc8707.html#section-2) を参照。
 - 同意画面を開くには `response_type=code`、`client_id`、登録値と完全一致する `redirect_uri`、PKCE の `code_challenge` と `code_challenge_method=S256` を指定する。送られた `state` は内容を変えずに返し、リダイレクト応答には `iss` を付ける。[RFC 7636（2015/09）§4](https://www.rfc-editor.org/rfc/rfc7636.html#section-4)・[RFC 9207（2022/03）§2](https://www.rfc-editor.org/rfc/rfc9207.html#section-2)
-- 同意画面の取得と送信は、Tailscale Serve が付与した `Tailscale-User-Login` が登録したログイン名と一致する場合に限る。同意フォームは10分間、1回限り使える。アプリはループバックで待ち受ける。[Tailscale Serve の ID ヘッダ](https://tailscale.com/docs/features/tailscale-serve#identity-headers)
+- 同意画面の取得と送信は、Tailscale Serve が付与した `Tailscale-User-Login` が登録したログイン名と一致する場合に限る。同意フォームの送信時は、`Origin` が `issuer` とスキーム・ホスト・ポートまで一致する必要がある。同意フォームは10分間、1回限り使える。アプリはループバックで待ち受ける。[Tailscale Serve の ID ヘッダ](https://tailscale.com/docs/features/tailscale-serve#identity-headers)
 - `/oauth/token` と `/oauth/revoke` は `application/x-www-form-urlencoded` で送る。クライアント認証は `client_secret_basic` または `client_secret_post`。トークン応答には `Cache-Control: no-store` を付け、OAuth のエラーは `{"error":"invalid_grant"}` のように返す。[RFC 6749（2012/10）§2.3.1・§5.2](https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2)
 - 初回の交換では `grant_type=authorization_code`、`code`、認可時と同じ `redirect_uri`、`code_verifier` を送る。認可コード（`rtc_`）は発行から120秒間、1回だけ使える。照合済みのコードが再使用された場合、その許可とすべてのトークンを取り消す。
 - 交換結果には `access_token`、`token_type=Bearer`、`expires_in`（秒）、`refresh_token`、許可された `scope` が含まれる。access token（`rta_`）は1時間、refresh token（`rtr_`）は発行または更新から30日経つと失効し、どちらも許可の期限である承認から90日を超えない。コードとトークンは接頭辞に32バイトの乱数の base64url 表現を続けた値で、保存するのは SHA-256 ハッシュのみ。

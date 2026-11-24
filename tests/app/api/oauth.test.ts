@@ -289,6 +289,69 @@ it("requires the owner on GET and POST and rejects a cross-origin approval", asy
   expect((await consent(id)).status).toBe(303);
 });
 
+it("requires the external HTTPS origin on consent POST behind Serve", async () => {
+  const { id } = await pendingRequest();
+  const body = new URLSearchParams({
+    request_id: id,
+    decision: "approve",
+    scope: "ledger:read",
+  });
+  const submit = (browserOrigin?: string) =>
+    approve(
+      new Request("http://127.0.0.1:3001/oauth/authorize", {
+        method: "POST",
+        body,
+        headers: {
+          "Tailscale-User-Login": owner,
+          "X-Forwarded-Host": new URL(origin).host,
+          "X-Forwarded-Proto": "https",
+          ...(browserOrigin === undefined ? {} : { Origin: browserOrigin }),
+        },
+      }),
+    );
+
+  for (const browserOrigin of [
+    origin.replace(/^https:/, "http:"),
+    "null",
+    undefined,
+  ]) {
+    const response = await submit(browserOrigin);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "access_denied" });
+  }
+  expect((await submit(origin)).status).toBe(303);
+});
+
+it.each([
+  "code",
+  "error",
+  "error_description",
+  "error_uri",
+  "state",
+  "iss",
+  "%63ode",
+])(
+  "rejects registration containing the authorization response parameter %s",
+  (name) => {
+    const conflicting = redirect + "&" + name + "=";
+    vi.stubEnv("RULETRADE_OAUTH_REDIRECT_URIS", redirect + "," + conflicting);
+    const response = authorize(authorizeRequest({ redirect_uri: conflicting }));
+    expect(response.status).toBe(404);
+    expect(response.headers.get("location")).toBeNull();
+  },
+);
+
+it("appends the authorization response without re-encoding the registered query", async () => {
+  const registered = redirect + "&label=hello%20world&label=again";
+  vi.stubEnv("RULETRADE_OAUTH_REDIRECT_URIS", registered);
+  const { id } = await pendingRequest({ redirect_uri: registered });
+  const response = await consent(id);
+  expect(response.status).toBe(303);
+  expect(response.headers.get("location")).toMatch(
+    /^https:\/\/muse\.example\.test\/callback\?from=ruletrade&label=hello%20world&label=again&code=/,
+  );
+});
+
 it("uses exact redirect registration and validates S256 and the resource", async () => {
   const unregistered = authorize(
     authorizeRequest({ redirect_uri: redirect + "/" }),
