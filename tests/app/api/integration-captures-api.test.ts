@@ -139,7 +139,9 @@ describe("authentication and scope", () => {
         apiRequest("/captures", { token }),
       );
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe("Bearer");
+      expect(response.headers.get("www-authenticate")).toBe(
+        token === null ? "Bearer" : 'Bearer error="invalid_token"',
+      );
       expect(await readError(response)).toBe("unauthorized");
     }
     for (const token of [null, "wrong-token", READ_TOKEN]) {
@@ -147,7 +149,9 @@ describe("authentication and scope", () => {
         captureRequest(validBody(), token),
       );
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe("Bearer");
+      expect(response.headers.get("www-authenticate")).toBe(
+        token === null ? "Bearer" : 'Bearer error="invalid_token"',
+      );
       expect(await readError(response)).toBe("unauthorized");
     }
   });

@@ -271,6 +271,29 @@ export const integrationTokens = sqliteTable(
   ],
 );
 
+export const oauthAuthRequests = sqliteTable(
+  "oauth_auth_requests",
+  {
+    id: text("id").primaryKey().notNull(),
+    clientId: text("client_id").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    scopes: text("scopes", { mode: "json" }).$type<string[]>().notNull(),
+    codeChallenge: text("code_challenge").notNull(),
+    state: text("state"),
+    resource: text("resource"),
+    expiresAt: text("expires_at").notNull(),
+    codeHash: text("code_hash"),
+    consumedAt: text("consumed_at"),
+    grantId: text("grant_id").references(() => integrationGrants.id, {
+      onDelete: "cascade",
+    }),
+  },
+  (table) => [
+    uniqueIndex("oauth_auth_requests_code_idx").on(table.codeHash),
+    uniqueIndex("oauth_auth_requests_grant_idx").on(table.grantId),
+  ],
+);
+
 export const schema = {
   stocks,
   stockBucketChanges,
@@ -286,4 +309,5 @@ export const schema = {
   integrationRequests,
   integrationGrants,
   integrationTokens,
+  oauthAuthRequests,
 };

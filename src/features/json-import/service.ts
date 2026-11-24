@@ -200,13 +200,14 @@ export function importJson(value: unknown) {
       );
     }
   }
-  // Keep idempotency logs and the token vault out of JSON backups.
+  // Keep idempotency logs, the token vault, and OAuth authorization requests out of JSON backups.
   const rows: Record<
     Exclude<
       keyof typeof schema,
       | "integrationRequests"
       | "integrationGrants"
       | "integrationTokens"
+      | "oauthAuthRequests"
       | "appSettings"
     >,
     Row[]

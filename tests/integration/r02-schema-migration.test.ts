@@ -149,6 +149,21 @@ it("migrates a legacy database to origins, captures, idempotency keys and the to
         to: "id",
       }),
     ]);
+    expect(client.pragma("index_list(oauth_auth_requests)")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "oauth_auth_requests_code_idx",
+          unique: 1,
+        }),
+      ]),
+    );
+    expect(client.pragma("foreign_key_list(oauth_auth_requests)")).toEqual([
+      expect.objectContaining({
+        table: "integration_grants",
+        from: "grant_id",
+        to: "id",
+      }),
+    ]);
     expect(client.pragma("foreign_key_check")).toEqual([]);
     first.$client.close();
 
@@ -162,7 +177,11 @@ it("migrates a legacy database to origins, captures, idempotency keys and the to
     expect(
       second.$client.prepare("SELECT count(*) AS count FROM reviews").get(),
     ).toEqual({ count: 1 });
-    for (const table of ["integration_grants", "integration_tokens"]) {
+    for (const table of [
+      "integration_grants",
+      "integration_tokens",
+      "oauth_auth_requests",
+    ]) {
       expect(
         second.$client.prepare(`SELECT count(*) AS count FROM ${table}`).get(),
       ).toEqual({ count: 0 });

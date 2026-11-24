@@ -11,7 +11,7 @@ export const ledgerScopes = {
 } as const;
 export type IntegrationScope = keyof typeof ledgerScopes;
 
-const apiKeyPattern = /^rtk_[A-Za-z0-9_-]{43}$/;
+const bearerTokenPattern = /^(rtk_|rta_)[A-Za-z0-9_-]{43}$/;
 const dayMs = 24 * 60 * 60 * 1000;
 const lastUseIntervalMs = 60 * 1000;
 
@@ -61,16 +61,28 @@ export function issueApiKey(
   return token;
 }
 
-export function listApiKeys(db: AppDatabase) {
+export function listIntegrationGrants(db: AppDatabase, kind?: "api_key") {
   return db
     .select()
     .from(integrationGrants)
-    .where(eq(integrationGrants.kind, "api_key"))
+    .where(kind ? eq(integrationGrants.kind, kind) : undefined)
     .orderBy(asc(integrationGrants.createdAt), asc(integrationGrants.id))
     .all();
 }
 
+export function listApiKeys(db: AppDatabase) {
+  return listIntegrationGrants(db, "api_key");
+}
+
 export function revokeApiKey(db: AppDatabase, grantId: string): boolean {
+  return revokeIntegrationGrant(db, grantId, "api_key");
+}
+
+export function revokeIntegrationGrant(
+  db: Pick<AppDatabase, "transaction">,
+  grantId: string,
+  kind?: "api_key" | "oauth",
+): boolean {
   const revokedAt = new Date().toISOString();
   return db.transaction((tx) => {
     const grant = tx
@@ -81,7 +93,7 @@ export function revokeApiKey(db: AppDatabase, grantId: string): boolean {
       .where(
         and(
           eq(integrationGrants.id, grantId),
-          eq(integrationGrants.kind, "api_key"),
+          kind ? eq(integrationGrants.kind, kind) : undefined,
         ),
       )
       .returning({ id: integrationGrants.id })
@@ -93,7 +105,9 @@ export function revokeApiKey(db: AppDatabase, grantId: string): boolean {
       .where(
         and(
           eq(integrationTokens.grantId, grantId),
-          eq(integrationTokens.type, "api_key"),
+          kind === "api_key"
+            ? eq(integrationTokens.type, "api_key")
+            : undefined,
           isNull(integrationTokens.revokedAt),
         ),
       )
@@ -102,10 +116,11 @@ export function revokeApiKey(db: AppDatabase, grantId: string): boolean {
   });
 }
 
-export function verifyApiKey(
+export function verifyIntegrationBearer(
   db: AppDatabase,
   tokenHash: Buffer,
   scope: IntegrationScope,
+  type: "api_key" | "access",
 ): boolean {
   const now = new Date();
   const nowIso = now.toISOString();
@@ -123,10 +138,10 @@ export function verifyApiKey(
     .where(
       and(
         eq(integrationTokens.tokenHash, tokenHash.toString("hex")),
-        eq(integrationTokens.type, "api_key"),
+        eq(integrationTokens.type, type),
         gt(integrationTokens.expiresAt, nowIso),
         isNull(integrationTokens.revokedAt),
-        eq(integrationGrants.kind, "api_key"),
+        eq(integrationGrants.kind, type === "api_key" ? "api_key" : "oauth"),
         gt(integrationGrants.expiresAt, nowIso),
         isNull(integrationGrants.revokedAt),
       ),
@@ -160,6 +175,9 @@ export function verifyApiKey(
   return true;
 }
 
-export function hasApiKeyFormat(token: string): boolean {
-  return apiKeyPattern.test(token);
+export function integrationBearerType(token: string) {
+  const prefix = bearerTokenPattern.exec(token)?.[1];
+  if (prefix === "rtk_") return "api_key";
+  if (prefix === "rta_") return "access";
+  return undefined;
 }

@@ -364,7 +364,9 @@ describe("authentication", () => {
     for (const token of [null, "wrong-token", WRITE_TOKEN]) {
       const response = await routes.status.GET(apiRequest("/status", token));
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe("Bearer");
+      expect(response.headers.get("www-authenticate")).toBe(
+        token === null ? "Bearer" : 'Bearer error="invalid_token"',
+      );
       expect(response.headers.get("cache-control")).toBe("no-store");
       expect(await response.json()).toEqual({
         error: {
@@ -433,7 +435,9 @@ describe("write-scope authentication helper", () => {
         "write",
       );
       expect(response?.status).toBe(401);
-      expect(response?.headers.get("www-authenticate")).toBe("Bearer");
+      expect(response?.headers.get("www-authenticate")).toBe(
+        token === null ? "Bearer" : 'Bearer error="invalid_token"',
+      );
     }
     const original = process.env.RULETRADE_WRITE_TOKEN;
     delete process.env.RULETRADE_WRITE_TOKEN;
@@ -999,7 +1003,9 @@ describe("GET /realized-pnl", () => {
         apiRequest("/realized-pnl", token),
       );
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe("Bearer");
+      expect(response.headers.get("www-authenticate")).toBe(
+        token === null ? "Bearer" : 'Bearer error="invalid_token"',
+      );
     }
 
     for (const method of [

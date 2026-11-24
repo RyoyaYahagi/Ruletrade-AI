@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { JsonImportPanel } from "@/features/json-import/import-panel";
 import { ImportPanel } from "@/features/csv-import/import-panel";
 import { listImportBatches } from "@/features/csv-import/service";
+import { IntegrationConnections } from "@/features/integration/connections";
 import { loadBucketSummary } from "@/features/portfolio/bucket-data";
 import { getAppSettings } from "@/features/settings/settings";
 import { BucketSettingsForm } from "@/features/settings/settings-form";
@@ -32,6 +33,7 @@ export default async function MorePage() {
         />
       </section>
       <ImportPanel batches={listImportBatches()} />
+      <IntegrationConnections />
       <section className="space-y-2" aria-labelledby="backup-heading">
         <h2 id="backup-heading" className="section-label">
           バックアップ

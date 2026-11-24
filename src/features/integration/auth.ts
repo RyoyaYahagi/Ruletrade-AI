@@ -3,10 +3,10 @@ import { timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
 
 import {
-  hasApiKeyFormat,
   hashIntegrationToken,
+  integrationBearerType,
   ledgerScopes,
-  verifyApiKey,
+  verifyIntegrationBearer,
   type IntegrationScope,
 } from "./api-keys";
 import { errorResponse } from "./responses";
@@ -48,14 +48,17 @@ export function authorizeIntegrationRequest(
   ) {
     return null;
   }
-  if (hasApiKeyFormat(token)) {
+  const type = integrationBearerType(token);
+  if (type) {
     try {
-      if (verifyApiKey(getDb(), tokenHash, scope)) return null;
+      if (verifyIntegrationBearer(getDb(), tokenHash, scope, type)) return null;
     } catch {
       return errorResponse("internal_error");
     }
   }
-  return errorResponse("unauthorized");
+  const response = errorResponse("unauthorized");
+  response.headers.set("WWW-Authenticate", 'Bearer error="invalid_token"');
+  return response;
 }
 
 export function createMethodNotAllowedHandler(scope: IntegrationScope) {

@@ -141,6 +141,22 @@ function initializeSchema(connection: Database.Database) {
     CREATE UNIQUE INDEX IF NOT EXISTS integration_tokens_hash_idx ON integration_tokens(token_hash);
     CREATE INDEX IF NOT EXISTS integration_tokens_grant_idx ON integration_tokens(grant_id);
 
+    CREATE TABLE IF NOT EXISTS oauth_auth_requests (
+      id TEXT PRIMARY KEY NOT NULL,
+      client_id TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL,
+      scopes TEXT NOT NULL,
+      code_challenge TEXT NOT NULL,
+      state TEXT,
+      resource TEXT,
+      expires_at TEXT NOT NULL,
+      code_hash TEXT,
+      consumed_at TEXT,
+      grant_id TEXT REFERENCES integration_grants(id) ON DELETE CASCADE
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS oauth_auth_requests_code_idx ON oauth_auth_requests(code_hash);
+    CREATE UNIQUE INDEX IF NOT EXISTS oauth_auth_requests_grant_idx ON oauth_auth_requests(grant_id);
+
     CREATE TABLE IF NOT EXISTS app_settings (
       id TEXT PRIMARY KEY,
       satellite_cap_pct REAL,

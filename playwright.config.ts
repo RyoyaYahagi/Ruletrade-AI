@@ -1,11 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { e2eOAuthEnv } from "./tests/setup/e2e-oauth";
+
 const e2ePort = process.env.E2E_TEST_PORT ?? "3100";
-const e2eBaseUrl = `http://localhost:${e2ePort}`;
+const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
 const e2eDistDir = process.env.NEXT_DIST_DIR ?? ".next-e2e";
 const e2eDatabasePath = "./.data/e2e-test.sqlite";
 const e2eServerCommand = `rm -f ${e2eDatabasePath} ${e2eDatabasePath}-wal ${e2eDatabasePath}-shm && NEXT_DIST_DIR=${e2eDistDir} PORT=${e2ePort} RULETRADE_DATABASE_PATH=${e2eDatabasePath} RULETRADE_E2E_DISABLE_MARKET_QUOTES=1 RULETRADE_READ_TOKEN=e2e-read-token RULETRADE_WRITE_TOKEN=e2e-write-token ${
-  process.env.CI ? "npm start" : "npm run dev"
+  process.env.CI
+    ? "npm start -- --hostname 127.0.0.1"
+    : "npm run dev -- --hostname 127.0.0.1"
 }`;
 
 export default defineConfig({
@@ -24,6 +28,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: e2eServerCommand,
+    env: e2eOAuthEnv,
     url: e2eBaseUrl,
     reuseExistingServer: false,
     timeout: 120_000,
