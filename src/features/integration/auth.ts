@@ -1,17 +1,22 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 
+import { getDb } from "@/lib/db";
+
+import {
+  hasApiKeyFormat,
+  hashIntegrationToken,
+  ledgerScopes,
+  verifyApiKey,
+  type IntegrationScope,
+} from "./api-keys";
 import { errorResponse } from "./responses";
 
-export type IntegrationScope = "read" | "write";
+export type { IntegrationScope } from "./api-keys";
 
 const tokenEnvironment: Record<IntegrationScope, string> = {
   read: "RULETRADE_READ_TOKEN",
   write: "RULETRADE_WRITE_TOKEN",
 };
-
-function hashToken(token: string): Buffer {
-  return createHash("sha256").update(token, "utf8").digest();
-}
 
 /**
  * Returns a response when the scope is disabled or authentication fails.
@@ -22,7 +27,11 @@ export function authorizeIntegrationRequest(
   scope: IntegrationScope,
 ): Response | null {
   const configuredToken = process.env[tokenEnvironment[scope]];
-  if (!configuredToken || configuredToken.trim().length === 0) {
+  const hasStaticToken = Boolean(configuredToken?.trim());
+  const hasEnabledScope = process.env.RULETRADE_OAUTH_SCOPES?.split(
+    /[\s,]+/,
+  ).includes(ledgerScopes[scope]);
+  if (!hasStaticToken && !hasEnabledScope) {
     return errorResponse("not_found");
   }
 
@@ -30,9 +39,23 @@ export function authorizeIntegrationRequest(
   const match = authorization?.match(/^Bearer\s+(\S+)\s*$/i);
   if (!match) return errorResponse("unauthorized");
 
-  return timingSafeEqual(hashToken(match[1]), hashToken(configuredToken))
-    ? null
-    : errorResponse("unauthorized");
+  const token = match[1];
+  const tokenHash = hashIntegrationToken(token);
+  if (
+    configuredToken &&
+    hasStaticToken &&
+    timingSafeEqual(tokenHash, hashIntegrationToken(configuredToken))
+  ) {
+    return null;
+  }
+  if (hasApiKeyFormat(token)) {
+    try {
+      if (verifyApiKey(getDb(), tokenHash, scope)) return null;
+    } catch {
+      return errorResponse("internal_error");
+    }
+  }
+  return errorResponse("unauthorized");
 }
 
 export function createMethodNotAllowedHandler(scope: IntegrationScope) {

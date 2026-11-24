@@ -200,9 +200,15 @@ export function importJson(value: unknown) {
       );
     }
   }
-  // integration_requests is an idempotency log and is intentionally not backed up.
+  // Keep idempotency logs and the token vault out of JSON backups.
   const rows: Record<
-    Exclude<keyof typeof schema, "integrationRequests" | "appSettings">,
+    Exclude<
+      keyof typeof schema,
+      | "integrationRequests"
+      | "integrationGrants"
+      | "integrationTokens"
+      | "appSettings"
+    >,
     Row[]
   > = {
     stocks: data.stocks,

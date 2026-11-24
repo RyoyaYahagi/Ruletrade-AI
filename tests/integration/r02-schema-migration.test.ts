@@ -23,7 +23,7 @@ function createLegacyDatabase() {
   legacy.close();
 }
 
-it("migrates a legacy database to origins, captures and idempotency keys without losing rows", async () => {
+it("migrates a legacy database to origins, captures, idempotency keys and the token vault without losing rows", async () => {
   createLegacyDatabase();
   process.env.RULETRADE_DATABASE_PATH = databasePath;
   try {
@@ -134,6 +134,21 @@ it("migrates a legacy database to origins, captures and idempotency keys without
         .prepare("SELECT count(*) AS count FROM integration_requests")
         .get(),
     ).toEqual({ count: 1 });
+    expect(client.pragma("index_list(integration_tokens)")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "integration_tokens_hash_idx",
+          unique: 1,
+        }),
+      ]),
+    );
+    expect(client.pragma("foreign_key_list(integration_tokens)")).toEqual([
+      expect.objectContaining({
+        table: "integration_grants",
+        from: "grant_id",
+        to: "id",
+      }),
+    ]);
     expect(client.pragma("foreign_key_check")).toEqual([]);
     first.$client.close();
 
@@ -147,6 +162,11 @@ it("migrates a legacy database to origins, captures and idempotency keys without
     expect(
       second.$client.prepare("SELECT count(*) AS count FROM reviews").get(),
     ).toEqual({ count: 1 });
+    for (const table of ["integration_grants", "integration_tokens"]) {
+      expect(
+        second.$client.prepare(`SELECT count(*) AS count FROM ${table}`).get(),
+      ).toEqual({ count: 0 });
+    }
     expect(
       second.$client.prepare("SELECT origin FROM decisions").get(),
     ).toEqual({ origin: "web" });
