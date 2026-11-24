@@ -1,0 +1,165 @@
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+
+import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+
+import type { AppDatabase } from "@/lib/db/connection";
+import { integrationGrants, integrationTokens } from "@/lib/db/schema";
+
+export const ledgerScopes = {
+  read: "ledger:read",
+  write: "ledger:write",
+} as const;
+export type IntegrationScope = keyof typeof ledgerScopes;
+
+const apiKeyPattern = /^rtk_[A-Za-z0-9_-]{43}$/;
+const dayMs = 24 * 60 * 60 * 1000;
+const lastUseIntervalMs = 60 * 1000;
+
+export function hashIntegrationToken(token: string): Buffer {
+  return createHash("sha256").update(token, "utf8").digest();
+}
+
+export function issueApiKey(
+  db: AppDatabase,
+  scope: IntegrationScope,
+  days = 90,
+) {
+  const now = Date.now();
+  const expiry = now + days * dayMs;
+  if (
+    !Number.isSafeInteger(days) ||
+    days < 1 ||
+    expiry > Date.parse("9999-12-31T23:59:59.999Z")
+  ) {
+    throw new RangeError("有効期間の日数が範囲外です。");
+  }
+
+  const expiresAt = new Date(expiry).toISOString();
+  const grantId = randomUUID();
+  const token = "rtk_" + randomBytes(32).toString("base64url");
+
+  db.transaction((tx) => {
+    tx.insert(integrationGrants)
+      .values({
+        id: grantId,
+        kind: "api_key",
+        scopes: [ledgerScopes[scope]],
+        createdAt: new Date(now).toISOString(),
+        expiresAt,
+      })
+      .run();
+    tx.insert(integrationTokens)
+      .values({
+        id: randomUUID(),
+        grantId,
+        type: "api_key",
+        tokenHash: hashIntegrationToken(token).toString("hex"),
+        expiresAt,
+      })
+      .run();
+  });
+  return token;
+}
+
+export function listApiKeys(db: AppDatabase) {
+  return db
+    .select()
+    .from(integrationGrants)
+    .where(eq(integrationGrants.kind, "api_key"))
+    .orderBy(asc(integrationGrants.createdAt), asc(integrationGrants.id))
+    .all();
+}
+
+export function revokeApiKey(db: AppDatabase, grantId: string): boolean {
+  const revokedAt = new Date().toISOString();
+  return db.transaction((tx) => {
+    const grant = tx
+      .update(integrationGrants)
+      .set({
+        revokedAt: sql`coalesce(${integrationGrants.revokedAt}, ${revokedAt})`,
+      })
+      .where(
+        and(
+          eq(integrationGrants.id, grantId),
+          eq(integrationGrants.kind, "api_key"),
+        ),
+      )
+      .returning({ id: integrationGrants.id })
+      .get();
+    if (!grant) return false;
+
+    tx.update(integrationTokens)
+      .set({ revokedAt })
+      .where(
+        and(
+          eq(integrationTokens.grantId, grantId),
+          eq(integrationTokens.type, "api_key"),
+          isNull(integrationTokens.revokedAt),
+        ),
+      )
+      .run();
+    return true;
+  });
+}
+
+export function verifyApiKey(
+  db: AppDatabase,
+  tokenHash: Buffer,
+  scope: IntegrationScope,
+): boolean {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const grant = db
+    .select({
+      id: integrationGrants.id,
+      scopes: integrationGrants.scopes,
+      lastUsedAt: integrationGrants.lastUsedAt,
+    })
+    .from(integrationTokens)
+    .innerJoin(
+      integrationGrants,
+      eq(integrationTokens.grantId, integrationGrants.id),
+    )
+    .where(
+      and(
+        eq(integrationTokens.tokenHash, tokenHash.toString("hex")),
+        eq(integrationTokens.type, "api_key"),
+        gt(integrationTokens.expiresAt, nowIso),
+        isNull(integrationTokens.revokedAt),
+        eq(integrationGrants.kind, "api_key"),
+        gt(integrationGrants.expiresAt, nowIso),
+        isNull(integrationGrants.revokedAt),
+      ),
+    )
+    .get();
+  if (
+    !grant ||
+    !Array.isArray(grant.scopes) ||
+    !grant.scopes.includes(ledgerScopes[scope])
+  ) {
+    return false;
+  }
+
+  const cutoff = new Date(now.getTime() - lastUseIntervalMs).toISOString();
+  if (!grant.lastUsedAt || grant.lastUsedAt <= cutoff) {
+    // Recheck the cutoff in SQLite so concurrent requests share the same limit.
+    db.update(integrationGrants)
+      .set({ lastUsedAt: nowIso })
+      .where(
+        and(
+          eq(integrationGrants.id, grant.id),
+          isNull(integrationGrants.revokedAt),
+          or(
+            isNull(integrationGrants.lastUsedAt),
+            lte(integrationGrants.lastUsedAt, cutoff),
+          ),
+        ),
+      )
+      .run();
+  }
+  return true;
+}
+
+export function hasApiKeyFormat(token: string): boolean {
+  return apiKeyPattern.test(token);
+}

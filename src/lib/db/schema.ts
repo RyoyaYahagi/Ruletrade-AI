@@ -240,6 +240,37 @@ export const integrationRequests = sqliteTable("integration_requests", {
   createdAt: text("created_at").notNull(),
 });
 
+export const integrationGrants = sqliteTable("integration_grants", {
+  id: text("id").primaryKey().notNull(),
+  kind: text("kind").notNull(),
+  clientId: text("client_id"),
+  label: text("label"),
+  scopes: text("scopes", { mode: "json" }).$type<string[]>().notNull(),
+  createdAt: text("created_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  revokedAt: text("revoked_at"),
+  lastUsedAt: text("last_used_at"),
+});
+
+export const integrationTokens = sqliteTable(
+  "integration_tokens",
+  {
+    id: text("id").primaryKey().notNull(),
+    grantId: text("grant_id")
+      .notNull()
+      .references(() => integrationGrants.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    usedAt: text("used_at"),
+    revokedAt: text("revoked_at"),
+  },
+  (table) => [
+    uniqueIndex("integration_tokens_hash_idx").on(table.tokenHash),
+    index("integration_tokens_grant_idx").on(table.grantId),
+  ],
+);
+
 export const schema = {
   stocks,
   stockBucketChanges,
@@ -253,4 +284,6 @@ export const schema = {
   captures,
   appSettings,
   integrationRequests,
+  integrationGrants,
+  integrationTokens,
 };

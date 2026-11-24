@@ -63,38 +63,44 @@
 
 ### 2.2 認証
 
-`Authorization: Bearer <token>` で認証する。トークンは読み取り用と書き込み用で分離する。
+`Authorization: Bearer <token>` で認証する。有効なスコープ（§2.3）では、SQLite で管理する API キーと、移行用の静的トークンを受け付ける。
 
-| 環境変数                | 使える操作                    | 置き場所                                  |
-| ----------------------- | ----------------------------- | ----------------------------------------- |
-| `RULETRADE_READ_TOKEN`  | `GET` 系のみ                  | サーバーの `.env.local`（Git に入れない） |
-| `RULETRADE_WRITE_TOKEN` | `POST` 系のみ（読み取り不可） | サーバーの `.env.local`（Git に入れない） |
+| 操作               | API キーに必要なスコープ | 移行用の環境変数        |
+| ------------------ | ------------------------ | ----------------------- |
+| 読み取り（`GET`）  | `ledger:read`            | `RULETRADE_READ_TOKEN`  |
+| 書き込み（`POST`） | `ledger:write`           | `RULETRADE_WRITE_TOKEN` |
 
-- 読み取りエンドポイントは `RULETRADE_READ_TOKEN` だけを受け付ける。
-- 書き込みエンドポイントは `RULETRADE_WRITE_TOKEN` だけを受け付ける。
-- 書き込みトークンでは読めず、読み取りトークンでは書けない。スコープ違いは 401 `unauthorized`。
-- トークンなし・不一致・スコープ違いは、すべて 401 `unauthorized` とする（R-03 / R-08 の受け入れ条件）。
-- トークンの比較は定数時間で行う。両方を SHA-256 でハッシュ化し、`crypto.timingSafeEqual` で比較する（長さの差も漏らさない）。
-- 401 のレスポンスには `WWW-Authenticate: Bearer` を付ける。
-- トークンの値はログ・レスポンス・エラーメッセージに含めない。
-- Muse 側へは Secure Vault 経由で渡し、チャット本文やファイルに値を書かない。
-- 読み取りトークンと書き込みトークンに同じ値を設定しない（スコープ分離が壊れる）。
+- 読み取りと書き込みのスコープは独立している。書き込みキーで読み取りはできず、読み取りキーで書き込みはできない。移行用の静的トークンも同様で、読み取り用と書き込み用に同じ値を設定しない。
+- ヘッダがない、Bearer の形式が違う、値が一致しない、期限切れ、取り消し済み、スコープ違いは、すべて 401 `unauthorized` とする。401 のヘッダは常に `WWW-Authenticate: Bearer` とする。Bearer の綴りは大文字小文字を区別しない。
+- まず静的トークンを SHA-256 と `crypto.timingSafeEqual` で照合する。一致しなければ、API キーの SHA-256 ハッシュを SQLite で照合する。API キーとその許可の両方が期限内で取り消されておらず、許可に必要なスコープが含まれている場合に通す。
+- API キーは接頭辞 `rtk_` と、32 バイトの乱数を base64url で表した値で構成する。保存するのは SHA-256 ハッシュのみ。許可の最終使用時刻は認証成功時に更新し、許可ごとに 1 分に 1 回までとする。
+- API キーと許可は JSON エクスポート・インポートの対象外。取り消した許可は JSON を復元しても有効にならない。
+- トークンの値はログ・レスポンス・エラーメッセージに含めない。Muse 側へは Secure Vault 経由で渡し、チャット本文やファイルに値を書かない。
 
-`Authorization` ヘッダがない、`Bearer` で始まらない、トークンが空、のいずれも 401 とする。`Bearer` の綴りは大文字小文字を区別しない。
+#### API キーの管理
 
-### 2.3 トークン未設定時の扱い（スコープ別）
+アプリと同じディレクトリで実行する。CLI は実行環境の `RULETRADE_DATABASE_PATH` を優先し、未設定なら `.env.local` を参照する。どちらも未設定なら既定の `.data/ruletrade-mvp.sqlite` を使用する。サービスが別の DB パスを使う場合は CLI にも同じパスを設定する。
 
-トークンが設定されていない環境では、そのスコープの窓口 API を無効にする。Web UI には影響させない。
+```sh
+npm run --silent integration:keys -- issue --scope read
+npm run --silent integration:keys -- issue --scope write --days 30
+npm run --silent integration:keys -- list
+npm run --silent integration:keys -- revoke <grant-id>
+```
 
-| 設定状態                                                   | 読み取りエンドポイント   | 書き込みエンドポイント   |
-| ---------------------------------------------------------- | ------------------------ | ------------------------ |
-| `RULETRADE_READ_TOKEN` も `RULETRADE_WRITE_TOKEN` も未設定 | 404 `not_found`          | 404 `not_found`          |
-| `RULETRADE_READ_TOKEN` だけ未設定                          | 404 `not_found`          | トークンが一致すれば動作 |
-| `RULETRADE_WRITE_TOKEN` だけ未設定                         | トークンが一致すれば動作 | 404 `not_found`          |
+有効期間は既定 90 日。`issue` はキーの値を標準出力に 1 回だけ表示する。`list` は許可の ID、スコープ、期限、取り消し時刻、最終使用時刻などを表示する。`revoke` には一覧の許可 ID を渡す。発行と取り消しは、次の認証から再起動なしで反映される。
 
-- 無効なスコープは、存在しないパスと同じ 404 `{"error":{"code":"not_found","message":"リソースが見つかりません。"}}` を返す。パスの存在を区別しない。
-- 読み取り（R-03）が書き込み（R-08）より先にリリースされるため、スコープ別に無効化できるようにする。
-- 必須トークンが未設定の場合は、`Authorization` ヘッダの有無にかかわらず 404 を返す（401 より先に判定する）。
+### 2.3 スコープの有効化
+
+読み取りと書き込みを別々に設定する。`RULETRADE_OAUTH_SCOPES` には `ledger:read ledger:write` のように、スコープを空白またはコンマで区切って指定する。
+
+| 操作     | 有効化の条件（いずれか一方）                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------- |
+| 読み取り | `RULETRADE_OAUTH_SCOPES` に `ledger:read` がある、または `RULETRADE_READ_TOKEN` に空白以外の値がある   |
+| 書き込み | `RULETRADE_OAUTH_SCOPES` に `ledger:write` がある、または `RULETRADE_WRITE_TOKEN` に空白以外の値がある |
+
+- スコープの有効化は設定で決まり、DB 内の許可の有無や有効期限には依存しない。有効なスコープに使えるキーがなければ、認証失敗は 401 になる。
+- 無効なスコープは、`Authorization` ヘッダの有無にかかわらず、認証より先に存在しないパスと同じ 404 `{"error":{"code":"not_found","message":"リソースが見つかりません。"}}` を返す。Web UI には影響しない。
 
 ### 2.4 共通レスポンス形式とエラー形式
 
@@ -130,7 +136,7 @@
 | code                     | HTTP | 意味                                                              |
 | ------------------------ | ---- | ----------------------------------------------------------------- |
 | `unauthorized`           | 401  | トークンなし・不一致・スコープ違い                                |
-| `not_found`              | 404  | リソースが存在しない、または必須トークン未設定でスコープが無効    |
+| `not_found`              | 404  | リソースが存在しない、またはスコープが無効                        |
 | `validation_error`       | 400  | JSON 不正、必須欠落、型・形式・値の不正、条件の矛盾               |
 | `method_not_allowed`     | 405  | パスは存在するがメソッドが違う（`PATCH` / `PUT` / `DELETE` など） |
 | `idempotency_key_reused` | 409  | 同じ `clientRequestId` を別の本文または別のエンドポイントで使った |
@@ -429,7 +435,7 @@ type ValuedHolding = Holding & {
 
 ## 4. 読み取りエンドポイント
 
-読み取りはすべて `RULETRADE_READ_TOKEN` を要求する。書き込みトークンでは読めない（401）。レスポンスの各型は §3 を参照。
+読み取りはすべて読み取りスコープの認証を要求する（§2.2）。レスポンスの各型は §3 を参照。
 
 ### 4.1 `GET /status`
 
@@ -466,14 +472,14 @@ type ValuedHolding = Holding & {
 | ---------- | ------------------------ | -------------------------------------- |
 | 400        | `validation_error`       | 該当なし                               |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン |
-| 404        | `not_found`              | 読み取りトークン未設定                 |
+| 404        | `not_found`              | 読み取りスコープ無効                 |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                   |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/status HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -561,14 +567,14 @@ type CurrencyTotals = {
 | ---------- | ------------------------ | -------------------------------------- |
 | 400        | `validation_error`       | 該当なし                               |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン |
-| 404        | `not_found`              | 読み取りトークン未設定                 |
+| 404        | `not_found`              | 読み取りスコープ無効                 |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                   |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/holdings HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -721,14 +727,14 @@ type StockSummary = Stock & {
 | ---------- | ------------------------ | -------------------------------------- |
 | 400        | `validation_error`       | 該当なし                               |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン |
-| 404        | `not_found`              | 読み取りトークン未設定                 |
+| 404        | `not_found`              | 読み取りスコープ無効                 |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                   |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/stocks HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -809,14 +815,14 @@ type TimelineItem = {
 | ---------- | ------------------------ | ---------------------------------------------- |
 | 400        | `validation_error`       | 該当なし                                       |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン         |
-| 404        | `not_found`              | 読み取りトークン未設定、または銘柄が存在しない |
+| 404        | `not_found`              | 読み取りスコープ無効、または銘柄が存在しない |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                           |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/stocks/3f0c9a52-7d1e-4b6a-9c2f-1a2b3c4d5e6f HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -959,14 +965,14 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 | ---------- | ------------------------ | -------------------------------------------------------- |
 | 400        | `validation_error`       | `side` が不正、`from` / `to` が日付でない、`from` > `to` |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン                   |
-| 404        | `not_found`              | 読み取りトークン未設定、または `stockId` の銘柄がない    |
+| 404        | `not_found`              | 読み取りスコープ無効、または `stockId` の銘柄がない    |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                                     |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/transactions?stockId=3f0c9a52-7d1e-4b6a-9c2f-1a2b3c4d5e6f&side=buy&from=2026-11-01&to=2026-11-30 HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -1064,14 +1070,14 @@ type BucketWarning = {
 | ---------- | ------------------------ | -------------------------------------- |
 | 400        | `validation_error`       | 該当なし                               |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン |
-| 404        | `not_found`              | 読み取りトークン未設定                 |
+| 404        | `not_found`              | 読み取りスコープ無効                 |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                   |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/due HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -1178,14 +1184,14 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 | ---------- | ------------------------ | -------------------------------------- |
 | 400        | `validation_error`       | `status` が上記の値以外                |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン |
-| 404        | `not_found`              | 読み取りトークン未設定                 |
+| 404        | `not_found`              | 読み取りスコープ無効                 |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                   |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/captures?status=pending HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例:
@@ -1304,14 +1310,14 @@ type RealizedStockTotals = RealizedTotals & {
 | ---------- | ------------------------ | ----------------------------------------------------- |
 | 400        | `validation_error`       | `from` / `to` が日付でない、`from` > `to`             |
 | 401        | `unauthorized`           | トークンなし・不一致・書き込みトークン                |
-| 404        | `not_found`              | 読み取りトークン未設定、または `stockId` の銘柄がない |
+| 404        | `not_found`              | 読み取りスコープ無効、または `stockId` の銘柄がない |
 | 409        | `idempotency_key_reused` | 該当なし（読み取り）                                  |
 
 リクエスト例:
 
 ```http
 GET /api/integration/v1/realized-pnl?from=2026-11-01&to=2026-11-30 HTTP/1.1
-Authorization: Bearer <RULETRADE_READ_TOKEN>
+Authorization: Bearer <read-token>
 ```
 
 レスポンス例（手数料が未入力の売却）:
@@ -1371,7 +1377,7 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 
 ## 5. 書き込みエンドポイント
 
-書き込みはすべて `RULETRADE_WRITE_TOKEN` を要求する。読み取りトークンでは書けない（401）。すべて「確認済みの確定書き込み」専用で、下書き状態を持たない。レスポンスの各型は §3 を参照。
+書き込みはすべて書き込みスコープの認証を要求する（§2.2）。すべて「確認済みの確定書き込み」専用で、下書き状態を持たない。レスポンスの各型は §3 を参照。
 
 ### 5.1 冪等ルール（`clientRequestId`）
 
@@ -1456,14 +1462,14 @@ Authorization: Bearer <RULETRADE_READ_TOKEN>
 | ---------- | ------------------------ | ----------------------------------------------------------- |
 | 400        | `validation_error`       | `clientRequestId` が UUID でない、`rawInput` が空、型が違う |
 | 401        | `unauthorized`           | トークンなし・不一致・読み取りトークン                      |
-| 404        | `not_found`              | 書き込みトークン未設定、または `stockId` の銘柄がない       |
+| 404        | `not_found`              | 書き込みスコープ無効、または `stockId` の銘柄がない       |
 | 409        | `idempotency_key_reused` | 同じキーを別の本文・エンドポイントで使った                  |
 
 リクエスト例:
 
 ```http
 POST /api/integration/v1/captures HTTP/1.1
-Authorization: Bearer <RULETRADE_WRITE_TOKEN>
+Authorization: Bearer <write-token>
 Content-Type: application/json; charset=utf-8
 ```
 
@@ -1586,7 +1592,7 @@ Content-Type: application/json; charset=utf-8
 | ---------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | 400        | `validation_error`       | UUID 不正、必須欠落、`type` 不正、`decidedAt` が日付でない、`reviewDates` が日時でない、受け箱の銘柄と `stockId` が違う |
 | 401        | `unauthorized`           | トークンなし・不一致・読み取りトークン                                                                                  |
-| 404        | `not_found`              | 書き込みトークン未設定、`stockId` の銘柄がない、`captureId` の受け箱がない                                              |
+| 404        | `not_found`              | 書き込みスコープ無効、`stockId` の銘柄がない、`captureId` の受け箱がない                                              |
 | 409        | `capture_not_pending`    | 受け箱が `organized` / `discarded` 済み                                                                                 |
 | 409        | `idempotency_key_reused` | 同じキーを別の本文・エンドポイントで使った                                                                              |
 
@@ -1594,7 +1600,7 @@ Content-Type: application/json; charset=utf-8
 
 ```http
 POST /api/integration/v1/decisions HTTP/1.1
-Authorization: Bearer <RULETRADE_WRITE_TOKEN>
+Authorization: Bearer <write-token>
 Content-Type: application/json; charset=utf-8
 ```
 
@@ -1709,14 +1715,14 @@ Content-Type: application/json; charset=utf-8
 | ---------- | ------------------------ | ------------------------------------------------ |
 | 400        | `validation_error`       | UUID 不正、`decisionId` が空・`null`、銘柄が違う |
 | 401        | `unauthorized`           | トークンなし・不一致・読み取りトークン           |
-| 404        | `not_found`              | 書き込みトークン未設定、売買がない、判断がない   |
+| 404        | `not_found`              | 書き込みスコープ無効、売買がない、判断がない   |
 | 409        | `idempotency_key_reused` | 同じキーを別の本文・エンドポイントで使った       |
 
 リクエスト例:
 
 ```http
 POST /api/integration/v1/transactions/d9e0f1a2-b3c4-4d5e-8f6a-7b8c9d0e1f2a/decision-link HTTP/1.1
-Authorization: Bearer <RULETRADE_WRITE_TOKEN>
+Authorization: Bearer <write-token>
 Content-Type: application/json; charset=utf-8
 ```
 
@@ -1817,14 +1823,14 @@ Content-Type: application/json; charset=utf-8
 | ---------- | ------------------------ | ------------------------------------------------------------------------- |
 | 400        | `validation_error`       | UUID 不正、必須欠落、`decisionId` が別銘柄の判断                          |
 | 401        | `unauthorized`           | トークンなし・不一致・読み取りトークン                                    |
-| 404        | `not_found`              | 書き込みトークン未設定、`stockId` の銘柄がない、`decisionId` の判断がない |
+| 404        | `not_found`              | 書き込みスコープ無効、`stockId` の銘柄がない、`decisionId` の判断がない |
 | 409        | `idempotency_key_reused` | 同じキーを別の本文・エンドポイントで使った                                |
 
 リクエスト例:
 
 ```http
 POST /api/integration/v1/reviews HTTP/1.1
-Authorization: Bearer <RULETRADE_WRITE_TOKEN>
+Authorization: Bearer <write-token>
 Content-Type: application/json; charset=utf-8
 ```
 
@@ -1886,7 +1892,7 @@ Content-Type: application/json; charset=utf-8
 
 ### 6.1 エンドポイント別の該当有無
 
-「404（リソース）」は、パスやクエリで指定した銘柄・判断・売買・受け箱が見つからない場合。これとは別に、必須トークンが未設定の場合は全エンドポイントで 404 `not_found` になる（§2.3）。
+「404（リソース）」は、パスやクエリで指定した銘柄・判断・売買・受け箱が見つからない場合。これとは別に、スコープが無効な場合は該当するエンドポイントで 404 `not_found` になる（§2.3）。
 
 | エンドポイント                         | 400 検証 | 401 認証 | 404 リソース | 409 状態・冪等       |
 | -------------------------------------- | -------- | -------- | ------------ | -------------------- |
@@ -1905,12 +1911,12 @@ Content-Type: application/json; charset=utf-8
 
 - 405 `method_not_allowed` と 500 `internal_error` は全エンドポイントで起こりうる。
 - 401 は、トークンなし・不一致・スコープ違いのすべて。
-- 404 は、リソースなしと「必須トークン未設定」の両方で同じコード・同じ形にする。
+- 404 は、リソースなしと「スコープ無効」の両方で同じコード・同じ形にする。
 
 ### 6.2 判定の順序
 
 1. パスが存在しなければ 404 `not_found`。
-2. そのパスに必要なトークンが未設定なら 404 `not_found`（認証ヘッダより先）。
+2. 必要なスコープが無効なら 404 `not_found`（認証ヘッダより先）。
 3. 認証が通らなければ 401 `unauthorized`。
 4. メソッドが違えば 405 `method_not_allowed`。
 5. JSON の解析・スキーマ検証に失敗すれば 400 `validation_error`。
@@ -1999,12 +2005,12 @@ Content-Type: application/json; charset=utf-8
 
 - R-03 の時点で `GET /holdings` の `realizedProfitLoss` は `null` のまま返す。フィールドを後から増やすと Muse 側の実装が壊れるため、置き場だけ先に固定する。
 - R-06 は計算ルールを確定した時点でこの文書の §4.8 を更新する。R-01 では形だけを固定する。
-- R-07 の `POST /captures` は `RULETRADE_WRITE_TOKEN` を必要とする。読み取り（R-03）が先にリリースされても、書き込みトークンが未設定なら書き込みだけ 404 になる（§2.3）。
+- R-07 の `POST /captures` は書き込みスコープの認証を要求する。書き込みスコープを無効にしている場合は 404 になる（§2.3）。
 
 ## 8. 設計メモからの変更点
 
-1. **トークン未設定時の扱いをスコープ別にした**。`RULETRADE_READ_TOKEN` 未設定なら読み取りが、`RULETRADE_WRITE_TOKEN` 未設定なら書き込みが 404 になる。読み取り（R-03）が書き込み（R-08）より先にリリースされるため。
-2. **認証エラーをすべて 401 `unauthorized` にした**。トークンなし・不一致・スコープ違いを区別しない。トークン比較は定数時間で行う。R-03 / R-08 の受け入れ条件に合わせるため。
+1. **無効化の扱いをスコープ別にした**。読み取りと書き込みはそれぞれ無効化した場合に 404 を返す（現行の有効化条件は §2.3）。読み取り（R-03）が書き込み（R-08）より先にリリースされるため。
+2. **認証エラーをすべて 401 `unauthorized` にした**。トークンなし・不一致・スコープ違いを区別しない。静的トークンの比較は定数時間で行う。R-03 / R-08 の受け入れ条件に合わせるため。
 3. **PATCH を持たない**。設計メモ §5.1 の「POST / PATCH 系」を「POST 系」と読み替える。更新系エンドポイントが存在しないため。
 4. **受け箱の出所列を `origin` にした**。設計メモ §7 の `source` を、`decisions` / `reviews` と同じ `origin`（`"web"` / `"muse"`）に名前を揃える。既存の `decisions` / `reviews` は `"web"` として扱う。
 5. **冪等キーは専用テーブル `integration_requests` で管理する**。`decision-link` や「`captureId` 指定で受け箱を整理済みにする」は新しい行を作らないため、各テーブルの列ではなく専用テーブルで管理する。
