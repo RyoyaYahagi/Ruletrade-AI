@@ -24,15 +24,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Check forbidden files
-        run: |
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"...HEAD)
-
-          echo "$CHANGED_FILES"
-
-          if echo "$CHANGED_FILES" | grep -E '(^|/)\.env\.local$'; then
-            echo "Agent PR must not modify .env.local"
-            exit 1
-          fi
+        shell: bash
+        run: git diff --name-only -z "$BASE_SHA"...HEAD | bash scripts/check-agent-pr-env-files.sh
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
