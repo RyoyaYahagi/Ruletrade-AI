@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { eq } from "drizzle-orm";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   afterAll,
@@ -30,6 +31,7 @@ const WRITE_TOKEN = "test-write-token";
 
 const STOCK_A = {
   id: "stock-test-shoji",
+  bucket: "core" as const,
   ticker: "9999",
   name: "テスト商事",
   normalizedName: "テスト商事",
@@ -39,6 +41,7 @@ const STOCK_A = {
 };
 const STOCK_B = {
   id: "stock-apple-test",
+  bucket: "satellite" as const,
   ticker: "TEST",
   name: "Apple Test",
   normalizedName: "apple test",
@@ -555,6 +558,67 @@ describe("capture status", () => {
 });
 
 describe("GET /holdings", () => {
+  it("returns the current allocation and each holding's bucket without a warning threshold", async () => {
+    const quotes = defaultQuotes();
+    quotes.set("JPY=X", marketQuote("JPY=X", 150, "JPY"));
+    market.getQuotes.mockResolvedValue(quotes);
+
+    const data = await readData(
+      await routes.holdings.GET(apiRequest("/holdings")),
+    );
+
+    expect(data.holdings).toMatchObject([
+      { stockId: STOCK_B.id, bucket: "satellite" },
+      { stockId: STOCK_A.id, bucket: "core" },
+      { stockId: STOCK_C.id, bucket: "unclassified" },
+    ]);
+    const satelliteValue = 10 * 165 * 150 + 100 * 8500;
+    expect(data.satelliteMarketValuePct).toBeCloseTo(
+      (satelliteValue / (satelliteValue + 80 * 2800)) * 100,
+    );
+    expect(market.getQuotes).toHaveBeenCalledTimes(2);
+    expect(market.getQuotes).toHaveBeenCalledWith(["JPY=X"]);
+  });
+
+  it("uses acquisition amount for a missing quote and needs no rate for JPY holdings", async () => {
+    dbModule
+      .getDb()
+      .delete(schema.transactions)
+      .where(eq(schema.transactions.stockId, STOCK_B.id))
+      .run();
+    const quotes = defaultQuotes();
+    quotes.delete("8888.T");
+    market.getQuotes.mockResolvedValue(quotes);
+
+    const data = await readData(
+      await routes.holdings.GET(apiRequest("/holdings")),
+    );
+
+    expect(data.satelliteMarketValuePct).toBeCloseTo(
+      (800000 / (800000 + 80 * 2800)) * 100,
+    );
+  });
+
+  it("returns holdings with a null allocation when the required FX rate is missing", async () => {
+    const data = await readData(
+      await routes.holdings.GET(apiRequest("/holdings")),
+    );
+
+    expect(data.holdings).toHaveLength(3);
+    expect(data.satelliteMarketValuePct).toBeNull();
+  });
+
+  it("returns a null allocation when the portfolio has no positive valuation", async () => {
+    dbModule.getDb().delete(schema.transactions).run();
+
+    const data = await readData(
+      await routes.holdings.GET(apiRequest("/holdings")),
+    );
+
+    expect(data.holdings).toEqual([]);
+    expect(data.satelliteMarketValuePct).toBeNull();
+  });
+
   it("returns the same quantities, acquisition amounts, and profit/loss as the portfolio screen", async () => {
     const response = await routes.holdings.GET(apiRequest("/holdings"));
     expect(response.status).toBe(200);
