@@ -3,6 +3,7 @@ import "server-only";
 import { asc } from "drizzle-orm";
 
 import { getUsdJpyRate } from "@/features/market-data/exchange-rate";
+import type { MarketQuote } from "@/features/market-data/provider";
 import { marketPriceProvider } from "@/features/market-data/quotes";
 import { toQuoteSymbol } from "@/features/market-data/symbols";
 import { listPortfolioAction } from "@/features/portfolio/actions";
@@ -17,6 +18,7 @@ import { TransactionSchema } from "@/schemas/transaction";
 
 export async function loadBucketSummary(
   holdingsInput?: readonly PortfolioHolding[],
+  quotesInput?: ReadonlyMap<string, MarketQuote>,
 ): Promise<BucketSummary> {
   const holdings = holdingsInput ?? (await listPortfolioAction());
   const db = getDb();
@@ -30,19 +32,22 @@ export async function loadBucketSummary(
     .from(transactions)
     .all()
     .map((row) => TransactionSchema.parse(row));
-  const symbols = [
-    ...new Set(
-      holdings
-        .filter((holding) => holding.quantity > 0)
-        .map((holding) => toQuoteSymbol(holding))
-        .filter((symbol): symbol is string => symbol !== null),
-    ),
-  ];
+  const symbols = quotesInput
+    ? []
+    : [
+        ...new Set(
+          holdings
+            .filter((holding) => holding.quantity > 0)
+            .map((holding) => toQuoteSymbol(holding))
+            .filter((symbol): symbol is string => symbol !== null),
+        ),
+      ];
 
   const [quotes, exchangeRate] = await Promise.all([
-    symbols.length === 0
-      ? Promise.resolve(new Map())
-      : marketPriceProvider.getQuotes(symbols).catch(() => new Map()),
+    quotesInput ??
+      (symbols.length === 0
+        ? new Map<string, MarketQuote>()
+        : marketPriceProvider.getQuotes(symbols).catch(() => new Map())),
     getUsdJpyRate(),
   ]);
 

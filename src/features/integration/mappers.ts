@@ -131,6 +131,7 @@ export type IntegrationQuote = {
 };
 
 export type IntegrationValuedHolding = IntegrationHolding & {
+  bucket: PortfolioHolding["bucket"];
   quote: IntegrationQuote | null;
   quoteError: string | null;
   marketValue: Money | null;
@@ -364,6 +365,7 @@ export function toValuedHolding(
 ): IntegrationValuedHolding {
   return {
     ...toHolding(valued.holding),
+    bucket: valued.holding.bucket,
     quote: toQuote(valued.quote),
     quoteError: valued.quoteError,
     marketValue: toMoney(

@@ -17,6 +17,7 @@ import {
   listPortfolioAction,
   listRealizedProfitLossAction,
 } from "@/features/portfolio/actions";
+import { loadBucketSummary } from "@/features/portfolio/bucket-data";
 import {
   realizedProfitLossForCurrency,
   realizedProfitLossForStock,
@@ -55,6 +56,10 @@ export async function GET(request: Request) {
       quotes = new Map();
     }
 
+    const { satelliteMarketValuePct } = await loadBucketSummary(
+      holdings,
+      quotes,
+    );
     const valuedHoldings = calculateValuation(
       holdings,
       quotes,
@@ -69,6 +74,7 @@ export async function GET(request: Request) {
 
     return successResponse({
       holdings: sortedHoldings.map(toValuedHolding),
+      satelliteMarketValuePct,
       totalsByCurrency: [
         toCurrencyTotals(
           summaries.JPY,

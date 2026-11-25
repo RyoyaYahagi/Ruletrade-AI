@@ -423,6 +423,7 @@ type Quote = {
 };
 
 type ValuedHolding = Holding & {
+  bucket: "core" | "satellite" | "unclassified";
   quote: Quote | null;
   quoteError: string | null;
   marketValue: Money | null;
@@ -434,6 +435,7 @@ type ValuedHolding = Holding & {
 
 - `Holding` は `calculatePortfolio` の戻り値に対応する。
 - `ValuedHolding` は `calculateValuation` の戻り値に対応する。
+- `ValuedHolding.bucket` は銘柄の現在の分類（コア、サテライト、未分類）。未分類は `unclassified` のまま返す。
 - `averagePurchasePrice` / `acquisitionAmount` は、価格不明・通貨混在・過売却のとき `null`。
 - `hasWarning` / `warningReason` は、過売却（`"売買履歴上、保有数量を超える売却があります"`）や通貨混在（`"異なる通貨の取引が混在しています"`）を表す。
 - `adjustments` は株式分割・スピンオフの適用ラベル。
@@ -541,10 +543,11 @@ Authorization: Bearer <read-token>
 
 レスポンス `data`:
 
-| フィールド         | 型                 | 意味                                                         |
-| ------------------ | ------------------ | ------------------------------------------------------------ |
-| `holdings`         | `ValuedHolding[]`  | 保有銘柄。`calculatePortfolio` + `calculateValuation` の結果 |
-| `totalsByCurrency` | `CurrencyTotals[]` | 通貨別合計。`"JPY"` と `"USD"` の 2 要素を常に返す           |
+| フィールド                | 型                 | 意味                                                         |
+| ------------------------- | ------------------ | ------------------------------------------------------------ |
+| `holdings`                | `ValuedHolding[]`  | 保有銘柄。`calculatePortfolio` + `calculateValuation` の結果 |
+| `satelliteMarketValuePct` | `number \| null`   | 評価額の合計に占めるサテライト側の割合（%）                  |
+| `totalsByCurrency`        | `CurrencyTotals[]` | 通貨別合計。`"JPY"` と `"USD"` の 2 要素を常に返す           |
 
 `CurrencyTotals`:
 
@@ -570,6 +573,9 @@ type CurrencyTotals = {
 - `completeness.allocation` は、評価額が全銘柄分そろい、合計が 0 より大きいときだけ `true`。
 - その通貨の保有が 1 件もない場合、`marketValue` / `acquisitionAmount` / `unrealizedProfitLoss` は 0 の `Money` になり、`completeness.allocation` は `false` になる（`summarizeValuation` の挙動）。
 - `realizedProfitLoss` は、各銘柄はその銘柄の実現損益合計、通貨別合計は通貨ごとの実現損益を入れる。売却がない場合は 0、1 件でも計算できない売却があれば `null`。
+
+- `satelliteMarketValuePct` は警告線の設定や超過に関係なく返す。数量が正の保有を対象に、サテライトと未分類の円換算評価額を全体の円換算評価額で割って 100 を掛ける。
+- 構成比はポートフォリオ画面と同様に、株価が使えない銘柄は取得額で代用する。このため各項目の `marketValue` の単純合計とは一致しない場合がある。評価額がそろわない、必要な為替レートがない、または評価額合計が正でない場合は `null`。円建てだけで集計できる場合は為替レートを必要としない。
 
 参考株価の扱い:
 
@@ -609,6 +615,7 @@ Authorization: Bearer <read-token>
       {
         "stockId": "3f0c9a52-7d1e-4b6a-9c2f-1a2b3c4d5e6f",
         "stockName": "キオクシア",
+        "bucket": "core",
         "ticker": "285A",
         "marketCode": "JP",
         "quantity": 100,
@@ -634,6 +641,7 @@ Authorization: Bearer <read-token>
       {
         "stockId": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
         "stockName": "NVIDIA",
+        "bucket": "satellite",
         "ticker": "NVDA",
         "marketCode": "US",
         "quantity": 10,
@@ -657,6 +665,7 @@ Authorization: Bearer <read-token>
         "realizedProfitLoss": null
       }
     ],
+    "satelliteMarketValuePct": 46.91943127962085,
     "totalsByCurrency": [
       {
         "currency": "JPY",
@@ -1084,7 +1093,8 @@ type BucketWarning = {
 - `unlinkedTransactions` は `executedAt` の降順。
 - `decision.reviewAt` は元の値のまま。期限として採用した日は `dueReviewAt` で返す。
 - `dueOn` は `dueReviewAt` の JST の日付。
-- `bucketWarning` は追加フィールドであり、既存フィールドの形は変えない。警告線（`satelliteWarnPct`）が未設定、割合が警告線以下、または換算レートを取得できないときは `null`。`marketValueJpy` は円換算したサテライト評価額、`exchangeRate` は表示に使った参考レートと時点。
+- `bucketWarning` は追加フィールドであり、既存フィールドの形は変えない。警告線（`satelliteWarnPct`）が未設定、割合が警告線以下、または割合を算出できないときは `null`。`marketValueJpy` は円換算したサテライト評価額、`exchangeRate` は表示に使った参考レートと時点。
+- 警告線に関係なく現在の割合を読むには、[§4.2 `GET /holdings`](#42-get-holdings) の `satelliteMarketValuePct` を使う。
 
 エラー:
 
